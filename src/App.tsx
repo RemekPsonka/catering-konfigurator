@@ -13,6 +13,7 @@ import { ResetPasswordPage } from "@/pages/auth/reset-password";
 import { OffersListPage } from "@/pages/admin/offers-list";
 import { OfferNewPage } from "@/pages/admin/offer-new";
 import { OfferEditPage } from "@/pages/admin/offer-edit";
+import { OfferMessagesPage } from "@/pages/admin/offer-messages";
 import { ProposalDiffPage } from "@/pages/admin/proposal-diff";
 import { DishesListPage } from "@/pages/admin/dishes-list";
 import { ServicesListPage } from "@/pages/admin/services-list";
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="offers" element={<OffersListPage />} />
                 <Route path="offers/new" element={<OfferNewPage />} />
                 <Route path="offers/:id/edit" element={<OfferEditPage />} />
+                <Route path="offers/:id/messages" element={<OfferMessagesPage />} />
                 <Route path="offers/:id/proposals/:proposalId" element={<ProposalDiffPage />} />
                 <Route path="dishes" element={<DishesListPage />} />
                 <Route path="dishes/categories" element={<DishCategoriesPage />} />
