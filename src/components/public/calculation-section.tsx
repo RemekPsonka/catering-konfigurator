@@ -41,22 +41,36 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const prevValidCount = useRef(people_count);
   const debouncedCount = useDebounce(localPeopleCount, 300);
 
-  // Adapt PublicOffer types to calculation types via cast
-  const variants = offer_variants as unknown as VariantWithItems[];
-  const services = offer_services as unknown as OfferServiceWithService[];
+  // Apply modifications to variant items before calculation
+  const adjustedVariants = useMemo(() => {
+    if (!modifications || modifications.size === 0) return variants;
+    return variants.map((v) => ({
+      ...v,
+      variant_items: v.variant_items.map((item) => {
+        const mod = modifications.get(item.id);
+        if (!mod) return item;
+        let priceAdj = 0;
+        if (mod.type === 'swap' && mod.swapPriceDiff != null) priceAdj = mod.swapPriceDiff;
+        if (mod.type === 'variant' && mod.variantPriceModifier != null) priceAdj = mod.variantPriceModifier;
+        if (priceAdj === 0) return item;
+        const basePrice = item.custom_price != null ? Number(item.custom_price) : getItemPrice(item as never);
+        return { ...item, custom_price: basePrice + priceAdj };
+      }),
+    })) as unknown as VariantWithItems[];
+  }, [variants, modifications]);
 
   const totals = useMemo(
     () =>
       calculateOfferTotals(
         pricing_mode,
         debouncedCount,
-        variants,
+        adjustedVariants,
         services,
         discount_percent ?? 0,
         discount_value ?? 0,
         delivery_cost ?? 0,
       ),
-    [pricing_mode, debouncedCount, variants, services, discount_percent, discount_value, delivery_cost],
+    [pricing_mode, debouncedCount, adjustedVariants, services, discount_percent, discount_value, delivery_cost],
   );
 
   // Guardrail check
