@@ -85,10 +85,10 @@ export const DishCard = ({
 
   const displayName = modification?.swapDishName ?? item.custom_name ?? dish.display_name;
   const showPrice = priceDisplayMode !== 'HIDDEN';
-  const isEditable = item.is_client_editable && onToggleExpand;
   const isModified = !!modification;
 
   const modifications: Json | null = (item.allowed_modifications ?? dish.modifiable_items) as Json | null;
+  const isEditable = item.is_client_editable && onToggleExpand && !!modifications;
 
   const handlePhotoClick = (index: number) => {
     setLightboxIndex(index);
