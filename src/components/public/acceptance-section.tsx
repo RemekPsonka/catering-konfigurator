@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/calculations';
 import { useAcceptOffer } from '@/hooks/use-public-offer';
+import { fireNotification } from '@/hooks/use-notifications';
 import { fadeInUp, scaleIn } from '@/lib/animations';
 import type { PublicOffer } from '@/hooks/use-public-offer';
 
@@ -43,6 +44,17 @@ export const AcceptanceSection = ({ offer, onAccepted }: AcceptanceSectionProps)
           setShowConfirm(false);
           setAccepted(true);
           onAccepted();
+          // Fire-and-forget notification
+          const clientName = offer.clients?.name ?? 'Klient';
+          const variantName = selectedVariant?.name ?? 'brak';
+          const totalValue = selectedVariant?.total_value ?? offer.total_value ?? 0;
+          fireNotification({
+            offerId: offer.id,
+            eventType: 'offer_accepted',
+            title: `🎉 Oferta zaakceptowana! ${offer.offer_number ?? ''}`,
+            body: `${clientName} zaakceptował(a) ofertę! Wariant: ${variantName}, wartość: ${formatCurrency(totalValue)}. Zadzwoń i sfinalizuj!`,
+            link: `/admin/offers/${offer.id}/edit`,
+          });
         },
         onError: () => {
           toast.error('Nie udało się zaakceptować oferty. Spróbuj ponownie.');
