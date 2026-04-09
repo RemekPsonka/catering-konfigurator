@@ -241,6 +241,22 @@ export const OffersListPage = () => {
           )}
         </>
       )}
+
+      {saveTemplateOffer && (
+        <SaveTemplateDialog
+          offerId={saveTemplateOffer.id}
+          eventType={saveTemplateOffer.eventType}
+          pricingMode={saveTemplateOffer.pricingMode}
+          open={!!saveTemplateOffer}
+          onOpenChange={(open) => !open && setSaveTemplateOffer(null)}
+        />
+      )}
+
+      <UseTemplateDialog
+        open={useTemplateOpen}
+        onOpenChange={setUseTemplateOpen}
+        onSelect={handleTemplateSelect}
+      />
     </div>
   );
 };
