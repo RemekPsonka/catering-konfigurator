@@ -31,7 +31,7 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 
-export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewProps) => {
+export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
