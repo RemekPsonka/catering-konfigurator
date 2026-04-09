@@ -241,6 +241,7 @@ export const StepCalculation = ({
   };
 
 
+  if (!offerId) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
