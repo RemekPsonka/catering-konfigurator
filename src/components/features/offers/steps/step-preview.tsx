@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -17,6 +19,7 @@ import { SaveTemplateDialog } from '@/components/features/offers/save-template-d
 import { OfferValidationPanel } from './offer-validation-panel';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { PUBLIC_BASE_URL } from '@/lib/constants';
+import { buildRichOfferEmail } from '@/lib/email-templates';
 import type { Tables } from '@/integrations/supabase/types';
 import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 
