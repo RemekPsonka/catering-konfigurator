@@ -560,7 +560,7 @@ export const PublicOfferPage = () => {
       <TermsSection />
 
       {/* 13. KOREKTY */}
-      <CorrectionsSection offerId={offer.id} />
+      <CorrectionsSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
 
       {/* 14. AKCEPTACJA OFERTY */}
       {!offerAccepted && (
