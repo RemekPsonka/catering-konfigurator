@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -35,6 +37,8 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [publicLink, setPublicLink] = useState('');
 
   const offerQuery = useQuery({
     queryKey: ['offer-preview', offerId],
@@ -42,7 +46,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
       if (!offerId) return null;
       const { data, error } = await supabase
         .from('offers')
-        .select('*, clients!client_id(name, email), offer_themes!theme_id(*)')
+        .select('*, clients(name, email), offer_themes(*)')
         .eq('id', offerId)
         .single();
       if (error) throw error;
@@ -136,6 +140,17 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   const handleMarkReady = () => {
     statusMutation.mutate({ status: 'ready' }, {
       onSuccess: () => { toast.success('Oferta oznaczona jako gotowa'); navigate('/admin/offers'); },
+    });
+  };
+
+  const handleSaveAndShowLink = () => {
+    statusMutation.mutate({ status: 'ready' }, {
+      onSuccess: () => {
+        const link = `${window.location.origin}/offer/${offer?.public_token}`;
+        setPublicLink(link);
+        setLinkDialogOpen(true);
+        toast.success('Oferta zapisana jako gotowa');
+      },
     });
   };
 
@@ -366,6 +381,10 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           <Save className="mr-2 h-4 w-4" />
           Zapisz szkic
         </Button>
+        <Button variant="secondary" onClick={handleSaveAndShowLink} disabled={statusMutation.isPending}>
+          <Link2 className="mr-2 h-4 w-4" />
+          Zapisz i pokaż link
+        </Button>
         <Button variant="secondary" onClick={handleMarkReady} disabled={statusMutation.isPending}>
           <CheckCircle className="mr-2 h-4 w-4" />
           Oznacz jako gotowa
@@ -385,6 +404,34 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           onOpenChange={setTemplateDialogOpen}
         />
       )}
+
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Oferta gotowa!</DialogTitle>
+            <DialogDescription>Skopiuj link i wyślij klientowi:</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input readOnly value={publicLink} className="font-mono text-sm" />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(publicLink);
+                  toast.success('Link skopiowany do schowka');
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Kopiuj link
+              </Button>
+              <Button onClick={() => window.open(publicLink, '_blank')}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Otwórz w nowej karcie
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
