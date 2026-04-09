@@ -160,19 +160,44 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
     });
   };
 
-  const handleSend = () => {
+  const handleGenerateEmail = () => {
     const clientEmail = offer?.clients?.email;
+    const clientName = offer?.clients?.name ?? 'Kliencie';
     if (!clientEmail) {
       toast.error('Klient nie ma przypisanego adresu email. Uzupełnij dane klienta.');
       return;
     }
-    statusMutation.mutate({ status: 'sent', sentAt: new Date().toISOString() }, {
+
+    statusMutation.mutate({ status: 'ready' }, {
       onSuccess: () => {
-        const publicUrl = `${PUBLIC_BASE_URL}/offer/${offer?.public_token}`;
-        // eslint-disable-next-line no-console
-        console.log('Email wysłany do:', clientEmail, 'Link:', publicUrl);
-        toast.success('Oferta wysłana!');
-        navigate('/admin/offers');
+        const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === offer?.event_type)?.label ?? offer?.event_type ?? '—';
+        const variantLines = variants.map((v) => {
+          const items = (v as { variant_items: Array<{ custom_name: string | null; dishes: { display_name: string } }> }).variant_items ?? [];
+          const dishNames = items.map((i) => i.custom_name || i.dishes.display_name).join(', ');
+          return `- ${v.name} (${items.length} dań): ${dishNames}`;
+        }).join('\n');
+
+        const servicesText = services.length > 0
+          ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${(os as unknown as { services: { name: string } }).services.name} × ${os.quantity ?? 1}`).join('\n')}`
+          : '';
+
+        const text = buildRichOfferEmail({
+          clientName,
+          offerNumber: offer?.offer_number ?? '—',
+          publicToken: offer?.public_token ?? '',
+          clientEmail,
+          validUntil: offer?.valid_until ?? '—',
+          eventType: eventTypeLabel,
+          eventDate: offer?.event_date ?? '—',
+          peopleCount: peopleCount,
+          variantsSummary: variantLines || 'Menu w przygotowaniu',
+          servicesSummary: servicesText,
+          totalValue: formatCurrency(totals.grandTotal),
+        });
+
+        setEmailText(text);
+        setEmailDialogOpen(true);
+        toast.success('Treść emaila wygenerowana');
       },
     });
   };
