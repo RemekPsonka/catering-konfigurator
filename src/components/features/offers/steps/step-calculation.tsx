@@ -257,6 +257,13 @@ export const StepCalculation = ({
 
   return (
     <div className="space-y-6">
+      {requirements.length > 0 && (
+        <RequirementHints
+          requirements={requirements}
+          category="budget"
+          currentPricePerPerson={totals.pricePerPerson}
+        />
+      )}
       {/* Sekcja 1 — Warianty */}
       <Card>
         <CardHeader>
