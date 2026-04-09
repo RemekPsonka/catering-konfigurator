@@ -87,9 +87,9 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
   const statusMutation = useMutation({
     mutationFn: async ({ status, sentAt }: { status: string; sentAt?: string }) => {
       if (!offerId) throw new Error('Brak offerId');
-      const update: Record<string, unknown> = { status };
+      const update: { status: string; sent_at?: string } = { status };
       if (sentAt) update.sent_at = sentAt;
-      const { error } = await supabase.from('offers').update(update).eq('id', offerId);
+      const { error } = await supabase.from('offers').update(update as { status: 'draft' }).eq('id', offerId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -147,10 +147,11 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
     });
   };
 
-  const showPrices = displayMode !== 'HIDDEN';
-  const showDetailed = displayMode === 'DETAILED';
-  const showPerPerson = displayMode === 'PER_PERSON_AND_TOTAL' || displayMode === 'PER_PERSON_ONLY';
-  const showTotal = displayMode === 'PER_PERSON_AND_TOTAL' || displayMode === 'TOTAL_ONLY' || displayMode === 'DETAILED';
+  const dm = displayMode as string;
+  const showPrices = dm !== 'HIDDEN';
+  const showDetailed = dm === 'DETAILED';
+  const showPerPerson = dm === 'PER_PERSON_AND_TOTAL' || dm === 'PER_PERSON_ONLY';
+  const showTotal = dm === 'PER_PERSON_AND_TOTAL' || dm === 'TOTAL_ONLY' || dm === 'DETAILED';
 
   return (
     <div className="space-y-6">
