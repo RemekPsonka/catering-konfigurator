@@ -807,7 +807,7 @@ export type Database = {
           created_by: string
           current_version: number | null
           delivery_cost: number | null
-          delivery_type: Database["public"]["Enums"]["delivery_type"]
+          delivery_type: Database["public"]["Enums"]["delivery_type"] | null
           discount_percent: number | null
           discount_value: number | null
           event_date: string | null
@@ -824,7 +824,7 @@ export type Database = {
           notes_client: string | null
           notes_internal: string | null
           offer_number: string | null
-          people_count: number
+          people_count: number | null
           price_display_mode: Database["public"]["Enums"]["price_display_mode"]
           price_per_person: number | null
           pricing_mode: Database["public"]["Enums"]["pricing_mode"]
@@ -851,7 +851,7 @@ export type Database = {
           created_by: string
           current_version?: number | null
           delivery_cost?: number | null
-          delivery_type: Database["public"]["Enums"]["delivery_type"]
+          delivery_type?: Database["public"]["Enums"]["delivery_type"] | null
           discount_percent?: number | null
           discount_value?: number | null
           event_date?: string | null
@@ -868,7 +868,7 @@ export type Database = {
           notes_client?: string | null
           notes_internal?: string | null
           offer_number?: string | null
-          people_count: number
+          people_count?: number | null
           price_display_mode?: Database["public"]["Enums"]["price_display_mode"]
           price_per_person?: number | null
           pricing_mode?: Database["public"]["Enums"]["pricing_mode"]
@@ -895,7 +895,7 @@ export type Database = {
           created_by?: string
           current_version?: number | null
           delivery_cost?: number | null
-          delivery_type?: Database["public"]["Enums"]["delivery_type"]
+          delivery_type?: Database["public"]["Enums"]["delivery_type"] | null
           discount_percent?: number | null
           discount_value?: number | null
           event_date?: string | null
@@ -912,7 +912,7 @@ export type Database = {
           notes_client?: string | null
           notes_internal?: string | null
           offer_number?: string | null
-          people_count?: number
+          people_count?: number | null
           price_display_mode?: Database["public"]["Enums"]["price_display_mode"]
           price_per_person?: number | null
           pricing_mode?: Database["public"]["Enums"]["pricing_mode"]
