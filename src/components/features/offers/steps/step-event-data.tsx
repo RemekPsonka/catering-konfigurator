@@ -11,7 +11,7 @@ import {
   PRICING_MODE_OPTIONS,
   DEFAULT_GREETINGS,
 } from '@/lib/offer-constants';
-import type { StepEventData } from '@/hooks/use-offer-wizard';
+import type { StepEventData as StepEventDataType } from '@/hooks/use-offer-wizard';
 import type { Enums } from '@/integrations/supabase/types';
 
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
