@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -134,7 +135,7 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
       ? Math.round(((price - Number(costPerUnit)) / Number(costPerUnit)) * 100 * 10) / 10
       : null;
 
-  React.useEffect(() => {
+  useEffect(() => {
     form.setValue('margin_percent', autoMargin);
   }, [price, costPerUnit, autoMargin, form]);
 
@@ -486,32 +487,12 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="margin_percent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marża (%)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {catalogPrice && (
-                <div className="flex flex-col justify-end">
-                  <p className="text-sm text-muted-foreground">Cena katalogowa</p>
-                  <p className="text-lg font-semibold">{catalogPrice} zł</p>
-                </div>
-              )}
+              <div className="flex flex-col justify-end">
+                <p className="text-sm text-muted-foreground">Marża (%)</p>
+                <p className="text-lg font-semibold">
+                  {autoMargin !== null ? `${autoMargin}%` : '—'}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
