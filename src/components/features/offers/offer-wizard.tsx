@@ -126,32 +126,30 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
 
       {renderStep()}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t">
-        <Button
-          variant="outline"
-          onClick={() => state.currentStep === 1 ? navigate('/admin/offers') : goToStep(state.currentStep - 1)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {state.currentStep === 1 ? 'Lista ofert' : 'Wstecz'}
-        </Button>
+      {/* Navigation — hidden on step 7 (has its own actions) */}
+      {state.currentStep < 7 && (
+        <div className="flex justify-between pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={() => state.currentStep === 1 ? navigate('/admin/offers') : goToStep(state.currentStep - 1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {state.currentStep === 1 ? 'Lista ofert' : 'Wstecz'}
+          </Button>
 
-        {state.currentStep === 1 ? (
-          <Button type="submit" form="step-event-data">
-            Dalej
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : state.currentStep < 7 ? (
-          <Button onClick={() => goToStep(state.currentStep + 1)}>
-            Dalej
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button onClick={handleSaveDraft} disabled={saveDraftMutation.isPending}>
-            Zapisz ofertę
-          </Button>
-        )}
-      </div>
+          {state.currentStep === 1 ? (
+            <Button type="submit" form="step-event-data">
+              Dalej
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={() => goToStep(state.currentStep + 1)}>
+              Dalej
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
