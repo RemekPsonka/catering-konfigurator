@@ -12,8 +12,8 @@ const CONTACTS = [
   {
     icon: Mail,
     label: 'E-mail',
-    value: 'kontakt@cateringsl.pl',
-    href: 'mailto:kontakt@cateringsl.pl',
+    value: 'zamowienia@cateringslaski.pl',
+    href: 'mailto:zamowienia@cateringslaski.pl',
   },
   {
     icon: Instagram,
