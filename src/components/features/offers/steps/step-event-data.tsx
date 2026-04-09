@@ -46,8 +46,8 @@ const stepSchema = z.object({
 type FormValues = z.infer<typeof stepSchema>;
 
 interface StepEventDataProps {
-  data: StepEventData;
-  onSubmit: (data: StepEventData) => void;
+  data: StepEventDataType;
+  onSubmit: (data: StepEventDataType) => void;
 }
 
 export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
