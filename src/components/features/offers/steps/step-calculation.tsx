@@ -111,6 +111,7 @@ export const StepCalculation = ({
   });
 
   const debouncedGreeting = useDebounce(greetingText, 800);
+  const debouncedAiSummary = useDebounce(aiSummary, 800);
   const debouncedNotesClient = useDebounce(notesClient, 800);
   const debouncedNotesInternal = useDebounce(notesInternal, 800);
 
@@ -118,6 +119,11 @@ export const StepCalculation = ({
     if (!loaded || !offerId) return;
     saveMutation.mutate({ greeting_text: debouncedGreeting || null });
   }, [debouncedGreeting]);
+
+  useEffect(() => {
+    if (!loaded || !offerId) return;
+    saveMutation.mutate({ ai_summary: debouncedAiSummary || null });
+  }, [debouncedAiSummary]);
 
   useEffect(() => {
     if (!loaded || !offerId) return;
