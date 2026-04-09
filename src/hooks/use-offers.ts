@@ -126,7 +126,6 @@ export const useDuplicateOffer = () => {
           created_by: original.created_by,
           status: 'draft',
           greeting_text: original.greeting_text,
-          notes_internal: original.notes_internal,
           notes_client: original.notes_client,
           theme_id: original.theme_id,
           validity_days: original.validity_days,
@@ -135,12 +134,7 @@ export const useDuplicateOffer = () => {
           delivery_cost: original.delivery_cost,
           min_offer_price: original.min_offer_price,
           is_people_count_editable: original.is_people_count_editable,
-          total_dishes_value: original.total_dishes_value,
-          total_services_value: original.total_services_value,
-          total_value: original.total_value,
-          price_per_person: original.price_per_person,
           event_location: original.event_location,
-          inquiry_text: original.inquiry_text,
         })
         .select()
         .single();
@@ -205,7 +199,7 @@ export const useDuplicateOffer = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offers'] });
-      toast.success('Oferta zduplikowana pomyślnie');
+      toast.success('Oferta zduplikowana! Uzupełnij klienta i daty.');
     },
     onError: () => {
       toast.error('Nie udało się zduplikować oferty');
