@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -117,7 +118,8 @@ export const AiInquiryPanel = ({
     form.setValue(fieldName as never, value as never, { shouldValidate: true });
   };
 
-  const handleApplyAll = () => {
+  const handleApplyAll = async () => {
+    // 1. Apply event fields
     const e = parsedData.event;
     if (e.type) applyField('event_type', e.type);
     if (e.date) applyField('event_date', e.date);
@@ -127,6 +129,28 @@ export const AiInquiryPanel = ({
     if (e.location) applyField('event_location', e.location);
     if (e.delivery_type) applyField('delivery_type', e.delivery_type);
     if (parsedData.pricing_mode_suggestion) applyField('pricing_mode', parsedData.pricing_mode_suggestion);
+
+    // 2. Handle client data
+    const c = parsedData.client;
+    const hasAnyClientData = c.name || c.email || c.phone || c.company;
+
+    if (hasAnyClientData) {
+      try {
+        if (existingClient) {
+          // Found existing client — assign
+          onUseExistingClient(existingClient.id, existingClient.name);
+          toast.success(`Dane eventu zastosowane. Znaleziono klienta: ${existingClient.name} — przypisano do oferty`);
+        } else {
+          // Create new client
+          onCreateClient(c);
+          toast.success(`Dane eventu zastosowane. Tworzenie nowego klienta: ${c.name ?? 'Nowy klient'}`);
+        }
+      } catch {
+        toast.info('Dane eventu zastosowane! Nie udało się przetworzyć klienta — uzupełnij ręcznie.');
+      }
+    } else {
+      toast.info('Dane eventu zastosowane! Uzupełnij dane klienta ręcznie.');
+    }
   };
 
   const addRequirement = () => {
@@ -357,6 +381,7 @@ export const AiInquiryPanel = ({
             <CardTitle className="text-sm flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               Budżet klienta
+              <Badge variant="outline" className="text-[10px] ml-auto">📌 Z maila klienta</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-3">
