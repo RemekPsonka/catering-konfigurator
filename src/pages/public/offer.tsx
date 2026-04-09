@@ -401,7 +401,10 @@ export const PublicOfferPage = () => {
         />
       )}
 
-      {/* 7-11: Placeholder — kalkulacja, warunki, zmiany, akceptacja, kontakt — P-3.3 – P-3.5 */}
+      {/* 7. KALKULACJA */}
+      <CalculationSection offer={offer} />
+
+      {/* 8-11: Placeholder — warunki, zmiany, akceptacja, kontakt — P-3.4 – P-3.5 */}
 
       {/* 12. FOOTER */}
       <motion.footer
