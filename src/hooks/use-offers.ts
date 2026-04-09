@@ -24,7 +24,7 @@ export const useOffers = (filters: OfferFilters) => {
 
       let query = supabase
         .from('offers')
-        .select('*, clients!client_id(name)', { count: 'exact' })
+        .select('*, clients(name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -49,7 +49,7 @@ export const useOffers = (filters: OfferFilters) => {
       if (filters.search && results.length === 0) {
         const fallbackQuery = supabase
           .from('offers')
-          .select('*, clients!client_id(name)', { count: 'exact' })
+          .select('*, clients(name)', { count: 'exact' })
           .order('created_at', { ascending: false });
 
         if (filters.status && filters.status !== 'all') {

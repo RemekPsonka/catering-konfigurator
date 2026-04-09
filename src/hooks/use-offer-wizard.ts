@@ -134,7 +134,7 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
       if (!offerId) return null;
       const { data, error } = await supabase
         .from('offers')
-        .select('*, clients!client_id(name)')
+        .select('*, clients(name)')
         .eq('id', offerId)
         .single();
       if (error) throw error;
