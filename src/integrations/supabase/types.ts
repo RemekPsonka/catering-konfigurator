@@ -289,6 +289,7 @@ export type Database = {
           is_hero: boolean | null
           photo_url: string
           sort_order: number | null
+          tags: string[] | null
           width: number | null
         }
         Insert: {
@@ -301,6 +302,7 @@ export type Database = {
           is_hero?: boolean | null
           photo_url: string
           sort_order?: number | null
+          tags?: string[] | null
           width?: number | null
         }
         Update: {
@@ -313,6 +315,7 @@ export type Database = {
           is_hero?: boolean | null
           photo_url?: string
           sort_order?: number | null
+          tags?: string[] | null
           width?: number | null
         }
         Relationships: [
