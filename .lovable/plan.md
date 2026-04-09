@@ -1,39 +1,34 @@
 
 
-# Poprawa promptu AI do generowania podsumowania oferty
+# Naprawa: Kliknięcie szkicu otwiera nową ofertę zamiast edycji
 
-## Problem
-Prompt wysyła zbyt mało danych o ofercie — tylko nazwy wariantów z liczbą dań, nazwy usług, łączną kwotę i zapytanie klienta. AI wymyśla szczegóły (np. "wahania rynkowe 2027", "serwis kawowy z ciastem") zamiast opisywać faktyczną zawartość oferty.
+## Diagnoza
+W `use-offer-wizard.ts` linia 137 query używa:
+```
+.select('*, clients!client_id(name)')
+```
+Operator `!` wymusza **inner join** — jeśli `client_id` jest NULL (szkic bez przypisanego klienta), Supabase nie zwraca żadnego wiersza. `.single()` rzuca błąd, `offerQuery` kończy się errorem, wizard nie ładuje danych i renderuje pusty formularz jak nową ofertę.
+
+Ten sam problem może być w `use-offers.ts` (lista ofert) — ale tam `.select('*, clients!client_id(name)')` też użyje inner join, więc szkice bez klienta mogą nie pojawiać się na liście.
 
 ## Rozwiązanie
-Przekazać do edge function **pełne dane oferty** (listę dań per wariant z cenami, usługi z cenami, rabat, koszty dostawy, liczbę osób, datę, lokalizację) i poprawić system prompt żeby AI opisywał **tylko to co faktycznie jest w ofercie**.
+Zamiana `clients!client_id(name)` na `clients(name)` (left join — domyślne zachowanie bez `!`) w obu plikach. Przy NULL client_id zwróci `clients: null` zamiast pomijać wiersz.
 
-## Zmiany
+## Pliki do zmodyfikowania
 
-### 1. `src/components/features/offers/steps/step-calculation.tsx` (~linia 214-228)
-Rozbudować dane wysyłane do edge function:
-- `variants_summary`: per wariant — nazwa + lista dań z cenami (np. "Classic: Rosół z makaronem (12 zł), Schabowy (25 zł)")
-- `services_summary`: nazwa + cena × ilość
-- Nowe pola: `people_count`, `event_date`, `event_location` (z offerData), `client_name`, `discount_info` (rabat %), `delivery_cost`, `pricing_mode_label`
-
-### 2. `supabase/functions/generate-summary/index.ts`
-- Przyjąć nowe pola w body
-- Dodać je do kontekstu promptu
-- **Zmienić system prompt** na:
-
+### 1. `src/hooks/use-offer-wizard.ts` (linia ~137)
 ```
-Jesteś ekspertem od ofert cateringowych firmy "Catering Śląski". 
-Napisz krótkie podsumowanie oferty (3-5 zdań) na podstawie WYŁĄCZNIE podanych danych.
-
-ZASADY:
-- Opisuj TYLKO to co faktycznie jest w danych — nie wymyślaj dań, usług ani szczegółów
-- Jeśli brakuje wariantów lub dań — napisz że oferta jest w przygotowaniu
-- Nie wspominaj o cenach konkretnych dań — podaj tylko łączną wartość
-- Wspomnij liczbę wariantów, kluczowe dania, usługi dodatkowe
-- Ton: profesjonalny, ciepły, po polsku
-- Nie używaj markdown
-- Zwracaj sam tekst
+// PRZED:
+.select('*, clients!client_id(name)')
+// PO:
+.select('*, clients(name)')
 ```
+
+### 2. `src/hooks/use-offers.ts` (linia ~27 i ~52)
+Zamienić `clients!client_id(name)` na `clients(name)` w obu zapytaniach (głównym i fallback).
+
+### 3. `src/components/features/offers/offer-wizard.tsx` (linia ~31)
+Dodać obsługę błędu query — jeśli `offerQuery.isError`, pokazać komunikat "Nie udało się załadować oferty" z przyciskiem powrotu do listy.
 
 ## Brak zmian w bazie danych
 
