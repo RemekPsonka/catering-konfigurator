@@ -62,6 +62,8 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     if (state.offerId && state.stepData.eventData.event_type) {
       saveDraftMutation.mutate({ eventData: state.stepData.eventData, silent: true });
     }
+    // Mark current step as completed when moving forward
+    dispatch({ type: 'COMPLETE_STEP', step: state.currentStep });
     dispatch({ type: 'SET_STEP', step });
   };
 
