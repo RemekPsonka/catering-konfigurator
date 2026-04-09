@@ -26,6 +26,7 @@ import { SettingsPage } from "@/pages/admin/settings";
 import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
 import { EventProfileEditPage } from "@/pages/admin/event-profile-edit";
 import { PublicOfferPage } from "@/pages/public/offer";
+import { OfferFindPage } from "@/pages/public/offer-find";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
 
               {/* Public offer */}
               <Route element={<PublicLayout />}>
+                <Route path="/offer/find" element={<OfferFindPage />} />
                 <Route path="/offer/:publicToken" element={<PublicOfferPage />} />
               </Route>
 

@@ -125,6 +125,15 @@ export const LoginPage = () => {
             <GoogleIcon />
             <span className="ml-2">{isGoogleLoading ? 'Logowanie...' : 'Zaloguj się przez Google'}</span>
           </Button>
+
+          <div className="text-center pt-2">
+            <a
+              href="/offer/find"
+              className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+            >
+              Jesteś klientem? Znajdź swoją ofertę
+            </a>
+          </div>
         </CardContent>
       </Card>
     </div>

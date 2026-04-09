@@ -17,6 +17,7 @@ import {
   FileX2,
   Phone,
   Mail,
+  Search,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
