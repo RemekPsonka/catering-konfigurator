@@ -117,9 +117,9 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
 
   // Auto-save mutation
   const saveMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) => {
+    mutationFn: async (payload: Parameters<typeof supabase.from<'offers'>>[0] extends infer _ ? Record<string, unknown> : never) => {
       if (!offerId) return;
-      const { error } = await supabase.from('offers').update(payload).eq('id', offerId);
+      const { error } = await supabase.from('offers').update(payload as any).eq('id', offerId);
       if (error) throw error;
     },
     onSuccess: () => {
