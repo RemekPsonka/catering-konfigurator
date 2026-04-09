@@ -240,10 +240,10 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
   };
 
   const saveDraftMutation = useMutation({
-    mutationFn: async (eventData: StepEventData) => {
+    mutationFn: async ({ eventData, silent = false }: { eventData: StepEventData; silent?: boolean }) => {
       if (!user) throw new Error('Nie jesteś zalogowany');
       if (!eventData.event_type) {
-        toast.error('Wybierz typ imprezy przed zapisem');
+        if (!silent) toast.error('Wybierz typ imprezy przed zapisem');
         throw new Error('Event type is required');
       }
 
@@ -278,7 +278,7 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
           .select()
           .single();
         if (error) throw error;
-        return data;
+        return { data, silent };
       } else {
         const { data, error } = await supabase
           .from('offers')
@@ -292,16 +292,20 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
           await applyTemplateToOffer(data.id);
         }
 
-        return data;
+        return { data, silent };
       }
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data, silent }) => {
       queryClient.invalidateQueries({ queryKey: ['offers'] });
-      const num = data.offer_number ? ` Numer oferty: ${data.offer_number}` : '';
-      toast.success(`Szkic zapisany!${num}`);
+      if (!silent) {
+        const num = data.offer_number ? ` Numer oferty: ${data.offer_number}` : '';
+        toast.success(`Szkic zapisany!${num}`);
+      }
     },
-    onError: () => {
-      toast.error('Nie udało się zapisać szkicu');
+    onError: (_err, variables) => {
+      if (!variables.silent) {
+        toast.error('Nie udało się zapisać szkicu');
+      }
     },
   });
 
