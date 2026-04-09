@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,12 +11,22 @@ import type { PublicOffer } from '@/hooks/use-public-offer';
 interface AcceptanceSectionProps {
   offer: PublicOffer;
   onAccepted: () => void;
+  preSelectedVariantId?: string | null;
 }
 
-export const AcceptanceSection = ({ offer, onAccepted }: AcceptanceSectionProps) => {
+export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId }: AcceptanceSectionProps) => {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     offer.offer_variants.length === 1 ? offer.offer_variants[0].id : null,
   );
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const acceptOffer = useAcceptOffer();
+
+  useEffect(() => {
+    if (preSelectedVariantId) {
+      setSelectedVariantId(preSelectedVariantId);
+    }
+  }, [preSelectedVariantId]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const acceptOffer = useAcceptOffer();
