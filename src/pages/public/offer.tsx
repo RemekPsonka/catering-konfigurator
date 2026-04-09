@@ -404,6 +404,8 @@ export const PublicOfferPage = () => {
           pricingMode={offer.pricing_mode}
           peopleCount={offer.people_count}
           priceDisplayMode={offer.price_display_mode}
+          modifications={modifications}
+          onModificationChange={handleModificationChange}
         />
       )}
 
@@ -416,7 +418,7 @@ export const PublicOfferPage = () => {
       )}
 
       {/* 7. KALKULACJA */}
-      <CalculationSection offer={offer} />
+      <CalculationSection offer={offer} modifications={modifications} />
 
       {/* 8-11: Placeholder — warunki, zmiany, akceptacja, kontakt — P-3.4 – P-3.5 */}
 
