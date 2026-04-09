@@ -1,42 +1,44 @@
 
-# Konfigurator Ofert — "Catering Śląski"
+
+# Zarządzanie kategoriami dań — /admin/dishes/categories
 
 ## Zakres
-Scaffold projektu z pełną strukturą folderów, routingiem, layoutami i placeholder stronami.
+Pełna strona CRUD dla kategorii dań z tabelą, modalnymi formularzami, toggle aktywności i drag & drop sortowaniem.
 
-## Co zostanie zbudowane
+## Pliki do utworzenia
 
-### 1. Struktura plików i typy
-- `src/types/database.ts` i `src/types/index.ts` — podstawowe typy (Offer, Dish, Client, Lead, statuses)
-- `src/lib/supabase.ts` — klient Supabase (createClient z env vars)
-- `src/lib/constants.ts` — stałe (statusy ofert, typy eventów, kolory statusów)
-- `src/lib/calculations.ts` — placeholder na logikę kalkulacji
+### 1. `src/hooks/use-dish-categories.ts`
+Custom hook z React Query do obsługi kategorii:
+- `useQuery` — pobieranie listy kategorii z liczbą powiązanych dań (LEFT JOIN na dishes, GROUP BY)
+- `useCreateCategory` — INSERT z walidacją unikalności kodu
+- `useUpdateCategory` — UPDATE po id
+- `useUpdateCategoryOrder` — batch UPDATE sort_order po drag & drop
+- Wszystkie mutacje z `onSuccess` → invalidate query + toast sukcesu, `onError` → toast błędu
 
-### 2. Komponenty wspólne (common)
-- `LoadingSpinner` — spinner z tekstem "Ładowanie..."
-- `EmptyState` — ikona + tekst + opcjonalny przycisk CTA
-- `ConfirmDialog` — AlertDialog do destrukcyjnych akcji
-- `StatusBadge` — Badge z mapowaniem kolorów wg statusu
+### 2. `src/components/features/dishes/category-dialog.tsx`
+Modal (shadcn Dialog) do dodawania/edycji kategorii:
+- Pola: nazwa (wymagana), kod (auto-gen z nazwy: uppercase + underscory, edytowalny), ikona (emoji input), opis (textarea), aktywna (Switch)
+- React Hook Form + Zod walidacja
+- Tryb "add" vs "edit" (pre-fill danych)
 
-### 3. Layouty
-- `AdminLayout` — SidebarProvider + Sidebar (logo "CS", nawigacja: Oferty, Baza potraw, Klienci, Leady, Ustawienia) + TopBar (użytkownik, wyloguj). Sidebar collapsible z hamburger na mobile.
-- `PublicLayout` — prosty layout pełnej szerokości bez sidebara
+### 3. `src/pages/admin/dish-categories.tsx`
+Strona z:
+- Nagłówek "Kategorie dań" + przycisk "Dodaj kategorię"
+- Tabela shadcn: Ikona | Nazwa | Kod | Liczba dań | Aktywna (Switch toggle) | Akcje (Edytuj button)
+- Drag & drop na wierszach tabeli (użyję `@dnd-kit/core` + `@dnd-kit/sortable`) do zmiany kolejności
+- Loading spinner, empty state
+- CategoryDialog otwierany dla add/edit
 
-### 4. Auth
-- `useAuth` hook — sesja, login, logout, AuthGuard
-- Strona `/login` — formularz email + hasło
-- AuthGuard wrapper na wszystkich `/admin/*` routach
+### 4. Zmiany w istniejących plikach
+- **`src/App.tsx`**: dodać route `dishes/categories` → `DishCategoriesPage`
+- **`src/components/layout/admin-layout.tsx`**: opcjonalnie dodać sub-link "Kategorie" w nawigacji (lub dostęp z poziomu Baza potraw)
 
-### 5. Placeholder strony (każda z nagłówkiem "Nazwa — w budowie")
-- **Admin**: Dashboard, Lista ofert, Nowa oferta, Edycja oferty, Diff view propozycji, Lista dań, Nowe danie, Edycja dania, Lista klientów, Pipeline leadów, Detal leada, Ustawienia
-- **Public**: Strona oferty klienta (`/offer/:publicToken`)
+## Zależności
+- Zainstalować `@dnd-kit/core` i `@dnd-kit/sortable` dla drag & drop
 
-### 6. Routing (App.tsx)
-- Wszystkie ścieżki z planu, admin routes owrapowane AuthGuardem
-- `/admin` redirectuje do `/admin/offers`
-- `/offer/:publicToken` bez auth guardu
+## Szczegóły techniczne
+- Liczba dań: query `SELECT dc.*, COUNT(d.id) as dish_count FROM dish_categories dc LEFT JOIN dishes d ON d.category_id = dc.id AND d.is_active = true GROUP BY dc.id ORDER BY dc.sort_order`
+- Auto-generowanie kodu: `name.trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')`
+- Drag & drop: po zakończeniu przeciągania — batch update sort_order dla wszystkich zmienionych pozycji
+- Toggle aktywności: bezpośredni UPDATE `is_active` z tabeli (bez otwierania modala)
 
-### Styl
-- Kolorystyka domyślna shadcn (neutralna, profesjonalna)
-- Polski język na wszystkich etykietach UI
-- Sidebar: ikony Lucide + tekst, aktywny link podświetlony
