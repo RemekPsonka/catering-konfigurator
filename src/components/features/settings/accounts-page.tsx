@@ -67,6 +67,10 @@ export const AccountsPage = () => {
 
   const createUser = useMutation({
     mutationFn: async (values: CreateAccountValues) => {
+      if (DEV_MODE) {
+        toast.info('Tworzenie kont wyłączone w trybie deweloperskim');
+        return { id: 'dev-new', email: values.email };
+      }
       const { data, error } = await supabase.functions.invoke('list-users', {
         method: 'POST',
         body: values,
