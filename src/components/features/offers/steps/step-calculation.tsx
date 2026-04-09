@@ -94,7 +94,7 @@ export const StepCalculation = ({
 
   // Auto-save mutation
   const saveMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) => {
+    mutationFn: async (payload: Partial<{ discount_percent: number; discount_value: number; delivery_cost: number; greeting_text: string | null; notes_client: string | null; notes_internal: string | null; total_dishes_value: number; total_services_value: number; total_value: number; price_per_person: number }>) => {
       if (!offerId) return;
       const { error } = await supabase.from('offers').update(payload).eq('id', offerId);
       if (error) throw error;
