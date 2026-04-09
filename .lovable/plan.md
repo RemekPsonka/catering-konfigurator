@@ -1,69 +1,68 @@
 
 
-# Google Login + Konfigurator kont (usuwanie, zmiana hasła)
+# System dostępu klienta do oferty — /offer/find + poprawki statusów
 
 ## Zakres
-1. Dodanie logowania Google (Lovable Cloud managed) — tylko dla istniejących użytkowników
-2. Rozbudowa AccountsPage o usuwanie kont i zmianę hasła
-3. Strona `/reset-password` do ustawiania nowego hasła po resecie
+1. Nowa strona `/offer/find` — wyszukiwarka oferty po email + numer
+2. Poprawki statusów w `usePublicOffer` (dodanie `won`)
+3. Lepsze komunikaty statusowe na stronie oferty (draft/ready vs lost vs not-found)
+4. Link "Znajdź swoją ofertę" na stronie logowania
+5. Email template jako stała
+6. Rate limiting na frontendzie (cooldown po 3 nieudanych próbach)
 
-## Pliki do utworzenia/zmodyfikowania
+## Istniejąca infrastruktura
+- RPC `find_offer_by_email_and_number` — **już istnieje** w bazie, zwraca `public_token, status, offer_number, client_name`
+- `usePublicOffer` — filtruje statusy, ale brakuje `won`
+- `useMarkOfferViewed` — działa poprawnie
+- Strona oferty — ma stany loading/not-found/expired, ale brak rozróżnienia draft/ready vs lost
 
-### 1. Konfiguracja Google OAuth
-- Wywołanie narzędzia **Configure Social Auth** (Lovable Cloud managed Google OAuth)
-- Wygeneruje `src/integrations/lovable/` z modułem `lovable.auth.signInWithOAuth("google")`
+## Pliki do utworzenia
 
-### 2. `src/pages/auth/login.tsx`
-- Import `lovable` z `@/integrations/lovable`
-- Dodanie przycisku "Zaloguj się przez Google" pod formularzem email/hasło
-- Separator "lub" między formularzem a przyciskiem Google
-- `handleGoogleSignIn`: wywołuje `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`
-- Po zalogowaniu Google: sprawdź czy user istnieje (sesja się ustawi automatycznie przez `onAuthStateChange` — jeśli konto nie istnieje w systemie, Supabase Auth zwróci błąd bo nie ma signup)
-- Ikona Google (SVG inline)
+### 1. `src/pages/public/offer-find.tsx`
+Nowa strona wyszukiwania oferty:
+- Logo CS + nagłówek "Znajdź swoją ofertę"
+- Formularz: email + numer oferty (auto-format: "0042" → "CS-2026-0042")
+- Wywołanie `supabase.rpc('find_offer_by_email_and_number', { p_email, p_offer_number })`
+- Logika wyniku:
+  - Znaleziono + status dostępowy → redirect do `/offer/{public_token}`
+  - Znaleziono + draft/ready → komunikat "w przygotowaniu"
+  - Znaleziono + lost → komunikat "wygasła"
+  - Nie znaleziono → generyczny błąd (bez ujawniania co jest źle)
+- Rate limiting: po 3 nieudanych próbach w sesji → 30s cooldown na przycisku z odliczaniem
 
-### 3. `src/hooks/use-auth.tsx`
-- Dodanie metod `updatePassword` i `deleteAccount` do kontekstu:
-  - `updatePassword(newPassword: string)` → `supabase.auth.updateUser({ password })`
-  - `deleteAccount(userId: string)` → wywołanie edge function `list-users` z metodą DELETE
+### 2. `src/lib/email-templates.ts`
+Stała `OFFER_EMAIL_TEMPLATE` z szablonem maila do klienta (na razie do console.log, wysyłka w przyszłości).
 
-### 4. `supabase/functions/list-users/index.ts`
-- Dodanie obsługi **DELETE** method:
-  - Body: `{ userId: string }`
-  - Walidacja: admin nie może usunąć samego siebie
-  - `adminClient.auth.admin.deleteUser(userId)`
-- Dodanie obsługi **PATCH** method (zmiana hasła przez admina):
-  - Body: `{ userId: string, password: string }`
-  - `adminClient.auth.admin.updateUserById(userId, { password })`
+## Pliki do zmodyfikowania
 
-### 5. `src/components/features/settings/accounts-page.tsx`
-Rozbudowa tabeli kont o nowe akcje per user:
-- **Zmień hasło**: przycisk → Dialog z formularzem (nowe hasło, potwierdzenie hasła, min 6 znaków)
-  - Wywołuje edge function PATCH
-- **Usuń konto**: przycisk (czerwony, ikona Trash) → ConfirmDialog "Czy na pewno usunąć konto X? Tej operacji nie można cofnąć."
-  - Nie pozwala usunąć aktualnie zalogowanego usera
-  - Wywołuje edge function DELETE
-- Dropdown menu akcji zamiast pojedynczego przycisku (MoreHorizontal → DropdownMenu z: Wyślij reset, Zmień hasło, Usuń konto)
+### 3. `src/App.tsx`
+- Import `OfferFindPage`
+- Nowy route `/offer/find` w sekcji Public (PRZED `/offer/:publicToken` żeby nie kolidował)
 
-### 6. `src/pages/auth/reset-password.tsx` (nowy plik)
-- Strona do ustawienia nowego hasła po kliknięciu linku resetującego
-- Sprawdza `type=recovery` w URL hash
-- Formularz: nowe hasło + potwierdzenie
-- Wywołuje `supabase.auth.updateUser({ password })`
-- Po sukcesie: redirect do `/login` z toastem
+### 4. `src/hooks/use-public-offer.ts`
+- Dodanie `'won'` do `.in('status', [...])` — klient ma widzieć też wygrane oferty
 
-### 7. `src/App.tsx`
-- Dodanie route `/reset-password` → `ResetPasswordPage`
+### 5. `src/pages/public/offer.tsx`
+- Rozbudowa stanu "not found" — dodanie przycisków "Szukaj oferty" (→ `/offer/find`) i "Skontaktuj się z nami"
+- Stan expired — dodanie tych samych przycisków
 
-### 8. Konfiguracja auth (Lovable Cloud)
-- Wywołanie `cloud--configure_auth` aby upewnić się że Google provider jest włączony
-- **Wyłączenie rejestracji nowych użytkowników** — tylko istniejące konta mogą się logować (disable signup)
+### 6. `src/pages/auth/login.tsx`
+- Link pod przyciskiem Google: "Jesteś klientem? Znajdź swoją ofertę" → `/offer/find`
 
-## Ważne zasady
-- Google login NIE tworzy nowych kont — signup jest wyłączony, więc jeśli user z danym emailem Google nie istnieje w systemie, logowanie się nie powiedzie
-- Admin tworzy konta ręcznie przez AccountsPage (jak dotąd)
-- Managed Google OAuth — brak konieczności konfiguracji credentials
-- Edge function `list-users` obsługuje GET/POST/PATCH/DELETE
+## Auto-format numeru oferty (logika w offer-find)
+```text
+Input: "0042" → "CS-2026-0042"
+Input: "2026-0042" → "CS-2026-0042"  
+Input: "cs-2026-0042" → "CS-2026-0042"
+Input: "CS-2026-0042" → "CS-2026-0042"
+```
+Regex: wyciągnij ostatnie 4 cyfry, dodaj prefix `CS-{rok}-`.
+
+## Rate limiting (frontend-only, proste)
+- Licznik `failedAttempts` w state
+- Po 3 nieudanych: disabled button + 30s countdown
+- Reset po odświeżeniu strony (akceptowalne dla tego poziomu zabezpieczeń)
 
 ## Brak zmian w bazie danych
-Wszystko oparte na Supabase Auth — bez nowych tabel.
+RPC `find_offer_by_email_and_number` już istnieje i zwraca potrzebne dane.
 
