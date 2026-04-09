@@ -240,6 +240,8 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
         event_location: eventData.event_location || null,
         inquiry_text: eventData.inquiry_text || null,
         greeting_text: eventData.greeting_text || null,
+        ai_parsed_data: (eventData.ai_parsed_data as Json) ?? null,
+        client_requirements: (eventData.client_requirements as Json) ?? null,
         status: 'draft',
       };
 
