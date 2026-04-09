@@ -7,7 +7,8 @@ import { StepMenu } from './steps/step-menu';
 import { StepServices } from './steps/step-services';
 import { StepSettings } from './steps/step-settings';
 import { StepCalculation } from './steps/step-calculation';
-import { StepPlaceholder } from './steps/step-placeholder';
+import { StepTheme } from './steps/step-theme';
+import { StepPreview } from './steps/step-preview';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 
@@ -92,8 +93,18 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
             clientName={state.stepData.eventData.client_name}
           />
         );
+      case 6:
+        return <StepTheme offerId={state.offerId} eventType={state.stepData.eventData.event_type} />;
+      case 7:
+        return (
+          <StepPreview
+            offerId={state.offerId}
+            pricingMode={state.stepData.eventData.pricing_mode}
+            peopleCount={state.stepData.eventData.people_count}
+          />
+        );
       default:
-        return <StepPlaceholder title={STEP_TITLES[state.currentStep - 1]} />;
+        return null;
     }
   };
 
@@ -115,32 +126,30 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
 
       {renderStep()}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t">
-        <Button
-          variant="outline"
-          onClick={() => state.currentStep === 1 ? navigate('/admin/offers') : goToStep(state.currentStep - 1)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {state.currentStep === 1 ? 'Lista ofert' : 'Wstecz'}
-        </Button>
+      {/* Navigation — hidden on step 7 (has its own actions) */}
+      {state.currentStep < 7 && (
+        <div className="flex justify-between pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={() => state.currentStep === 1 ? navigate('/admin/offers') : goToStep(state.currentStep - 1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {state.currentStep === 1 ? 'Lista ofert' : 'Wstecz'}
+          </Button>
 
-        {state.currentStep === 1 ? (
-          <Button type="submit" form="step-event-data">
-            Dalej
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : state.currentStep < 7 ? (
-          <Button onClick={() => goToStep(state.currentStep + 1)}>
-            Dalej
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button onClick={handleSaveDraft} disabled={saveDraftMutation.isPending}>
-            Zapisz ofertę
-          </Button>
-        )}
-      </div>
+          {state.currentStep === 1 ? (
+            <Button type="submit" form="step-event-data">
+              Dalej
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={() => goToStep(state.currentStep + 1)}>
+              Dalej
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
