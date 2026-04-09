@@ -1,9 +1,10 @@
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
-import type { Tables, TablesInsert } from '@/integrations/supabase/types';
+import type { Tables, TablesInsert, Json } from '@/integrations/supabase/types';
+import type { TemplateData } from '@/hooks/use-offer-templates';
 
 export interface StepEventData {
   event_type: string;
@@ -103,10 +104,11 @@ const wizardReducer = (state: WizardState, action: WizardAction): WizardState =>
   }
 };
 
-export const useOfferWizard = (offerId?: string) => {
+export const useOfferWizard = (offerId?: string, templateData?: TemplateData, templateEventType?: string, templatePricingMode?: string) => {
   const [state, dispatch] = useReducer(wizardReducer, initialState);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const templateAppliedRef = useRef(false);
 
   const offerQuery = useQuery({
     queryKey: ['offer', offerId],
