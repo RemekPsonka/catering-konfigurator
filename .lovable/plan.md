@@ -1,72 +1,61 @@
 
 
-# Onboarding klienta + Porównanie wariantów
+# Trzy usprawnienia: rabat, logistyka, podgląd klienta
 
-## Nowe pliki
+## Usprawnienie 1: Rabat widoczny dla klienta
 
-### 1. `src/components/public/onboarding-overlay.tsx`
-Overlay wyświetlany przy pierwszym otwarciu oferty (`viewed_at === null` w momencie renderowania).
+### Plik: `src/components/public/calculation-section.tsx`
 
-- 3 kroki wizualne (ikony + tekst) w karcie max-w-lg, rounded-2xl, shadow-premium
-- Backdrop blur 10px, overlay 30% opacity, fadeIn animation
-- "Rozumiem, pokaż ofertę" → zamknij + `sessionStorage.setItem('onboarding_seen', '1')`
-- "Nie pokazuj ponownie" → zamknij bez animacji
-- Warunek wyświetlenia: `!sessionStorage.getItem('onboarding_seen')` AND `offer.viewed_at === null` (sprawdzane przed `markViewed`)
-- Dynamiczny tekst z liczbą wariantów i edytowalnych pozycji
+W sekcji DETAILED (linia 172-246) — po wariantach, przed services — dodać widoczny blok rabatu:
+- Wiersz "Menu": cena PRZED rabatem (przekreślona, opacity-50)
+- Wiersz "Rabat [X]%: -kwota" lub "Rabat: -kwota" (zielony, green-50 tło)
+- Wiersz "Menu po rabacie": cena finalna (bold, --theme-primary)
 
-### 2. `src/components/public/editable-tooltip.tsx`
-Pulsujący tooltip przy pierwszym edytowalnym daniu.
+W trybach PER_PERSON_ONLY / PER_PERSON_AND_TOTAL / TOTAL_ONLY (linie 248-270) — obecny blok rabatu (linia 249) już istnieje ale jest ukryty w DETAILED. Zmienić:
+- Usunąć warunek `price_display_mode !== 'DETAILED'` z linii 249 i 261
+- W DETAILED: rabat już wbudowany w sekcję wariantów (wyżej)
+- W TOTAL_ONLY: "Uwzględniono rabat [X]% na menu" (bez kwot szczegółowych)
+- W PER_PERSON_ONLY / PER_PERSON_AND_TOTAL: pełny wiersz rabatu z kwotą
 
-- Wyświetlany po zamknięciu onboardingu, jeśli `!sessionStorage.getItem('edit_tooltip_seen')`
-- Pozycjonowany przy pierwszym `DishCard` z `isEditable=true`
-- Znika po 8s lub po kliknięciu 🔄 (ustawia flag w sessionStorage)
-- Styl: --theme-primary tło, tekst ivory, arrow pointing down, pulse animation
+Potrzebna wartość `maxDishesTotal` (suma przed rabatem) — już dostępna w `totals.maxDishesTotal`.
 
-### 3. `src/components/public/variant-comparison-section.tsx`
-Sekcja "Porównaj warianty" — renderowana tylko gdy `variants.length >= 2`.
+## Usprawnienie 2: Sekcja Logistyka i Dostawa
 
-**Karty obok siebie (desktop grid) / karuzela Embla (mobile):**
-- Nazwa wariantu + badge "Polecany" (pulse animation) jeśli `is_recommended`
-- Statystyki: liczba pozycji, liczba edytowalnych
-- Top 5 dań (najdroższe z kategorii główne/desery) z miniaturką
-- Cena wg `price_display_mode`
-- Przycisk "Wybierz [nazwa]" → scroll do `AcceptanceSection` + pre-select variant (callback prop)
-- Karta polecanego: border 2px --theme-primary
+### Nowy plik: `src/components/public/logistics-section.tsx`
 
-**Tabela różnic (rozwijana):**
-- Przycisk "Pokaż szczegółowe różnice" → toggle Collapsible
-- Wiersze = kategorie dań, kolumny = warianty
-- Dania różniące się → highlight --theme-primary/10
-- Dania wspólne → szary tekst, brak → "—"
-- Mobile: overflow-x-auto + sticky first column
+Sekcja z 2-3 kartami:
+- **Karta 1: Forma dostawy** — ikona 🚗 + delivery_type z opisem (COLD/HEATED/FULL_SERVICE mapowane na opisy)
+- **Karta 2: Usługi dodatkowe** (jeśli `offer_services.length > 0`) — lista usług z ilościami
+- **Karta 3: Kontakt na dzień eventu** — telefon i imię managera z `system_settings` (fetch via `supabase.rpc('get_setting', { p_key: 'manager_phone' })` i `get_setting('manager_name')`)
 
-## Modyfikowane pliki
+Styl: rounded-2xl, shadow-premium, fadeInUp, stagger, grid 1-3 kolumn
 
-### 4. `src/pages/public/offer.tsx`
-- Import `OnboardingOverlay`, `VariantComparisonSection`
-- State: `isFirstVisit` = `!offer.viewed_at` (przed markViewed)
-- State: `onboardingDismissed` — po zamknięciu overlay uruchom tooltip
-- Dodać `OnboardingOverlay` jako overlay na całej stronie (warunkowo)
-- Dodać `VariantComparisonSection` między sekcją kalkulacji (10) a testimonialem (11), przed akceptacją
-- Prop `onSelectVariant` do `AcceptanceSection` — pre-select wariantu z comparison
-- Dodać `preSelectedVariantId` state, przekazać do `AcceptanceSection`
+### Plik: `src/pages/public/offer.tsx`
+Dodać `LogisticsSection` między kalkulacją (sekcja 10) a warunkami (sekcja 12), po porównaniu wariantów.
 
-### 5. `src/components/public/acceptance-section.tsx`
-- Dodać prop `preSelectedVariantId?: string` — jeśli podany, ustawić jako `selectedVariantId` initial state
-- `useEffect` reagujący na zmianę `preSelectedVariantId`
+## Usprawnienie 3: Podgląd oczami klienta
 
-### 6. `src/components/public/menu-variants-section.tsx`
-- Pod nazwą wariantu (w `VariantCard`) dodać badge "[X] pozycji do personalizacji" jeśli wariant ma edytowalne pozycje
-- Styl: --theme-primary/10 tło, --theme-primary tekst, rounded-full, text-xs
+### Plik: `src/components/features/offers/steps/step-preview.tsx`
+Dodać przycisk "👁️ Otwórz podgląd jak widzi klient" w sekcji actions (linia 404):
+- Jeśli `offer?.public_token` → `window.open(buildPublicOfferUrl(offer.public_token), '_blank')`
+- Jeśli brak tokenu → disabled + tooltip "Zapisz ofertę, aby zobaczyć podgląd klienta"
+
+### Plik: `src/pages/admin/offers-list.tsx`
+W DropdownMenuContent (linia 173-210) dodać:
+- "👁️ Podgląd klienta" → `window.open(buildPublicOfferUrl(offer.public_token), '_blank')` (tylko jeśli `offer.public_token`)
+- "📋 Kopiuj link" → `navigator.clipboard.writeText(url)` + toast "Link skopiowany!" (widoczny dla statusów sent/viewed/revision/accepted)
+
+Uwaga: `offers-list` już ma opcję "Podgląd klienta" (linia 196-204) ale tylko dla `offer.public_token`. Trzeba dodać "Kopiuj link" i rozszerzyć widoczność.
+
+## Podsumowanie plików
+
+| Plik | Zmiana |
+|------|--------|
+| `src/components/public/calculation-section.tsx` | Rabat: przekreślona cena + zielony wiersz rabatu |
+| `src/components/public/logistics-section.tsx` | NOWY — sekcja logistyki z 3 kartami |
+| `src/pages/public/offer.tsx` | Import + render LogisticsSection |
+| `src/components/features/offers/steps/step-preview.tsx` | Przycisk podglądu klienta |
+| `src/pages/admin/offers-list.tsx` | "Kopiuj link" w menu akcji |
 
 ## Brak zmian w bazie danych
-
-Wszystko opiera się na istniejących danych (`viewed_at`, `is_client_editable`, `variant_items`, `is_recommended`). SessionStorage do flag onboardingu.
-
-## Szczegóły techniczne
-
-- `isFirstVisit` musi być obliczony PRZED wywołaniem `markViewed` (które ustawia `viewed_at`). Użyć `useRef` do zapamiętania initial state.
-- Tooltip: `useEffect` z `setTimeout(8000)` + cleanup
-- Comparison: `useMemo` do obliczenia top 5 dań i tabeli różnic per kategoria
-- Scroll do akceptacji: `document.getElementById('acceptance-section')?.scrollIntoView({ behavior: 'smooth' })`
 
