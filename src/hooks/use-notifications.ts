@@ -135,14 +135,13 @@ export const fireNotification = (params: {
   body: string;
   link?: string;
 }) => {
-  supabase
-    .rpc('insert_notification', {
+  Promise.resolve(
+    supabase.rpc('insert_notification', {
       p_offer_id: params.offerId,
       p_event_type: params.eventType,
       p_title: params.title,
       p_body: params.body,
       p_link: params.link ?? null,
-    })
-    .then(() => {})
-    .catch(() => {});
+    }),
+  ).catch(() => {});
 };
