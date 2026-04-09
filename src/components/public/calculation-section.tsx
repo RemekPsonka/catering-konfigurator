@@ -23,7 +23,7 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   LOGISTICS: 'Logistyka',
 };
 
-export const CalculationSection = ({ offer }: CalculationSectionProps) => {
+export const CalculationSection = ({ offer, modifications }: CalculationSectionProps) => {
   const {
     offer_variants,
     offer_services,
