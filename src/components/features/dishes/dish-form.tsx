@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -125,14 +126,18 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
   const unitType = form.watch('unit_type');
   const isModifiable = form.watch('is_modifiable');
   const costPerUnit = form.watch('cost_per_unit');
-  const marginPercent = form.watch('margin_percent');
+  const price = form.watch('price');
   const descShort = form.watch('description_short') ?? '';
   const descSales = form.watch('description_sales') ?? '';
 
-  const catalogPrice =
-    costPerUnit && marginPercent
-      ? (Number(costPerUnit) * (1 + Number(marginPercent) / 100)).toFixed(2)
+  const autoMargin =
+    price > 0 && costPerUnit && Number(costPerUnit) > 0
+      ? Math.round(((price - Number(costPerUnit)) / Number(costPerUnit)) * 100 * 10) / 10
       : null;
+
+  useEffect(() => {
+    form.setValue('margin_percent', autoMargin);
+  }, [price, costPerUnit, autoMargin, form]);
 
   const buildPayload = (values: DishFormValues) => {
     const priceFields = {
@@ -482,32 +487,12 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="margin_percent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marża (%)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {catalogPrice && (
-                <div className="flex flex-col justify-end">
-                  <p className="text-sm text-muted-foreground">Cena katalogowa</p>
-                  <p className="text-lg font-semibold">{catalogPrice} zł</p>
-                </div>
-              )}
+              <div className="flex flex-col justify-end">
+                <p className="text-sm text-muted-foreground">Marża (%)</p>
+                <p className="text-lg font-semibold">
+                  {autoMargin !== null ? `${autoMargin}%` : '—'}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
