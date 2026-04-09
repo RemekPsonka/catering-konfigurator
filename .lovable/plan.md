@@ -1,37 +1,33 @@
 
 
-# Tryb deweloperski (DEV_MODE)
+# Instalacja bibliotek premium UI i konfiguracja globalna
 
 ## Zakres
-Dodanie stałej `DEV_MODE` i warunkowe pomijanie logowania na frontendzie. Brak zmian w bazie danych.
+Instalacja 3 nowych bibliotek (framer-motion, lenis, yet-another-react-lightbox), konfiguracja smooth scroll na PublicLayout, reusable animation variants, rozszerzenie Tailwind o klasy premium.
 
-## Pliki do zmodyfikowania
+Uwaga: `embla-carousel-react` już jest zainstalowane (v8.6.0).
 
-### 1. `src/lib/constants.ts`
-- Dodaj na górze: `export const DEV_MODE = true;`
+## Zmiany
 
-### 2. `src/hooks/use-auth.tsx`
-- Import `DEV_MODE`
-- Gdy `DEV_MODE === true`: AuthProvider ustawia mock usera zamiast odpytywać Supabase Auth:
-  ```typescript
-  const DEV_USER: User = { id: 'dev-user-id', email: 'dev@test.pl', user_metadata: { role: 'admin' } } as User;
-  const DEV_SESSION: Session = { user: DEV_USER } as Session;
-  ```
-- `isLoading` od razu `false`, `signIn`/`signOut` jako no-op
+### 1. Instalacja npm
+```
+framer-motion lenis yet-another-react-lightbox
+```
 
-### 3. `src/components/layout/auth-guard.tsx`
-- Import `DEV_MODE`
-- Gdy `DEV_MODE === true` → zwróć `children` bez sprawdzania auth
+### 2. Nowy plik: `src/components/common/smooth-scroll.tsx`
+Komponent `SmoothScroll` z Lenis — dokładnie jak w specyfikacji użytkownika.
 
-### 4. `src/pages/auth/login.tsx`
-- Import `DEV_MODE` + `Navigate`
-- Gdy `DEV_MODE === true` → return `<Navigate to="/admin/offers" replace />`
+### 3. Nowy plik: `src/lib/animations.ts`
+6 reusable framer-motion variants: `fadeInUp`, `fadeIn`, `staggerContainer`, `scaleIn`, `slideInLeft`, `slideInRight` — dokładnie jak w specyfikacji.
 
-### 5. `src/components/layout/admin-layout.tsx`
-- Import `DEV_MODE`
-- Gdy `DEV_MODE === true` → render czerwony banner na górze: `"⚠️ TRYB DEWELOPERSKI — logowanie wyłączone"`
+### 4. `src/components/layout/public-layout.tsx`
+Owij `<Outlet />` w `<SmoothScroll>`.
 
-## Uwagi
-- RLS: istniejące policies `auth_full_access` wymagają `auth.uid() IS NOT NULL`. Mock user działa tylko na frontendzie — zapytania do Supabase nadal idą z anon key bez sesji. Jeśli RLS blokuje dane, trzeba będzie zalogować się raz prawdziwym kontem lub dodać tymczasowe policy. Na razie zostawiamy bez zmian w RLS.
-- Kod auth guard zachowany w pełni — tylko warunkowo pomijany.
+### 5. `tailwind.config.ts`
+Rozszerzenie `extend` o:
+- Dodatkowe keyframes: `float`, `shimmer`, `glow`
+- Animacje: `float`, `shimmer`, `glow`
+- Backdrop blur i box shadow premium (jeśli użytkownik chce konkretne — dodam standardowe glassmorphism utilities)
+
+## Brak zmian w bazie danych
 
