@@ -168,22 +168,29 @@ export const ChangesPanel = ({
             className="fixed bottom-0 left-0 right-0 z-40 md:bottom-8 md:left-auto md:right-8 md:max-w-md"
           >
             {/* Mobile collapsed bar */}
-            {!expanded && (
-              <motion.button
-                onClick={() => setExpanded(true)}
-                className="flex w-full items-center justify-between rounded-t-2xl px-6 py-4 font-body font-semibold text-ivory md:hidden"
-                style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
-              >
-                <span>Masz {modifications.size} {modifications.size === 1 ? 'zmianę' : 'zmian'} — zobacz</span>
-                <ChevronUp className="h-5 w-5" />
-              </motion.button>
-            )}
+            <AnimatePresence>
+              {!expanded && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setExpanded(true)}
+                  className="flex w-full items-center justify-between rounded-t-2xl px-6 py-4 font-body font-semibold text-ivory md:hidden"
+                  style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
+                >
+                  <span>Masz {modifications.size} {modifications.size === 1 ? 'zmianę' : 'zmian'} — zobacz</span>
+                  <ChevronUp className="h-5 w-5" />
+                </motion.button>
+              )}
+            </AnimatePresence>
 
             {/* Expanded panel */}
-            <motion.div
-              className={`rounded-2xl shadow-premium ${expanded ? 'max-h-[80vh] overflow-y-auto' : 'hidden md:block'}`}
-              style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)' }}
-            >
+            <AnimatePresence>
+              {(expanded || typeof window !== 'undefined') && (
+                <motion.div
+                  className={`rounded-2xl shadow-premium ${expanded ? 'block max-h-[80vh] overflow-y-auto' : 'hidden md:block'}`}
+                  style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)' }}
+                >
               {/* Header */}
               <div
                 className="flex items-center justify-between rounded-t-2xl px-6 py-4"
