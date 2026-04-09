@@ -1,81 +1,72 @@
 
 
-# Pełna komunikacja klient ↔ manager na stronie oferty
-
-## Zakres zmian
-
-### Część A: Nowa sekcja "Pytania i uwagi" (strona klienta)
-Zastąpienie `CorrectionsSection` nowym komponentem `CommunicationSection` z dwoma zakładkami:
-- **Tab 1 "💬 Mam pytanie"**: textarea + imię (opcjonalne, prefill z client.name) + przycisk outline. INSERT do `offer_corrections` z `type = 'question'`, BEZ zmiany statusu oferty. Powiadomienie `question_submitted`.
-- **Tab 2 "📝 Zgłoś korektę"**: textarea + imię + przycisk primary + uwaga pod przyciskiem. INSERT z `type = 'correction'`, zmiana statusu oferty na `revision`. Powiadomienie `correction_submitted`.
-
-### Część B: Historia komunikacji (strona klienta)
-Pod formularzem — timeline z `offer_corrections` + resolved `change_proposals`:
-- Pytania (💬 niebieski badge) i korekty (📝 pomarańczowy badge) z treścią klienta (lewa strona, szare tło)
-- Odpowiedzi managera (prawa strona, border primary) gdy `status = 'resolved'`
-- Propozycje zmian (🔄 fioletowy badge) z listą pozycji i statusami ✅/❌
-- Chronologicznie, najnowsze na górze, animacja fadeInUp
-
-### Część C: Panel admina — tab "💬 Komunikacja"
-Nowa strona `/admin/offers/:id/communication` (lub tab w istniejącym edytorze). Ponieważ edytor oferty to OfferWizard (7 kroków), dodam **osobną stronę** `/admin/offers/:id/messages` z linkiem z listy ofert i z wizarda.
-
-Zawartość:
-- Lista pytań/korekt chronologicznie
-- Badge typu + data + imię klienta + treść
-- Dla `status = 'new'`: textarea odpowiedzi + przycisk "Odpowiedz"/"Rozwiąż"
-- UPDATE `offer_corrections` → `status = 'resolved'`, `manager_response`, `responded_at`
-- Po odpowiedzi → modal emailowy (Część D)
-
-### Część D: EmailTemplateModal — reużywalny komponent
-Modal po odpowiedzi managera:
-- Pole "Do:" (readonly + kopiuj), "Temat:" (gotowy), "Treść:" (edytowalna textarea z template)
-- Trzy przyciski: "📋 Kopiuj wszystko", "✉️ Otwórz w kliencie email" (mailto), "Pomiń"
-- Wydzielony jako `src/components/common/email-template-modal.tsx`
+# Onboarding klienta + Porównanie wariantów
 
 ## Nowe pliki
-1. `src/components/public/communication-section.tsx` — zastępuje corrections-section (A+B)
-2. `src/components/common/email-template-modal.tsx` — reużywalny modal emailowy (D)
-3. `src/pages/admin/offer-messages.tsx` — strona komunikacji admina (C)
-4. `src/hooks/use-offer-corrections.ts` — hooki: fetch corrections, respond, fetch for public
+
+### 1. `src/components/public/onboarding-overlay.tsx`
+Overlay wyświetlany przy pierwszym otwarciu oferty (`viewed_at === null` w momencie renderowania).
+
+- 3 kroki wizualne (ikony + tekst) w karcie max-w-lg, rounded-2xl, shadow-premium
+- Backdrop blur 10px, overlay 30% opacity, fadeIn animation
+- "Rozumiem, pokaż ofertę" → zamknij + `sessionStorage.setItem('onboarding_seen', '1')`
+- "Nie pokazuj ponownie" → zamknij bez animacji
+- Warunek wyświetlenia: `!sessionStorage.getItem('onboarding_seen')` AND `offer.viewed_at === null` (sprawdzane przed `markViewed`)
+- Dynamiczny tekst z liczbą wariantów i edytowalnych pozycji
+
+### 2. `src/components/public/editable-tooltip.tsx`
+Pulsujący tooltip przy pierwszym edytowalnym daniu.
+
+- Wyświetlany po zamknięciu onboardingu, jeśli `!sessionStorage.getItem('edit_tooltip_seen')`
+- Pozycjonowany przy pierwszym `DishCard` z `isEditable=true`
+- Znika po 8s lub po kliknięciu 🔄 (ustawia flag w sessionStorage)
+- Styl: --theme-primary tło, tekst ivory, arrow pointing down, pulse animation
+
+### 3. `src/components/public/variant-comparison-section.tsx`
+Sekcja "Porównaj warianty" — renderowana tylko gdy `variants.length >= 2`.
+
+**Karty obok siebie (desktop grid) / karuzela Embla (mobile):**
+- Nazwa wariantu + badge "Polecany" (pulse animation) jeśli `is_recommended`
+- Statystyki: liczba pozycji, liczba edytowalnych
+- Top 5 dań (najdroższe z kategorii główne/desery) z miniaturką
+- Cena wg `price_display_mode`
+- Przycisk "Wybierz [nazwa]" → scroll do `AcceptanceSection` + pre-select variant (callback prop)
+- Karta polecanego: border 2px --theme-primary
+
+**Tabela różnic (rozwijana):**
+- Przycisk "Pokaż szczegółowe różnice" → toggle Collapsible
+- Wiersze = kategorie dań, kolumny = warianty
+- Dania różniące się → highlight --theme-primary/10
+- Dania wspólne → szary tekst, brak → "—"
+- Mobile: overflow-x-auto + sticky first column
 
 ## Modyfikowane pliki
-1. `src/pages/public/offer.tsx` — zamiana `CorrectionsSection` na `CommunicationSection`
-2. `src/hooks/use-public-offer.ts` — dodanie hooka `usePublicCorrections` (query offer_corrections + change_proposals resolved)
-3. `src/App.tsx` — dodanie route `/admin/offers/:id/messages`
-4. `src/lib/email-templates.ts` — template odpowiedzi na pytanie/korektę
 
-## Baza danych
-Tabela `offer_corrections` ma już kolumny: `type`, `status`, `manager_response`, `responded_at`, `responded_by`. **Nie trzeba migracji.**
+### 4. `src/pages/public/offer.tsx`
+- Import `OnboardingOverlay`, `VariantComparisonSection`
+- State: `isFirstVisit` = `!offer.viewed_at` (przed markViewed)
+- State: `onboardingDismissed` — po zamknięciu overlay uruchom tooltip
+- Dodać `OnboardingOverlay` jako overlay na całej stronie (warunkowo)
+- Dodać `VariantComparisonSection` między sekcją kalkulacji (10) a testimonialem (11), przed akceptacją
+- Prop `onSelectVariant` do `AcceptanceSection` — pre-select wariantu z comparison
+- Dodać `preSelectedVariantId` state, przekazać do `AcceptanceSection`
 
-Potrzebna jest RLS policy na SELECT dla publicznego odczytu `offer_corrections` (klient musi widzieć swoje wpisy + odpowiedzi). Obecnie jest tylko `public_corrections_insert`. Dodam **migrację** z polityką:
-```sql
-CREATE POLICY "public_corrections_read" ON offer_corrections
-FOR SELECT USING (
-  EXISTS (SELECT 1 FROM offers WHERE offers.id = offer_corrections.offer_id AND offers.public_token IS NOT NULL)
-);
-```
+### 5. `src/components/public/acceptance-section.tsx`
+- Dodać prop `preSelectedVariantId?: string` — jeśli podany, ustawić jako `selectedVariantId` initial state
+- `useEffect` reagujący na zmianę `preSelectedVariantId`
+
+### 6. `src/components/public/menu-variants-section.tsx`
+- Pod nazwą wariantu (w `VariantCard`) dodać badge "[X] pozycji do personalizacji" jeśli wariant ma edytowalne pozycje
+- Styl: --theme-primary/10 tło, --theme-primary tekst, rounded-full, text-xs
+
+## Brak zmian w bazie danych
+
+Wszystko opiera się na istniejących danych (`viewed_at`, `is_client_editable`, `variant_items`, `is_recommended`). SessionStorage do flag onboardingu.
 
 ## Szczegóły techniczne
 
-### Hook `usePublicCorrections(offerId)`
-Fetch `offer_corrections` z filtrem `offer_id`, order by `created_at DESC`. Publiczny (bez auth).
-
-### Hook `usePublicResolvedProposals(offerId)`
-Fetch `change_proposals` z `status IN ('accepted', 'partially_accepted', 'rejected')` + `proposal_items(*, dishes)`. Publiczny.
-
-### Hook `useOfferCorrections(offerId)` (admin)
-Fetch z auth. CRUD — odpowiadanie.
-
-### EmailTemplateModal props
-```typescript
-interface EmailTemplateModalProps {
-  open: boolean;
-  onClose: () => void;
-  clientEmail: string;
-  clientName: string;
-  subject: string;
-  body: string;
-  offerNumber: string;
-}
-```
+- `isFirstVisit` musi być obliczony PRZED wywołaniem `markViewed` (które ustawia `viewed_at`). Użyć `useRef` do zapamiętania initial state.
+- Tooltip: `useEffect` z `setTimeout(8000)` + cleanup
+- Comparison: `useMemo` do obliczenia top 5 dań i tabeli różnic per kategoria
+- Scroll do akceptacji: `document.getElementById('acceptance-section')?.scrollIntoView({ behavior: 'smooth' })`
 
