@@ -66,8 +66,10 @@ export const StepCalculation = ({
   const [greetingText, setGreetingText] = useState('');
   const [notesClient, setNotesClient] = useState('');
   const [notesInternal, setNotesInternal] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   useEffect(() => {
     if (offerQuery.data && !loaded) {
@@ -79,6 +81,7 @@ export const StepCalculation = ({
       setDiscountType(pct > 0 ? 'percent' : 'value');
       setDeliveryCost(Number(d.delivery_cost ?? 0));
       setGreetingText(d.greeting_text ?? '');
+      setAiSummary(d.ai_summary ?? '');
       setNotesClient(d.notes_client ?? '');
       setNotesInternal(d.notes_internal ?? '');
       setLoaded(true);
