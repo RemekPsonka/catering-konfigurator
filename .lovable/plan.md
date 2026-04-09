@@ -1,60 +1,85 @@
 
 
-# Sekcja Kalkulacja na stronie publicznej oferty
+# Interaktywna edycja dań na stronie publicznej oferty
 
 ## Zakres
-Nowy komponent `CalculationSection` renderowany na `/offer/:publicToken` między usługami a footerem. Wyświetla podsumowanie finansowe wg `price_display_mode`, z animowanymi cenami (count-up), edytowalną liczbą osób i guardrailem cenowym.
+Rozbudowa `DishCard` o rozwijany panel edycji zamienników (SWAP/VARIANT/SPLIT) z premium animacjami. Zmiany tymczasowe w React state, przeliczenie kalkulacji live. Stan zmian zarządzany przez `MenuVariantsSection` i przekazywany do `CalculationSection`.
+
+## Architektura stanu
+
+Nowy typ `DishModification` przechowujący tymczasowe zmiany klienta. Stan `Map<variantItemId, DishModification>` trzymany w `MenuVariantsSection` i przekazywany w górę do strony oferty (lift state to `PublicOfferPage`), skąd trafia też do `CalculationSection` do przeliczenia cen.
+
+```text
+PublicOfferPage
+├── modifications: Map<string, DishModification>   ← state
+├── MenuVariantsSection  ← edycja dań, onChange
+└── CalculationSection   ← odczyt modifications do przeliczenia
+```
 
 ## Pliki do utworzenia
 
-### 1. `src/components/public/animated-price.tsx`
-Komponent `AnimatedPrice`:
-- Props: `value: number`, `className?: string`
-- `useInView(ref, { once: true })` z framer-motion
-- requestAnimationFrame count-up od 0 do value (1000ms)
-- `formatCurrency()` do wyświetlania
-- `AnimatePresence` wrapper na zmianę wartości: stara znika (opacity 0, y: -10), nowa wchodzi (y: 10 → 0)
-- Flash kolor: zielony jeśli wartość wzrosła, czerwony jeśli spadła (300ms)
+### 1. `src/components/public/dish-edit-panel.tsx`
+Panel edycji rozwijany pod `DishCard` gdy `is_client_editable` i kliknięto ikonę 🔄.
 
-### 2. `src/components/public/calculation-section.tsx`
-Komponent `CalculationSection`:
-- Props: `offer` (PublicOffer) — potrzebne: `offer_variants`, `offer_services`, `pricing_mode`, `people_count`, `price_display_mode`, `discount_percent`, `discount_value`, `delivery_cost`, `is_people_count_editable`, `min_offer_price`
-- Stan lokalny: `peopleCount` (inicjalizowany z `offer.people_count`)
-- Reuse `calculateOfferTotals()` z `src/lib/calculations.ts` — wymaga adaptacji typów (PublicOffer variants vs VariantWithItems)
-- Adapter: mapuj `offer.offer_variants` na format kompatybilny z `calculateOfferTotals`
+Trzy warianty UI zależne od `modifications.type`:
 
-Sekcje wg `price_display_mode`:
-- **HIDDEN**: elegancki komunikat "Cena do ustalenia indywidualnie"
-- **TOTAL_ONLY**: tylko `AnimatedPrice` z grandTotal
-- **PER_PERSON_ONLY**: tylko cena/os per wariant
-- **PER_PERSON_AND_TOTAL**: cena/os + łączna kwota
-- **DETAILED**: pełna tabela per wariant (danie, ilość, cena, suma) + usługi + rabat + dostawa + total
+**SWAP**: Horizontalny scroll kart alternatyw. Per karta: miniaturka + nazwa + badge z różnicą ceny. Aktywna: border `--theme-primary`, `shadow-glow`. Klik: `AnimatePresence` — fade + scale transition.
 
-Edytowalna liczba osób (`is_people_count_editable`):
-- Stylowe +/- przyciski, wartość na środku
-- Scale animation (1.1 → 1.0) na zmianę
-- Debounce 300ms, potem przeliczenie z animated price update
-- Guardrail: jeśli nowy total < `min_offer_price` → toast shake, przywróć poprzednią wartość
+**VARIANT**: Pill buttons w rzędzie. Aktywna: bg `--theme-primary`, text white. Transition 0.2s.
 
-Podsumowanie:
-- Tło `--theme-primary` z opacity 5-10%
-- Grand total: `font-display text-3xl md:text-5xl font-bold`
-- Cena/os: mniejsza, opacity 70%
-- Separator: gradient linia `--theme-primary → transparent`
-- Stagger animations na całej sekcji
+**SPLIT**: Custom slider (Radix Slider z custom styling — gradient track, themed thumb). Pod sliderem: dwa dania z procentami aktualizowanymi real-time.
+
+Props: `item`, `modifications` (JSONB parsed), `currentValue`, `onChange`, `pricingMode`, `peopleCount`.
+
+AnimatePresence wrapper: `initial={{ height: 0, opacity: 0 }}`, `animate={{ height: 'auto', opacity: 1 }}`, `exit={{ height: 0, opacity: 0 }}`, duration 0.3.
 
 ## Pliki do zmodyfikowania
 
-### 3. `src/lib/calculations.ts`
-- Dodaj generyczny helper `getItemPriceGeneric(item)` który działa zarówno z `VariantItemWithDish` jak i z typami z PublicOffer (oba mają `custom_price` i `dishes` z cenami)
-- Lub: komponent sam mapuje dane przed wywołaniem `calculateOfferTotals`
+### 2. `src/components/public/dish-card.tsx`
+- Dodaj props: `isExpanded`, `onToggleExpand`, `modification`, `onModificationChange`
+- Ikona 🔄: `motion.span whileHover={{ rotate: 180 }}` + tooltip + onClick → `onToggleExpand`
+- Pod kartą: `AnimatePresence` → `DishEditPanel` gdy `isExpanded`
+- Zmienione danie: lekkie tło `--theme-primary` opacity 5%, badge "Zmieniono" z `scaleIn`, przycisk "Cofnij" (X)
+- Gdy SWAP aktywny: podmień wyświetlaną nazwę, zdjęcie i cenę z animacją
+
+### 3. `src/components/public/menu-variants-section.tsx`
+- Przyjmij props: `modifications`, `onModificationChange`
+- Trzymaj stan `expandedItemId` (tylko jeden panel otwarty naraz)
+- Przekaż do `DishCard`: `isExpanded`, `onToggleExpand`, `modification`, `onModificationChange`
 
 ### 4. `src/pages/public/offer.tsx`
-- Import i render `CalculationSection` po `ServicesSection` (linia 403)
-- Props: przekaż cały `offer`
+- Dodaj `useState<Map<string, DishModification>>` na poziomie strony
+- Przekaż `modifications` + `onModificationChange` do `MenuVariantsSection`
+- Przekaż `modifications` do `CalculationSection`
+
+### 5. `src/components/public/calculation-section.tsx`
+- Przyjmij opcjonalny `modifications` prop
+- Przed wywołaniem `calculateOfferTotals`: podmień ceny w variant_items zgodnie z modifications (SWAP → cena alternatywy, VARIANT → price_modifier, SPLIT → proporcjonalny podział)
+
+## Typy (w `dish-edit-panel.tsx` lub osobny plik)
+
+```typescript
+interface DishModification {
+  type: 'swap' | 'variant' | 'split';
+  // SWAP: which alternative dish was picked
+  swapDishId?: string;
+  swapDishName?: string;
+  swapDishPhoto?: string;
+  swapPriceDiff?: number;
+  // VARIANT: which option index
+  variantOptionIndex?: number;
+  variantPriceModifier?: number;
+  // SPLIT: percentage for original dish (rest goes to split dish)
+  splitPercent?: number;
+  splitDishId?: string;
+  splitDishName?: string;
+}
+```
 
 ## Szczegóły techniczne
-- `calculateOfferTotals` oczekuje `VariantWithItems[]` i `OfferServiceWithService[]` — typy z hooków adminowych. PublicOffer ma kompatybilną strukturę ale inne typy TS. Rozwiązanie: type assertion lub adapter function w `CalculationSection`.
-- `getItemPrice` z `use-offer-variants.ts` działa z `VariantItemWithDish` — PublicOffer dishes mają te same pola, więc cast zadziała.
-- Brak zmian w bazie danych.
+- Dane zamienników: `item.allowed_modifications ?? item.dishes.modifiable_items` (JSONB, parsed as `{ type, alternatives/options/can_split_with }`)
+- Public query już pobiera `dishes(*, dish_photos(*))` — wystarczy dla miniaturek alternatyw SWAP
+- SWAP alternatywy to `{ dish_id, label }` — nazwa jest w JSONB, ale zdjęcie trzeba pobrać osobno lub wyświetlić placeholder
+- Guardrail cenowy: po każdej zmianie `CalculationSection` sprawdza `min_offer_price` — jeśli przekroczony, toast + revert
+- Brak zmian w bazie danych — zmiany są tymczasowe w React state, zapis w P-3.5 (propozycje zmian)
 
