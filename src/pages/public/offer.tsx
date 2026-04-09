@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
+import { CalculationSection } from '@/components/public/calculation-section';
 
 const loadGoogleFont = (fontFamily: string | null) => {
   if (!fontFamily) return;
