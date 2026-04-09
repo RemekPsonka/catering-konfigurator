@@ -1,68 +1,47 @@
 
 
-# Krok 5 wizarda — Kalkulacja i podsumowanie
+# Krok 5 — Kalkulacja: ulepszenia + AI greeting + calculations.ts
 
-## Zakres
-Implementacja kroku 5: read-only podsumowanie finansowe oferty z edytowalnymi polami rabatu, dostawy i tekstów. Zapisuje `discount_percent`, `discount_value`, `delivery_cost`, `greeting_text`, `notes_client`, `ai_summary` do tabeli `offers`.
+## Stan obecny
+Krok 5 już istnieje z pełną kalkulacją (warianty, usługi, rabat, dostawa, podsumowanie, teksty). Przycisk "Wygeneruj z AI" jest **disabled** z tooltipem "Wkrótce". Brakuje:
+1. Funkcji `calculateOfferTotals` w `calculations.ts` (reusable)
+2. Edge function do generowania tekstu powitalnego z AI
+3. Aktywnego przycisku AI w komponencie (+ przekazanie `inquiry_text`, `event_type`, `event_date`)
+4. Ikony 🔒 przy notatkach wewnętrznych
 
-## Plik do utworzenia
+## Pliki do utworzenia
 
-### `src/components/features/offers/steps/step-calculation.tsx`
+### 1. `supabase/functions/generate-greeting/index.ts`
+Edge function wywołująca Lovable AI Gateway:
+- Input: `{ event_type, event_date, inquiry_text, client_name, people_count }`
+- System prompt: "Jesteś copywriterem firmy cateringowej Catering Śląski. Napisz elegancki, profesjonalny tekst powitalny do oferty cateringowej. Max 3-4 zdania. Język polski."
+- User prompt: kontekst z inputów (typ imprezy, data, treść zapytania klienta, liczba osób)
+- Model: `google/gemini-3-flash-preview`
+- Non-streaming (invoke via supabase SDK)
+- Obsługa błędów 429/402
 
-Komponent z 7 sekcjami w Card-ach:
+## Pliki do zmodyfikowania
 
-**Sekcja 1 — Kalkulacja per wariant** (Accordion/Tabs):
-- Reuse `useOfferVariants(offerId)` + `getItemPrice()` z `use-offer-variants.ts`
-- Per wariant: tabela read-only (Danie | Ilość | Cena jedn. | Suma)
-- Podsumowanie zależne od `pricingMode`:
-  - PER_PERSON: `[kwota]/os × [people_count] os = [total] zł`
-  - FIXED_QUANTITY: `[total] zł`
+### 2. `src/lib/calculations.ts`
+Dodać funkcję `calculateOfferTotals`:
+- Parametry: `pricingMode, peopleCount, variants (with items), services, discountPercent, discountValue, deliveryCost`
+- Zwraca: `{ variantTotals[], maxDishesTotal, discountAmount, dishesAfterDiscount, servicesTotalCalc, grandTotal, pricePerPerson }`
+- Reusable między admin wizard a client page
 
-**Sekcja 2 — Usługi** (read-only):
-- Reuse `useOfferServices(offerId)`
-- Tabela: Usługa | Ilość | Cena | Suma
-- "Usługi łącznie: X zł"
+### 3. `src/components/features/offers/steps/step-calculation.tsx`
+- Przyjmij dodatkowe props: `inquiryText`, `eventType`, `eventDate`, `clientName` z wizard state
+- Aktywuj przycisk "🤖 Generuj AI" — enabled gdy `inquiry_text` jest wypełnione
+- Na klik: wywołaj edge function `generate-greeting`, wstaw wynik do textarea
+- Loading state na przycisku podczas generowania
+- Dodaj ikonę 🔒 przy "Notatki wewnętrzne"
+- Refactor kalkulacji do użycia `calculateOfferTotals` z `calculations.ts`
 
-**Sekcja 3 — Rabat** (edytowalne):
-- RadioGroup: "Rabat procentowy" / "Rabat kwotowy"
-- Input % → auto-wylicz kwotę: "Rabat X% = Y zł"
-- Lub input PLN
-- Rabat TYLKO od dań (nie usług/dostawy)
-- "Dania po rabacie: X zł"
-
-**Sekcja 4 — Dostawa** (edytowalne):
-- Input number: kwota dostawy
-
-**Sekcja 5 — Podsumowanie końcowe** (read-only kalkulacja):
-- Dania (najdroższy wariant): X zł
-- Rabat: -Y zł
-- Usługi: Z zł
-- Dostawa: W zł
-- **ŁĄCZNIE: TOTAL zł**
-- Cena/os: TOTAL / people_count
-
-**Sekcja 6 — Tekst powitalny** (edytowalne):
-- Textarea z pre-filled `greeting_text` z kroku 1
-- Przycisk "Wygeneruj z AI" (na przyszłość — disabled z tooltipem "Wkrótce")
-
-**Sekcja 7 — Notatki**:
-- Textarea "Notatki dla klienta" (`notes_client`)
-- Textarea "Notatki wewnętrzne" (`notes_internal`) — widoczne tylko w admin
-
-### Auto-save:
-- Mutation UPDATE `offers` z `discount_percent`, `discount_value`, `delivery_cost`, `greeting_text`, `notes_client`, `notes_internal` na blur/change (debounced)
-- Przelicz `total_dishes_value`, `total_services_value`, `total_value`, `price_per_person` i zapisz do `offers`
-
-## Plik do zmodyfikowania
-
-### `src/components/features/offers/offer-wizard.tsx`
-- Import `StepCalculation`, render w `case 5`
-- Props: `offerId`, `pricingMode`, `peopleCount`
+### 4. `src/components/features/offers/offer-wizard.tsx`
+- Przekaż dodatkowe props do `StepCalculation`: `inquiryText`, `eventType`, `eventDate`, `clientName`
 
 ## Szczegóły techniczne
-- Najdroższy wariant do podsumowania: `Math.max(...variants.map(v => calculateVariantTotal(v)))`
-- Formuła: `total = (dishes_total - discount) + services_total + delivery_cost`
-- Rabat XOR: jeśli `discount_percent > 0` → `discount_value = 0` i odwrotnie
-- `formatCurrency()` z `src/lib/calculations.ts` do wyświetlania kwot
-- Brak zmian w bazie danych
+- Edge function: `verify_jwt = false` (domyślne dla Lovable Cloud)
+- LOVABLE_API_KEY już skonfigurowany jako secret
+- Prompt budowany dynamicznie z kontekstem: typ eventu (label z `EVENT_TYPE_OPTIONS`), data, treść zapytania klienta
+- Fallback: jeśli AI zwróci błąd → toast error, textarea bez zmian
 
