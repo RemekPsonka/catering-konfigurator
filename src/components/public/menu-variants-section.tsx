@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Sparkles } from 'lucide-react';
@@ -50,10 +50,11 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
     if (sorted[idx]) setActiveId(sorted[idx].id);
   }, [emblaApi, sorted]);
 
-  // Register callback
-  useState(() => {
-    if (emblaApi) emblaApi.on('select', onSelect);
-  });
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on('select', onSelect);
+    return () => { emblaApi.off('select', onSelect); };
+  }, [emblaApi, onSelect]);
 
   const activeVariant = sorted.find((v) => v.id === activeId) ?? sorted[0];
   if (!activeVariant) return null;

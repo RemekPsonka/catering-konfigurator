@@ -278,6 +278,106 @@ export type Database = {
           },
         ]
       }
+      event_type_photos: {
+        Row: {
+          alt_text: string | null
+          caption: string | null
+          created_at: string | null
+          event_type_id: string
+          height: number | null
+          id: string
+          is_hero: boolean | null
+          photo_url: string
+          sort_order: number | null
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          caption?: string | null
+          created_at?: string | null
+          event_type_id: string
+          height?: number | null
+          id?: string
+          is_hero?: boolean | null
+          photo_url: string
+          sort_order?: number | null
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          caption?: string | null
+          created_at?: string | null
+          event_type_id?: string
+          height?: number | null
+          id?: string
+          is_hero?: boolean | null
+          photo_url?: string
+          sort_order?: number | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_type_photos_event_type_id_fkey"
+            columns: ["event_type_id"]
+            isOneToOne: false
+            referencedRelation: "event_type_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_type_profiles: {
+        Row: {
+          cta_text: string | null
+          description_long: string | null
+          description_short: string
+          features: Json | null
+          headline: string
+          hero_image_url: string | null
+          id: string
+          is_active: boolean | null
+          testimonial_author: string | null
+          testimonial_event: string | null
+          testimonial_text: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cta_text?: string | null
+          description_long?: string | null
+          description_short: string
+          features?: Json | null
+          headline: string
+          hero_image_url?: string | null
+          id: string
+          is_active?: boolean | null
+          testimonial_author?: string | null
+          testimonial_event?: string | null
+          testimonial_text?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cta_text?: string | null
+          description_long?: string | null
+          description_short?: string
+          features?: Json | null
+          headline?: string
+          hero_image_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          testimonial_author?: string | null
+          testimonial_event?: string | null
+          testimonial_text?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_type_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "offer_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_activities: {
         Row: {
           created_at: string | null
