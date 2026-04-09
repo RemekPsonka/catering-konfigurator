@@ -1,21 +1,37 @@
 
 
-# Duplikacja oferty — poprawki
+# Tryb deweloperski (DEV_MODE)
 
-## Stan obecny
-Duplikacja już istnieje w `useDuplicateOffer` (hook) + przycisk w menu kontekstowym na liście ofert. Redirect do edycji działa.
+## Zakres
+Dodanie stałej `DEV_MODE` i warunkowe pomijanie logowania na frontendzie. Brak zmian w bazie danych.
 
-Większość logiki jest poprawna: daty (`event_date`, `sent_at`, `viewed_at`, `accepted_at`) nie są kopiowane (auto-cleared), `lead_id` nie jest kopiowany, `status = 'draft'`, `offer_number`/`public_token`/`valid_until` generowane przez triggery.
+## Pliki do zmodyfikowania
 
-## Co wymaga poprawki
+### 1. `src/lib/constants.ts`
+- Dodaj na górze: `export const DEV_MODE = true;`
 
-### `src/hooks/use-offers.ts` — `useDuplicateOffer`
-1. Usunąć kopiowanie pól kalkulacyjnych (powinny być 0, przeliczone po edycji):
-   - `total_dishes_value`, `total_services_value`, `total_value`, `price_per_person` → nie kopiować (DB defaults = 0)
-2. Usunąć `notes_internal` z kopii (notatki wewnętrzne dotyczą oryginalnej oferty)
-3. Usunąć `inquiry_text` z kopii (treść zapytania dotyczy oryginalnego klienta)
-4. Zmienić toast na: `"Oferta zduplikowana! Uzupełnij klienta i daty."`
-5. Zachować `client_id` (NOT NULL constraint) — klient widoczny w kroku 1, manager może go zmienić
+### 2. `src/hooks/use-auth.tsx`
+- Import `DEV_MODE`
+- Gdy `DEV_MODE === true`: AuthProvider ustawia mock usera zamiast odpytywać Supabase Auth:
+  ```typescript
+  const DEV_USER: User = { id: 'dev-user-id', email: 'dev@test.pl', user_metadata: { role: 'admin' } } as User;
+  const DEV_SESSION: Session = { user: DEV_USER } as Session;
+  ```
+- `isLoading` od razu `false`, `signIn`/`signOut` jako no-op
 
-### Brak zmian w bazie danych
-Brak zmian w pozostałych plikach — redirect i przycisk już działają poprawnie.
+### 3. `src/components/layout/auth-guard.tsx`
+- Import `DEV_MODE`
+- Gdy `DEV_MODE === true` → zwróć `children` bez sprawdzania auth
+
+### 4. `src/pages/auth/login.tsx`
+- Import `DEV_MODE` + `Navigate`
+- Gdy `DEV_MODE === true` → return `<Navigate to="/admin/offers" replace />`
+
+### 5. `src/components/layout/admin-layout.tsx`
+- Import `DEV_MODE`
+- Gdy `DEV_MODE === true` → render czerwony banner na górze: `"⚠️ TRYB DEWELOPERSKI — logowanie wyłączone"`
+
+## Uwagi
+- RLS: istniejące policies `auth_full_access` wymagają `auth.uid() IS NOT NULL`. Mock user działa tylko na frontendzie — zapytania do Supabase nadal idą z anon key bez sesji. Jeśli RLS blokuje dane, trzeba będzie zalogować się raz prawdziwym kontem lub dodać tymczasowe policy. Na razie zostawiamy bez zmian w RLS.
+- Kod auth guard zachowany w pełni — tylko warunkowo pomijany.
+
