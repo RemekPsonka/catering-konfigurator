@@ -332,7 +332,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
                     />
                   </FormControl>
                   {!form.watch('client_id') && (
-                    <p className="text-xs text-amber-600">⚠️ Uzupełnij klienta przed wysłaniem oferty</p>
+                    <p className="text-xs text-destructive/70">⚠️ Uzupełnij klienta przed wysłaniem oferty</p>
                   )}
                   <FormMessage />
                 </FormItem>
