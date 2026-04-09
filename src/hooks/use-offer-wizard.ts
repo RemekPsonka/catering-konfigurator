@@ -86,7 +86,7 @@ const wizardReducer = (state: WizardState, action: WizardAction): WizardState =>
         ...state,
         offerId: action.offer.id,
         offerNumber: action.offer.offer_number ?? state.offerNumber,
-        completedSteps: [1],
+        completedSteps: [1, 2, 3, 4, 5, 6, 7],
         stepData: {
           ...state.stepData,
           eventData: {
