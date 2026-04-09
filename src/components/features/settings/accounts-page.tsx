@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { DEV_MODE } from '@/lib/constants';
-import { Plus, KeyRound } from 'lucide-react';
+import { Plus, MoreHorizontal, KeyRound, Lock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -14,8 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { EmptyState } from '@/components/common/empty-state';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 
 interface UserAccount {
   id: string;
@@ -37,7 +40,16 @@ const createAccountSchema = z.object({
   role: z.enum(['admin', 'manager']),
 });
 
+const changePasswordSchema = z.object({
+  password: z.string().min(6, 'Hasło musi mieć minimum 6 znaków'),
+  confirmPassword: z.string().min(6, 'Hasło musi mieć minimum 6 znaków'),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: 'Hasła nie są identyczne',
+  path: ['confirmPassword'],
+});
+
 type CreateAccountValues = z.infer<typeof createAccountSchema>;
+type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 
 const DEV_MOCK_USERS: UserAccount[] = [
   { id: 'dev-user-id', email: 'dev@test.pl', role: 'admin', last_sign_in_at: null, created_at: new Date().toISOString() },
@@ -56,13 +68,22 @@ const useUsers = () => {
 };
 
 export const AccountsPage = () => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useUsers();
 
-  const form = useForm<CreateAccountValues>({
+  const createForm = useForm<CreateAccountValues>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: { email: '', password: '', role: 'manager' },
+  });
+
+  const passwordForm = useForm<ChangePasswordValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { password: '', confirmPassword: '' },
   });
 
   const createUser = useMutation({
@@ -81,11 +102,51 @@ export const AccountsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast.success('Konto zostało utworzone');
-      setDialogOpen(false);
-      form.reset();
+      setCreateDialogOpen(false);
+      createForm.reset();
     },
     onError: () => {
       toast.error('Nie udało się utworzyć konta');
+    },
+  });
+
+  const changePassword = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      const { data, error } = await supabase.functions.invoke('list-users', {
+        method: 'PATCH',
+        body: { userId, password },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Hasło zostało zmienione');
+      setPasswordDialogOpen(false);
+      passwordForm.reset();
+      setSelectedUser(null);
+    },
+    onError: () => {
+      toast.error('Nie udało się zmienić hasła');
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('list-users', {
+        method: 'DELETE',
+        body: { userId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('Konto zostało usunięte');
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: () => {
+      toast.error('Nie udało się usunąć konta');
     },
   });
 
@@ -108,11 +169,13 @@ export const AccountsPage = () => {
     });
   };
 
+  const isCurrentUser = (userId: string) => currentUser?.id === userId;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Konta użytkowników</h2>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />Dodaj konto</Button>
+        <Button onClick={() => setCreateDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />Dodaj konto</Button>
       </div>
 
       {isLoading ? (
@@ -130,19 +193,40 @@ export const AccountsPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.email}</TableCell>
+            {users.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-medium">
+                  {u.email}
+                  {isCurrentUser(u.id) && <Badge variant="outline" className="ml-2 text-xs">Ty</Badge>}
+                </TableCell>
                 <TableCell>
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                    {ROLE_LABELS[user.role] || user.role}
+                  <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+                    {ROLE_LABELS[u.role] || u.role}
                   </Badge>
                 </TableCell>
-                <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
+                <TableCell>{formatDate(u.last_sign_in_at)}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleResetPassword(user.email)}>
-                    <KeyRound className="mr-1 h-4 w-4" />Wyślij reset
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleResetPassword(u.email)}>
+                        <KeyRound className="mr-2 h-4 w-4" />Wyślij reset hasła
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedUser(u); setPasswordDialogOpen(true); }}>
+                        <Lock className="mr-2 h-4 w-4" />Zmień hasło
+                      </DropdownMenuItem>
+                      {!isCurrentUser(u.id) && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => { setSelectedUser(u); setDeleteDialogOpen(true); }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />Usuń konto
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
@@ -150,28 +234,19 @@ export const AccountsPage = () => {
         </Table>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Create account dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Nowe konto</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((v) => createUser.mutate(v))} className="space-y-4">
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl><Input type="email" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
+          <DialogHeader><DialogTitle>Nowe konto</DialogTitle></DialogHeader>
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit((v) => createUser.mutate(v))} className="space-y-4">
+              <FormField control={createForm.control} name="email" render={({ field }) => (
+                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="password" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hasło</FormLabel>
-                  <FormControl><Input type="password" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
+              <FormField control={createForm.control} name="password" render={({ field }) => (
+                <FormItem><FormLabel>Hasło</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="role" render={({ field }) => (
+              <FormField control={createForm.control} name="role" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Rola</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
@@ -185,15 +260,45 @@ export const AccountsPage = () => {
                 </FormItem>
               )} />
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Anuluj</Button>
-                <Button type="submit" disabled={createUser.isPending}>
-                  {createUser.isPending ? 'Tworzenie...' : 'Utwórz konto'}
-                </Button>
+                <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Anuluj</Button>
+                <Button type="submit" disabled={createUser.isPending}>{createUser.isPending ? 'Tworzenie...' : 'Utwórz konto'}</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Change password dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={(open) => { setPasswordDialogOpen(open); if (!open) { passwordForm.reset(); setSelectedUser(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Zmień hasło — {selectedUser?.email}</DialogTitle></DialogHeader>
+          <Form {...passwordForm}>
+            <form onSubmit={passwordForm.handleSubmit((v) => { if (selectedUser) changePassword.mutate({ userId: selectedUser.id, password: v.password }); })} className="space-y-4">
+              <FormField control={passwordForm.control} name="password" render={({ field }) => (
+                <FormItem><FormLabel>Nowe hasło</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => (
+                <FormItem><FormLabel>Powtórz hasło</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)}>Anuluj</Button>
+                <Button type="submit" disabled={changePassword.isPending}>{changePassword.isPending ? 'Zapisywanie...' : 'Zmień hasło'}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setSelectedUser(null); }}
+        title="Usuń konto"
+        description={`Czy na pewno chcesz usunąć konto ${selectedUser?.email}? Tej operacji nie można cofnąć.`}
+        confirmLabel={deleteUser.isPending ? 'Usuwanie...' : 'Usuń konto'}
+        variant="destructive"
+        onConfirm={() => { if (selectedUser) deleteUser.mutate(selectedUser.id); }}
+      />
     </div>
   );
 };
