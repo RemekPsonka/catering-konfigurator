@@ -1,0 +1,72 @@
+import { Check, ClipboardList, UtensilsCrossed, Wrench, Settings, Calculator, Palette, Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { WIZARD_STEPS } from '@/lib/offer-constants';
+
+const iconMap = {
+  ClipboardList,
+  UtensilsCrossed,
+  Wrench,
+  Settings,
+  Calculator,
+  Palette,
+  Eye,
+} as const;
+
+interface WizardStepperProps {
+  currentStep: number;
+  completedSteps: number[];
+  onStepClick: (step: number) => void;
+}
+
+export const WizardStepper = ({ currentStep, completedSteps, onStepClick }: WizardStepperProps) => {
+  return (
+    <nav className="flex items-center justify-between w-full" aria-label="Kroki kreatora">
+      {WIZARD_STEPS.map((step, idx) => {
+        const isCompleted = completedSteps.includes(step.number);
+        const isActive = currentStep === step.number;
+        const isClickable = isCompleted || isActive;
+        const Icon = iconMap[step.icon];
+
+        return (
+          <div key={step.number} className="flex items-center flex-1 last:flex-none">
+            <button
+              type="button"
+              disabled={!isClickable}
+              onClick={() => isClickable && onStepClick(step.number)}
+              className={cn(
+                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                isActive && 'bg-primary text-primary-foreground',
+                isCompleted && !isActive && 'bg-primary/10 text-primary hover:bg-primary/20',
+                !isActive && !isCompleted && 'text-muted-foreground cursor-not-allowed',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0',
+                  isActive && 'bg-primary-foreground/20',
+                  isCompleted && !isActive && 'bg-primary/20',
+                  !isActive && !isCompleted && 'bg-muted',
+                )}
+              >
+                {isCompleted && !isActive ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
+              </span>
+              <span className="hidden md:inline">{step.label}</span>
+            </button>
+            {idx < WIZARD_STEPS.length - 1 && (
+              <div
+                className={cn(
+                  'flex-1 h-px mx-2',
+                  isCompleted ? 'bg-primary/40' : 'bg-border',
+                )}
+              />
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+};
