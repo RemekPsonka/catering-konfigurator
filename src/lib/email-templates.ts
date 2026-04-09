@@ -17,7 +17,7 @@ Oferta ważna do: {validUntil}
 
 Pozdrawiamy,
 Catering Śląski
-tel. +48 123 456 789 | kontakt@cateringsl.pl`;
+tel. +48 123 456 789 | zamowienia@cateringslaski.pl`;
 
 export const buildOfferEmailText = (params: {
   clientName: string;
