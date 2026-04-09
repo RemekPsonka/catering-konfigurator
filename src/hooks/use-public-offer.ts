@@ -9,6 +9,7 @@ export type PublicOffer = Tables<'offers'> & {
     variant_items: (Tables<'variant_items'> & {
       dishes: Tables<'dishes'> & {
         dish_categories: Tables<'dish_categories'>;
+        dish_photos: Tables<'dish_photos'>[];
       };
     })[];
   })[];
@@ -33,7 +34,7 @@ export const usePublicOffer = (publicToken: string | undefined) => {
             *,
             variant_items(
               *,
-              dishes(*, dish_categories(*))
+              dishes(*, dish_categories(*), dish_photos(*))
             )
           ),
           offer_services(
