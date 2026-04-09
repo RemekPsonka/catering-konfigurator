@@ -73,6 +73,7 @@ const App = () => (
                 <Route path="leads" element={<LeadsListPage />} />
                 <Route path="leads/:id" element={<LeadDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="notifications" element={<NotificationsListPage />} />
                 <Route path="settings/event-profiles" element={<EventProfilesListPage />} />
                 <Route path="settings/event-profiles/:eventTypeId" element={<EventProfileEditPage />} />
               </Route>
