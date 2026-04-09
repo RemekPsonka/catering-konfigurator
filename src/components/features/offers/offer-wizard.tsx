@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { WizardStepper } from './wizard-stepper';
 import { StepEventData } from './steps/step-event-data';
 import { StepMenu } from './steps/step-menu';
