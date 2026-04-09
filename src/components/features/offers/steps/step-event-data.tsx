@@ -131,6 +131,8 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
         }))
       );
       toast.success('Zapytanie przeanalizowane!');
+      // Auto-generate personalized greeting
+      generateGreeting(parsed);
     } catch {
       toast.error('Nie udało się przeanalizować zapytania. Wypełnij pola ręcznie.');
     } finally {
