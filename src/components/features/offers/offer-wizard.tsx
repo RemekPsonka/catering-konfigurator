@@ -7,7 +7,8 @@ import { StepMenu } from './steps/step-menu';
 import { StepServices } from './steps/step-services';
 import { StepSettings } from './steps/step-settings';
 import { StepCalculation } from './steps/step-calculation';
-import { StepPlaceholder } from './steps/step-placeholder';
+import { StepTheme } from './steps/step-theme';
+import { StepPreview } from './steps/step-preview';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 
@@ -92,10 +93,19 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
             clientName={state.stepData.eventData.client_name}
           />
         );
-      default:
-        return <StepPlaceholder title={STEP_TITLES[state.currentStep - 1]} />;
+      case 6:
+        return <StepTheme offerId={state.offerId} eventType={state.stepData.eventData.event_type} />;
+      case 7:
+        return (
+          <StepPreview
+            offerId={state.offerId}
+            pricingMode={state.stepData.eventData.pricing_mode}
+            peopleCount={state.stepData.eventData.people_count}
+          />
+        );
     }
-  };
+      default:
+        return null;
 
   return (
     <div className="space-y-6">
