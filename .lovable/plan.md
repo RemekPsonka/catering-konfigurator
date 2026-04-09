@@ -1,66 +1,66 @@
 
 
-# Modul zarządzania daniami — lista + formularz
+# Sekcja zdjęć w formularzu dania
 
 ## Zakres
-Zamiana placeholder stron `dishes-list`, `dish-new`, `dish-edit` na pełne implementacje: lista dań z filtrami/paginacją oraz formularz tworzenia/edycji dania w sekcjach.
+Dodanie sekcji zarządzania zdjęciami do formularza dania: upload drag & drop, podgląd miniaturek, oznaczanie głównego zdjęcia, usuwanie, sortowanie. Storage bucket + hook + komponent.
+
+## Migracja bazy danych
+
+### 1. Storage bucket `dish-photos`
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('dish-photos', 'dish-photos', true);
+
+CREATE POLICY "auth_upload_dish_photos" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'dish-photos');
+
+CREATE POLICY "auth_update_dish_photos" ON storage.objects
+  FOR UPDATE TO authenticated USING (bucket_id = 'dish-photos');
+
+CREATE POLICY "auth_delete_dish_photos" ON storage.objects
+  FOR DELETE TO authenticated USING (bucket_id = 'dish-photos');
+
+CREATE POLICY "public_read_dish_photos" ON storage.objects
+  FOR SELECT USING (bucket_id = 'dish-photos');
+```
 
 ## Pliki do utworzenia
 
-### 1. `src/hooks/use-dishes.ts`
-Hook React Query do obsługi dań:
-- `useDishes(filters)` — lista z paginacją (20/stronę), filtrami (category_id, is_active, search debounced, diet_tags), JOIN na `dish_categories` dla nazwy kategorii
-- `useDish(id)` — pojedyncze danie do edycji
-- `useCreateDish` — INSERT, toast sukcesu z linkiem do edycji
-- `useUpdateDish` — UPDATE po id, toast sukcesu
-- Typ `DishWithCategory` rozszerzający `Tables<'dishes'>` o `category_name` i `category_icon`
+### 2. `src/hooks/use-dish-photos.ts`
+Hook React Query:
+- `useDishPhotos(dishId)` — lista zdjęć posortowana po `sort_order`
+- `useUploadDishPhoto()` — upload do Storage (`dish-photos/{dish_id}/{uuid}.{ext}`), INSERT do `dish_photos`, jeśli pierwsze zdjęcie → auto `is_primary` + sync `dishes.photo_url`
+- `useDeleteDishPhoto()` — DELETE z `dish_photos` + remove z Storage, jeśli usunięte było primary → ustaw kolejne jako primary lub wyczyść `dishes.photo_url`
+- `useSetPrimaryPhoto()` — UPDATE `is_primary = false` na wszystkich, `true` na wybranym, sync `dishes.photo_url`
+- `useReorderPhotos()` — batch UPDATE `sort_order`
+- Walidacja w hooku: max 5 zdjęć, max 5MB, dozwolone MIME types
 
-### 2. `src/components/features/dishes/dish-filters.tsx`
-Komponent filtrów nad tabelą:
-- Tabs lub Select z kategoriami (z `useDishCategories`, opcja "Wszystkie")
-- Toggle status: Aktywne / Wszystkie
-- Input wyszukiwania z debounce 300ms (custom `useDebounce` hook lub inline)
-- Multi-select chips dla tagów dietetycznych
-
-### 3. `src/components/features/dishes/dish-form.tsx`
-Formularz podzielony na 5 sekcji w Card:
-- **Sekcja 1 — Podstawowe**: name, display_name, description_short (counter 200), description_sales (counter 500), category_id (Select z kategoriami), subcategory
-- **Sekcja 2 — Cena i wycena**: unit_type (RadioGroup: PERSON/PIECE/KG/SET), dynamiczny label ceny, min_order_quantity, portion_weight_g, serves_people
-- **Sekcja 3 — Tagi**: 4 grupy multi-select chips (diet_tags, event_tags, season_tags, serving_style) + alergeny — toggle chips z predefiniowanymi wartościami
-- **Sekcja 4 — Wewnętrzne**: cost_per_unit, margin_percent, auto-kalkulacja wyświetlana jako read-only
-- **Sekcja 5 — Status**: is_active Switch, is_modifiable Switch
-- React Hook Form + Zod, tryb create/edit
-- 3 przyciski: "Zapisz", "Zapisz i dodaj kolejne", "Anuluj"
-
-### 4. `src/components/features/dishes/tag-chips-field.tsx`
-Reużywalny komponent multi-select chips — tablica predefiniowanych opcji, toggle on/off, integracja z React Hook Form.
-
-### 5. `src/lib/dish-constants.ts`
-Stałe dla tagów (polskie etykiety):
-- `DIET_TAGS`, `EVENT_TAGS`, `SEASON_TAGS`, `SERVING_STYLES`, `ALLERGENS`
-- `UNIT_TYPE_LABELS`: PERSON→"Na osobę", PIECE→"Za sztukę", KG→"Za kg", SET→"Za zestaw"
-- `UNIT_TYPE_PRICE_LABELS`: PERSON→"Cena/osobę", etc.
+### 3. `src/components/features/dishes/dish-photos-section.tsx`
+Komponent sekcji zdjęć (Card):
+- Drop zone z `onDragOver`/`onDrop` + hidden `<input type="file" multiple accept="image/jpeg,image/png,image/webp">`
+- Placeholder: ikona Camera + "Przeciągnij zdjęcia tutaj lub kliknij, aby wybrać"
+- Siatka 3 kolumny z miniaturkami (aspect-ratio square, object-cover)
+- Na hover overlay z ikonami: ⭐ (set primary), 🗑️ (usuń)
+- Primary photo oznaczone złotą ramką/badge
+- Drag & drop sortowanie miniaturek (`@dnd-kit`)
+- Loading state podczas uploadu (progress lub spinner na miniaturce)
+- Info: "X / 5 zdjęć"
+- Dostępne tylko w trybie `edit` (dish musi mieć `id`)
 
 ## Pliki do zmodyfikowania
 
-### 6. `src/pages/admin/dishes-list.tsx`
-Pełna strona zamiast placeholdera:
-- Nagłówek "Baza potraw" + "Dodaj danie" (link do /admin/dishes/new)
-- DishFilters + Table (miniaturka, nazwa, kategoria, unit_type label, cena wg unit_type, 🔄 ikona jeśli is_modifiable, StatusBadge, przycisk Edytuj)
-- Klik w wiersz → navigate do /admin/dishes/:id/edit
-- Paginacja shadcn Pagination (20/stronę)
+### 4. `src/components/features/dishes/dish-form.tsx`
+- Dodać sekcję "Zdjęcia" (Card) po sekcji Tagi (sekcja 3), przed Wewnętrzne (sekcja 4)
+- Renderować `DishPhotosSection` tylko w trybie `edit` (z `dish.id`)
+- W trybie `create`: informacja "Zdjęcia będą dostępne po zapisaniu dania"
 
-### 7. `src/pages/admin/dish-new.tsx`
-Nagłówek "Nowe danie" + DishForm w trybie create. Po zapisie → navigate do /admin/dishes lub toast z linkiem.
+### 5. `src/pages/admin/dish-new.tsx`
+- Po `createDish.mutateAsync` — zamiast navigate do `/admin/dishes`, navigate do `/admin/dishes/{newDish.id}/edit` aby umożliwić dodanie zdjęć
 
-### 8. `src/pages/admin/dish-edit.tsx`
-Pobiera danie po `useParams().id`, loader/error state, DishForm w trybie edit z pre-filled danymi. Po zapisie → toast sukcesu.
-
-## Szczegoly techniczne
-
-- Cena wyswietlana w tabeli: `price_per_person ?? price_per_piece ?? price_per_kg ?? price_per_set` zaleznie od `unit_type`
-- Formularz dynamicznie pokazuje jedno pole ceny na podstawie wybranego `unit_type`
-- Auto-kalkulacja marzy: jesli podano cost_per_unit i margin_percent, wyswietl `cost * (1 + margin/100)` jako "Cena katalogowa"
-- Debounce search: `useState` + `useEffect` z `setTimeout` 300ms
-- Paginacja: query `.range(from, to)` w Supabase, zliczanie `.count()` dla total
+## Szczegóły techniczne
+- Upload path: `dish-photos/{dish_id}/{crypto.randomUUID()}.{ext}`
+- `photo_url` w Storage: `supabase.storage.from('dish-photos').getPublicUrl(path)`
+- Auto-sync `dishes.photo_url` z primary photo URL przy każdej zmianie primary
+- Przy usuwaniu z tabeli `dish_photos` — jednocześnie `supabase.storage.from('dish-photos').remove([path])`
+- DnD sortowanie: reuse `@dnd-kit` (już zainstalowane)
 
