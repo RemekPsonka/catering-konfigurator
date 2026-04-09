@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Menu } from 'lucide-react';
+import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   SidebarProvider,
@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 const NAV_ITEMS = [
   { title: 'Oferty', url: '/admin/offers', icon: FileText },
   { title: 'Baza potraw', url: '/admin/dishes', icon: UtensilsCrossed },
+  { title: 'Usługi', url: '/admin/services', icon: Wrench },
   { title: 'Klienci', url: '/admin/clients', icon: Users },
   { title: 'Leady', url: '/admin/leads', icon: Target },
   { title: 'Ustawienia', url: '/admin/settings', icon: Settings },

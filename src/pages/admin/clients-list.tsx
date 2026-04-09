@@ -1,3 +1,3 @@
-import { PlaceholderPage } from '@/components/common/placeholder-page';
+import { ClientsPage } from '@/components/features/clients/clients-page';
 
-export const ClientsListPage = () => <PlaceholderPage title="Lista klientów" />;
+export const ClientsListPage = () => <ClientsPage />;

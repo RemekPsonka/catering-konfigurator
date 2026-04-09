@@ -13,6 +13,7 @@ import { OfferNewPage } from "@/pages/admin/offer-new";
 import { OfferEditPage } from "@/pages/admin/offer-edit";
 import { ProposalDiffPage } from "@/pages/admin/proposal-diff";
 import { DishesListPage } from "@/pages/admin/dishes-list";
+import { ServicesListPage } from "@/pages/admin/services-list";
 import { DishCategoriesPage } from "@/pages/admin/dish-categories";
 import { DishNewPage } from "@/pages/admin/dish-new";
 import { DishEditPage } from "@/pages/admin/dish-edit";
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="dishes/categories" element={<DishCategoriesPage />} />
               <Route path="dishes/new" element={<DishNewPage />} />
               <Route path="dishes/:id/edit" element={<DishEditPage />} />
+              <Route path="services" element={<ServicesListPage />} />
               <Route path="clients" element={<ClientsListPage />} />
               <Route path="leads" element={<LeadsListPage />} />
               <Route path="leads/:id" element={<LeadDetailPage />} />
