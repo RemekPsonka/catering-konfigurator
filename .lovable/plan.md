@@ -1,61 +1,51 @@
 
+# Naprawa 4 problemów w AI parsowaniu i generowaniu tekstu powitalnego
 
-# Integracja event_type_profiles ze stroną klienta
+## Problem 1: Błędne rozpoznawanie typu eventu
+**Plik:** `supabase/functions/parse-inquiry/index.ts`
+- Zamiana opisu pola `event.type` w tool calling schema na rozbudowany z wskazówkami wyboru (instytucja→B2B/FIR/KAW, nie PRY)
+- Dodanie reguły w sekcji "Zasady:" o instytucjach/firmach → nigdy PRY
 
-## Zakres
-Nowy hook do pobierania profilu eventu na stronie publicznej. 4 nowe komponenty sekcji (opis, wyróżniki, galeria, opinia). Aktualizacja hero w offer page. Aktualizacja ContactSection z CTA z profilu. Zmiana kolejności sekcji.
+## Problem 2: "Zastosuj wszystko" tworzy/przypisuje klienta
+**Plik:** `src/components/features/offers/ai-inquiry-panel.tsx`
+- Funkcja `handleApplyAll` już obsługuje klienta (linie 133-153) — wygląda poprawnie
+- Weryfikacja: `onCreateClient` i `onUseExistingClient` są wywoływane, ale `onCreateClient` jest async i może nie czekać na wynik. Poprawka: `await onCreateClient(c)` — ale `onCreateClient` w step-event-data to `handleAiCreateClient` który jest async. Problem: w `ai-inquiry-panel` `onCreateClient` jest typowany jako `(data) => void`, nie `Promise`. Zmiana typów + `await`.
 
-## Pliki do utworzenia
+## Problem 3: Godziny "null – null"
+**Plik:** `src/components/features/offers/ai-inquiry-panel.tsx`
+- Linie 270-279: warunek `value` dla godzin już sprawdza `time_from || time_to`, ale wyświetla `null` gdy jedno jest null a drugie nie → zamiana `??` na `'—'` zamiast `'?'`
+- Gdy oba null → value = null → pole się ukrywa (OK)
 
-### 1. `src/hooks/use-public-event-profile.ts`
-Hook pobierający `event_type_profiles` + `event_type_photos` po `event_type` oferty (bez auth — public read):
-- `usePublicEventProfile(eventType)` — fetch profile WHERE `id = eventType` AND `is_active = true`
-- `usePublicEventPhotos(eventType)` — fetch photos ordered by sort_order
-
-### 2. `src/components/public/about-catering-section.tsx`
-Sekcja "O naszym cateringu [typ]":
-- Warunek: `description_long` niepuste
-- Layout: max-w-prose (65ch), text-lg, leading-relaxed, fadeInUp
-- Lekko odróżnione tło (`--theme-bg` z opacity)
-
-### 3. `src/components/public/features-section.tsx`
-Sekcja "Dlaczego my" — wyróżniki:
-- Warunek: features array niepusty
-- Grid 4 kolumny desktop, 2 mobile
-- Karty z emoji ikoną, tytułem, opisem, hover y: -6, shadow
-- staggerContainer + fadeInUp
-
-### 4. `src/components/public/event-gallery-section.tsx`
-Sekcja "Galeria realizacji":
-- Warunek: photos (bez hero) > 0
-- `MasonryPhotoAlbum` z react-photo-album (już zainstalowany)
-- Klik → `yet-another-react-lightbox` z caption
-- Responsive columns: 2/3/4
-- fadeIn na sekcji
-
-### 5. `src/components/public/testimonial-section.tsx`
-Sekcja "Opinia klienta":
-- Warunek: `testimonial_text` niepuste
-- Ozdobne cudzysłowy, italic, tekst centered
-- Autor + wydarzenie pod spodem
-- Pełna szerokość, delikatne tło primary/5
+## Problem 4: Tekst powitalny generyczny
+**Pliki:** `supabase/functions/generate-greeting/index.ts` + `src/components/features/offers/steps/step-event-data.tsx`
+- Rozbudowa Edge Function `generate-greeting`: przyjmuje dodatkowe pola z AI parsowania (requirements, location, company, notes) i generuje spersonalizowany tekst
+- W `step-event-data.tsx`: po `handleApplyAll` (lub po analizie AI) automatycznie generuj tekst powitalny wywołując edge function z danymi AI
+- Dodanie przycisku "🔄 Wygeneruj ponownie" obok pola tekstu powitalnego
 
 ## Pliki do zmodyfikowania
 
-### 6. `src/pages/public/offer.tsx`
-- Import nowych komponentów + `usePublicEventProfile` / `usePublicEventPhotos`
-- **Hero**: jeśli profil ma hero photo → `<img>` z object-cover jako tło parallax + gradient overlay. Headline z profilu zamiast generycznego emoji.
-- Nowa kolejność sekcji: Hero → Powitanie → AI Summary → About → Features → Gallery → Event Details → Menu → Services → Calculation → Testimonial → Terms → Corrections → Acceptance → Contact (z CTA) → Footer
-- ContactSection: przekaż `ctaText` z profilu
+### 1. `supabase/functions/parse-inquiry/index.ts`
+- Rozbudowa opisu `event.type` w schema z wskazówkami klasyfikacji
+- Dodanie reguły w "Zasady:" o instytucjach
 
-### 7. `src/components/public/contact-section.tsx`
-- Dodaj opcjonalny prop `ctaText?: string`
-- Jeśli obecny, wyświetl jako przycisk CTA nad kontaktami
+### 2. `src/components/features/offers/ai-inquiry-panel.tsx`
+- Typ `onCreateClient`: zmiana na `(data) => Promise<void>` 
+- `handleApplyAll`: `await onCreateClient(c)` z try/catch
+- Godziny: zamiana `'?'` na `'—'` w linii 273
+- Usunięcie wyświetlania null wartości
 
-## Zależności
-- `react-photo-album` — już zainstalowany w package.json
-- `yet-another-react-lightbox` — już zainstalowany
+### 3. `supabase/functions/generate-greeting/index.ts`
+- Rozbudowa system prompt: spersonalizowany tekst z nawiązaniem do zapytania klienta
+- Przyjmowanie dodatkowych pól: `requirements`, `location`, `company`, `notes`
+- Dłuższy prompt (3-5 zdań) gdy mamy dane AI
+
+### 4. `src/components/features/offers/steps/step-event-data.tsx`
+- Nowa funkcja `generateGreeting()` wywołująca edge function z danymi AI
+- Automatyczne wywołanie po "Zastosuj wszystko" 
+- Przycisk "🔄 Wygeneruj ponownie" obok pola tekstu powitalnego
+- Stan `isGeneratingGreeting` na loading indicator
+
+## Deploy
+Edge Functions: `parse-inquiry`, `generate-greeting`
 
 ## Brak zmian w bazie danych
-Tabele `event_type_profiles` i `event_type_photos` już istnieją z public read policies.
-
