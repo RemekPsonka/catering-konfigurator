@@ -41,6 +41,9 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const prevValidCount = useRef(people_count);
   const debouncedCount = useDebounce(localPeopleCount, 300);
 
+  const variants = offer_variants as unknown as VariantWithItems[];
+  const services = offer_services as unknown as OfferServiceWithService[];
+
   // Apply modifications to variant items before calculation
   const adjustedVariants = useMemo(() => {
     if (!modifications || modifications.size === 0) return variants;
