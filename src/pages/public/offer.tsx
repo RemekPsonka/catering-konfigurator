@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
+import { fireNotification } from '@/hooks/use-notifications';
 import { usePublicEventProfile, usePublicEventPhotos } from '@/hooks/use-public-event-profile';
 import { EVENT_TYPE_OPTIONS, DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
