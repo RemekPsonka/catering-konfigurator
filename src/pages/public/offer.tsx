@@ -111,6 +111,14 @@ export const PublicOfferPage = () => {
     setModifications(new Map());
   }, []);
 
+  const handlePrint = useCallback(() => {
+    const originalTitle = document.title;
+    const safeName = (offer?.offer_number ?? 'oferta').replace(/[^a-zA-Z0-9-]/g, '_');
+    document.title = `Oferta_${safeName}_Catering_Slaski`;
+    window.print();
+    document.title = originalTitle;
+  }, [offer?.offer_number]);
+
   // Calculate totals for changes panel
   const { originalTotal, proposedTotal } = useMemo(() => {
     if (!offer) return { originalTotal: 0, proposedTotal: 0 };
@@ -389,14 +397,6 @@ export const PublicOfferPage = () => {
   const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : 'Catering Śląski');
 
   const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
-
-  const handlePrint = useCallback(() => {
-    const originalTitle = document.title;
-    const safeName = (offer.offer_number ?? 'oferta').replace(/[^a-zA-Z0-9-]/g, '_');
-    document.title = `Oferta_${safeName}_Catering_Slaski`;
-    window.print();
-    document.title = originalTitle;
-  }, [offer.offer_number]);
 
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
