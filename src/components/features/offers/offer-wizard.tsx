@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { WizardStepper } from './wizard-stepper';
 import { StepEventData } from './steps/step-event-data';
 import { StepMenu } from './steps/step-menu';
+import { StepServices } from './steps/step-services';
+import { StepSettings } from './steps/step-settings';
 import { StepPlaceholder } from './steps/step-placeholder';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
@@ -66,6 +68,15 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
             offerId={state.offerId}
             pricingMode={state.stepData.eventData.pricing_mode}
             peopleCount={state.stepData.eventData.people_count}
+          />
+        );
+      case 3:
+        return <StepServices offerId={state.offerId} />;
+      case 4:
+        return (
+          <StepSettings
+            offerId={state.offerId}
+            pricingMode={state.stepData.eventData.pricing_mode}
           />
         );
       default:
