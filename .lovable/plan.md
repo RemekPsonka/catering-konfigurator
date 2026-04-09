@@ -1,52 +1,75 @@
 
 
-# Lista ofert — /admin/offers
+# Kreator oferty — Wizard 7 kroków (Krok 1: Dane podstawowe)
 
 ## Zakres
-Zamiana placeholdera `offers-list.tsx` na pełną stronę listy ofert z tabelą, filtrami, paginacją, menu kontekstowym i duplikacją.
-
-## Wymagane zmiany w typach i stałych
-
-### 1. `src/types/database.ts`
-Zaktualizować typ `OfferStatus` z 6 do 8 wartości (dodać `ready`, `revision`, `won`, `lost`; usunąć `rejected`, `expired` — nie istnieją w DB enum).
-
-### 2. `src/lib/constants.ts`
-- Zaktualizować `OFFER_STATUS_LABELS` i `OFFER_STATUS_COLORS` do 8 statusów z poprawnymi kolorami:
-  - draft: szary, ready: niebieski, sent: indygo, viewed: fioletowy, revision: pomarańczowy, accepted: zielony, won: ciemno-zielony bold, lost: czerwony
-- Dodać `EVENT_TYPE_LABELS_FULL` z 12 typami eventów (KOM→Komunia, WES→Wesele, FIR→Firmowy, KON→Konferencja, PRY→Przyjęcie prywatne, GAL→Gala, STY→Stypa, GRI→Grill, B2B→Spotkanie B2B, BOX→Catering pudełkowy, KAW→Przerwa kawowa, SPE→Specjalny)
+Zbudowanie szkieletu wizarda 7-krokowego z pełną implementacją Kroku 1 (Dane podstawowe). Kroki 2-7 jako placeholdery z nagłówkami. Strony `/admin/offers/new` i `/admin/offers/:id/edit` współdzielą ten sam komponent wizarda.
 
 ## Pliki do utworzenia
 
-### 3. `src/hooks/use-offers.ts`
-Hook React Query:
-- `useOffers({ status?, eventType?, search?, page })` — query `offers` z LEFT JOIN na `clients` (nazwa klienta), sortowanie `created_at DESC`, paginacja 20/stronę, filtr statusu/event_type, search po `offer_number` i `client.name` via `.or()`
-- `useDuplicateOffer()` — mutation: pobiera ofertę + warianty + variant_items + offer_services, tworzy kopię z: status=draft, wyczyszczony client_id, event_date, sent_at, viewed_at, accepted_at, nowy public_token (trigger)
+### 1. `src/components/features/offers/offer-wizard.tsx`
+Główny komponent wizarda:
+- Stepper na górze: 7 kroków (1. Dane | 2. Menu | 3. Usługi | 4. Ustawienia | 5. Kalkulacja | 6. Motyw | 7. Podgląd) — aktywny krok podświetlony, ukończone z checkmarkiem
+- Stan wizarda w `useReducer` — obiekt `WizardState` przechowujący dane wszystkich kroków
+- Nawigacja: "← Wstecz" / "Dalej →" z walidacją per krok
+- W trybie edycji: ładuje dane oferty z Supabase i pre-filluje state
+- Renderuje aktualny krok jako child komponent
 
-### 4. `src/pages/admin/offers-list.tsx`
-Pełna strona listy ofert:
+### 2. `src/components/features/offers/wizard-stepper.tsx`
+Komponent steppera:
+- 7 kroków w rzędzie, ikony + tekst, połączone linią
+- Stany: completed (zielony check), active (primary color), upcoming (szary)
+- Responsywny: na mobile tylko ikony + numer kroku
 
-**Filtry:**
-- Status tabs: Wszystkie + 8 statusów
-- Wyszukiwarka debounced 300ms (po numerze oferty, nazwie klienta)
-- Dropdown typ eventu (12 typów + "Wszystkie")
+### 3. `src/components/features/offers/steps/step-event-data.tsx`
+Krok 1 — Dane podstawowe (React Hook Form + Zod):
+- **Rodzaj imprezy**: Select z 12 typów + emoji (KOM 🙏 Komunia, WES 💒 Wesele, etc.)
+- **Data wydarzenia**: DatePicker (shadcn Calendar w Popover, `pointer-events-auto`)
+- **Godziny**: dwa Input type="time" (od-do)
+- **Liczba osób**: Input number (min 1, wymagane)
+- **Lokalizacja**: Input text
+- **Forma dostawy**: RadioGroup (Zimna / Podgrzewana / Full service) → COLD/HEATED/FULL_SERVICE enum
+- **Tryb kalkulacji**: RadioGroup z opisami — PER_PERSON vs FIXED_QUANTITY
+- **Klient**: Client autocomplete (Combobox z query `clients` debounced) + przycisk "Dodaj nowego" → otwiera `ClientDialog` inline
+- **Treść zapytania**: Textarea (opcjonalne)
+- Auto-fill `greeting_text` po wyborze `event_type` (domyślne teksty per typ)
+- Walidacja: event_type, client_id, people_count, delivery_type wymagane
 
-**Tabela:**
-- Kolumny: Numer | Klient | Typ eventu | Data | Wartość | Status | Utworzono | Akcje
-- Klik w wiersz → `/admin/offers/:id/edit`
-- Formatowanie: data DD.MM.YYYY, wartość w zł, StatusBadge
+### 4. `src/components/features/offers/client-autocomplete.tsx`
+Autocomplete klienta (wzorowany na `DishAutocomplete`):
+- Combobox z `Command` + `Popover`
+- Szukaj po nazwie/email (debounce 300ms)
+- Wyświetla: nazwa + email/firma
+- Przycisk "Dodaj nowego klienta" na końcu listy → callback otwierający `ClientDialog`
 
-**Menu kontekstowe (DropdownMenu per wiersz):**
-- Edytuj → navigate
-- Duplikuj → `useDuplicateOffer` + toast + navigate do nowej oferty
-- Podgląd klienta → `window.open(/offer/:publicToken)` w nowej karcie
+### 5. `src/hooks/use-offer-wizard.ts`
+Hook do zarządzania stanem wizarda:
+- `useReducer` z akcjami: SET_STEP_DATA, SET_STEP, LOAD_OFFER
+- `useOffer(id)` — query pojedynczej oferty z Supabase (do trybu edycji)
+- `useSaveOffer` — mutation INSERT/UPDATE oferty (na Kroku 7 lub "Zapisz szkic" w dowolnym momencie)
 
-**Paginacja:** 20/stronę, wzorowana na dishes-list
+### 6. `src/lib/offer-constants.ts`
+Stałe wizarda:
+- `EVENT_TYPE_OPTIONS`: tablica `{ value, label, emoji }` dla 12 typów
+- `DELIVERY_TYPE_LABELS`: COLD→"Zimna dostawa", HEATED→"Podgrzewana", FULL_SERVICE→"Full service"
+- `DEFAULT_GREETINGS`: Record<EventType, string> — domyślne teksty powitalne per typ eventu
+- `PRICING_MODE_OPTIONS`: tablica z opisami dwóch trybów
 
-**Przycisk:** "Nowa oferta" → `/admin/offers/new`
+### 7. `src/components/features/offers/steps/step-placeholder.tsx`
+Placeholder dla kroków 2-7: Card z tytułem kroku i "W budowie"
+
+## Pliki do zmodyfikowania
+
+### 8. `src/pages/admin/offer-new.tsx`
+Zamiana placeholdera na `<OfferWizard />` (tryb: create)
+
+### 9. `src/pages/admin/offer-edit.tsx`
+Zamiana placeholdera na `<OfferWizard offerId={id} />` (tryb: edit, ładuje dane z Supabase)
 
 ## Szczegóły techniczne
-- Join klienta: `supabase.from('offers').select('*, clients!client_id(name)')` — Supabase embedded select
-- Duplikacja: INSERT offer (bez client_id, event_date, timestamps) → dla każdego wariantu INSERT variant → bulk INSERT variant_items → bulk INSERT offer_services. Wszystko w jednym mutation.
-- Search: `.or('offer_number.ilike.%${search}%,clients.name.ilike.%${search}%')` — jeśli cross-table or nie działa, fallback do filtrowania offer_number w query + client name w JS
+- Offers INSERT required fields: `client_id`, `created_by` (auth.uid()), `event_type`, `delivery_type`, `people_count`
+- Greeting auto-fill: np. KOM → "Szanowni Państwo, z przyjemnością prezentujemy ofertę cateringową na Państwa komunię."
+- Client autocomplete: `supabase.from('clients').select('id, name, email, company').or('name.ilike.%q%,email.ilike.%q%').limit(10)`
+- Stepper klikable tylko dla ukończonych kroków (nie można przeskoczyć do przodu)
 - Brak zmian w bazie danych
 
