@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { EVENT_TYPE_OPTIONS, DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { fadeInUp, fadeIn, staggerContainer, scaleIn } from '@/lib/animations';
 import {
   Calendar,
@@ -20,7 +20,15 @@ import {
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
 import { CalculationSection } from '@/components/public/calculation-section';
+import { ChangesPanel } from '@/components/public/changes-panel';
+import { TermsSection } from '@/components/public/terms-section';
+import { CorrectionsSection } from '@/components/public/corrections-section';
+import { AcceptanceSection } from '@/components/public/acceptance-section';
+import { ContactSection } from '@/components/public/contact-section';
 import type { DishModification } from '@/components/public/dish-edit-panel';
+import { getItemPrice } from '@/hooks/use-offer-variants';
+import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 const loadGoogleFont = (fontFamily: string | null) => {
   if (!fontFamily) return;
