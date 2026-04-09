@@ -1,36 +1,30 @@
 
 
-# Naprawa AI parsowania — 3 bugi
+# Masonry Photo Album w DishCard
 
 ## Zakres
-1. **Edge Function prompt** — twarde reguły budżetowe zapobiegające halucynacjom
-2. **"Zastosuj wszystko"** — automatyczne wyszukanie/utworzenie klienta
-3. **UI budżetu** — ukrycie gdy null, badge "Z maila klienta"
+Zainstalować `react-photo-album`, zamienić pojedynczą miniaturkę w `DishCard` na masonry grid gdy danie ma >1 zdjęcie. Klik na zdjęcie → otwiera istniejący `DishLightbox` z odpowiednim indeksem.
 
 ## Pliki do zmodyfikowania
 
-### 1. `supabase/functions/parse-inquiry/index.ts`
-Zamiana sekcji "Zasady:" w systemPrompt (linia 31-37) na rozszerzoną wersję z twardymi regułami budżetowymi:
-- BUDŻET — KRYTYCZNE ZASADY: tylko dosłowne kwoty z tekstu
-- Nigdy nie obliczaj per_person z total ani odwrotnie
-- "proszę o wycenę" = null
-- Dodatkowe opisy w tool schema: `per_person` description = "Budżet na osobę TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — null", analogicznie `total`
+### 1. Instalacja
+```bash
+npm install react-photo-album
+```
 
-### 2. `src/components/features/offers/ai-inquiry-panel.tsx`
-**handleApplyAll (linia 120-130)** — rozbudowa o obsługę klienta:
-- Po zastosowaniu pól eventu, sprawdź dane klienta
-- Jeśli email/phone → query `existingClient` (już mamy w `existingClientQuery.data`)
-- Jeśli znaleziony → `onUseExistingClient(id, name)` + toast
-- Jeśli nie znaleziony i są dane → `onCreateClient(parsedData.client)` (async, ale fire-and-forget z catch)
-- Jeśli brak danych klienta → pomiń
-- Zmień toast na kontekstowy (klient+event vs tylko event)
+### 2. `src/components/public/dish-card.tsx`
+- Import `MasonryPhotoAlbum` z `react-photo-album` + CSS `react-photo-album/masonry.css`
+- Gdy `photos.length > 1`: zamiast pojedynczego `<motion.img>` w 80×80/120×120 kontenerze → renderuj `MasonryPhotoAlbum` z columns={2} (lub 3 na desktop) w szerszym kontenerze
+- Gdy `photos.length <= 1`: zachowaj obecny wygląd (pojedyncza miniaturka)
+- `onClick` na zdjęciu w masonry → `setLightboxOpen(true)` + `setLightboxIndex(photoIndex)`
+- Przekaż `index={lightboxIndex}` do `DishLightbox`
+- Dodaj state `lightboxIndex` (default 0)
+- Photos array: mapuj `dish_photos` na format `{ src, width, height }` (react-photo-album wymaga width/height — użyj domyślnych 4:3 np. 400×300, lub 1:1 300×300)
 
-**Sekcja budżetu (linia 353-371)** — modyfikacja:
-- Dodaj `Badge` "📌 Z maila klienta" obok nagłówka
-- Sekcja już jest ukryta gdy `!hasBudget` (linia 165, 354) — to działa poprawnie
-
-### 3. Deployment Edge Function
-Deploy `parse-inquiry` po zmianach.
+### Layout zmiana
+- Obecna miniaturka: 80×80 mobile, 120×120 desktop (kwadrat po lewej)
+- Z masonry (>1 zdjęcie): kontener rozciąga się na pełną szerokość karty NAD treścią (zamiast obok), height max ~200px
+- Alternatywnie: zachowaj layout side-by-side ale poszerz kontener zdjęć do ~200px z masonry 2-kolumnowym
 
 ## Brak zmian w bazie danych
 
