@@ -11,16 +11,20 @@ import { StepTheme } from './steps/step-theme';
 import { StepPreview } from './steps/step-preview';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
+import type { TemplateData } from '@/hooks/use-offer-templates';
 
 interface OfferWizardProps {
   offerId?: string;
+  templateData?: TemplateData;
+  templateEventType?: string;
+  templatePricingMode?: string;
 }
 
 const STEP_TITLES = ['', 'Menu — konfiguracja dań', 'Usługi dodatkowe', 'Ustawienia oferty', 'Kalkulacja i rabaty', 'Motyw graficzny', 'Podgląd oferty'];
 
-export const OfferWizard = ({ offerId }: OfferWizardProps) => {
+export const OfferWizard = ({ offerId, templateData, templateEventType, templatePricingMode }: OfferWizardProps) => {
   const navigate = useNavigate();
-  const { state, dispatch, offerQuery, saveDraftMutation } = useOfferWizard(offerId);
+  const { state, dispatch, offerQuery, saveDraftMutation } = useOfferWizard(offerId, templateData, templateEventType, templatePricingMode);
 
   if (offerId && offerQuery.isLoading) {
     return <LoadingSpinner />;
