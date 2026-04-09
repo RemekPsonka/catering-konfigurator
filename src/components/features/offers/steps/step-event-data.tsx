@@ -88,7 +88,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
   };
 
   const handleFormSubmit = (values: FormValues) => {
-    onSubmit(values as StepEventData);
+    onSubmit(values as StepEventDataType);
   };
 
   return (
