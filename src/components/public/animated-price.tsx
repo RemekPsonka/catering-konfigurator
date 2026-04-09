@@ -2,12 +2,13 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { formatCurrency } from '@/lib/calculations';
 
-interface AnimatedPriceProps {
+export interface AnimatedPriceProps {
   value: number;
   className?: string;
+  prefix?: string;
 }
 
-export const AnimatedPrice = ({ value, className = '' }: AnimatedPriceProps) => {
+export const AnimatedPrice = ({ value, className = '', prefix = '' }: AnimatedPriceProps) => {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true });
   const [displayed, setDisplayed] = useState(0);
@@ -63,7 +64,7 @@ export const AnimatedPrice = ({ value, className = '' }: AnimatedPriceProps) => 
           transition={{ duration: 0.3 }}
           className="inline-block rounded-lg px-1"
         >
-          {formatCurrency(displayed)}
+          {prefix}{formatCurrency(displayed)}
         </motion.span>
       </AnimatePresence>
     </span>

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { EVENT_TYPE_OPTIONS, DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { fadeInUp, fadeIn, staggerContainer, scaleIn } from '@/lib/animations';
 import {
   Calendar,
@@ -20,7 +20,15 @@ import {
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
 import { CalculationSection } from '@/components/public/calculation-section';
+import { ChangesPanel } from '@/components/public/changes-panel';
+import { TermsSection } from '@/components/public/terms-section';
+import { CorrectionsSection } from '@/components/public/corrections-section';
+import { AcceptanceSection } from '@/components/public/acceptance-section';
+import { ContactSection } from '@/components/public/contact-section';
 import type { DishModification } from '@/components/public/dish-edit-panel';
+import { getItemPrice } from '@/hooks/use-offer-variants';
+import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 const loadGoogleFont = (fontFamily: string | null) => {
   if (!fontFamily) return;
@@ -41,6 +49,8 @@ export const PublicOfferPage = () => {
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
 
   const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
+  const [offerAccepted, setOfferAccepted] = useState(false);
+
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
       const next = new Map(prev);
@@ -52,6 +62,43 @@ export const PublicOfferPage = () => {
       return next;
     });
   }, []);
+
+  const handleClearModifications = useCallback(() => {
+    setModifications(new Map());
+  }, []);
+
+  // Calculate totals for changes panel
+  const { originalTotal, proposedTotal } = useMemo(() => {
+    if (!offer) return { originalTotal: 0, proposedTotal: 0 };
+    const variants = offer.offer_variants as unknown as VariantWithItems[];
+    const services = offer.offer_services as unknown as OfferServiceWithService[];
+    const origTotals = calculateOfferTotals(
+      offer.pricing_mode, offer.people_count, variants, services,
+      offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
+    );
+
+    // Apply modifications
+    const adjustedVariants = variants.map((v) => ({
+      ...v,
+      variant_items: v.variant_items.map((item) => {
+        const mod = modifications.get(item.id);
+        if (!mod) return item;
+        let priceAdj = 0;
+        if (mod.type === 'swap' && mod.swapPriceDiff != null) priceAdj = mod.swapPriceDiff;
+        if (mod.type === 'variant' && mod.variantPriceModifier != null) priceAdj = mod.variantPriceModifier;
+        if (priceAdj === 0) return item;
+        const basePrice = item.custom_price != null ? Number(item.custom_price) : getItemPrice(item as never);
+        return { ...item, custom_price: basePrice + priceAdj };
+      }),
+    })) as unknown as VariantWithItems[];
+
+    const propTotals = calculateOfferTotals(
+      offer.pricing_mode, offer.people_count, adjustedVariants, services,
+      offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
+    );
+
+    return { originalTotal: origTotals.grandTotal, proposedTotal: propTotals.grandTotal };
+  }, [offer, modifications]);
 
   // Set CSS custom properties from theme
   useEffect(() => {
@@ -420,7 +467,28 @@ export const PublicOfferPage = () => {
       {/* 7. KALKULACJA */}
       <CalculationSection offer={offer} modifications={modifications} />
 
-      {/* 8-11: Placeholder — warunki, zmiany, akceptacja, kontakt — P-3.4 – P-3.5 */}
+      {/* 8. WARUNKI OFERTY */}
+      <TermsSection />
+
+      {/* 9. UWAGI I KOREKTY */}
+      <CorrectionsSection offerId={offer.id} />
+
+      {/* 10. AKCEPTACJA OFERTY */}
+      {!offerAccepted && (
+        <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} />
+      )}
+
+      {/* 11. KONTAKT */}
+      <ContactSection />
+
+      {/* Floating changes panel */}
+      <ChangesPanel
+        modifications={modifications}
+        offer={offer}
+        onClearModifications={handleClearModifications}
+        originalTotal={originalTotal}
+        proposedTotal={proposedTotal}
+      />
 
       {/* 12. FOOTER */}
       <motion.footer
