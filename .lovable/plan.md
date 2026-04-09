@@ -1,47 +1,69 @@
 
 
-# Zadanie A+B+C: Nowe typy eventów + naprawa AI + ukrycie null
+# Google Login + Konfigurator kont (usuwanie, zmiana hasła)
 
-## A. Nowe typy eventów (SZK, SWI)
+## Zakres
+1. Dodanie logowania Google (Lovable Cloud managed) — tylko dla istniejących użytkowników
+2. Rozbudowa AccountsPage o usuwanie kont i zmianę hasła
+3. Strona `/reset-password` do ustawiania nowego hasła po resecie
 
-### Migracja SQL
-Dodanie 2 wartości do enum `event_type`:
-```sql
-ALTER TYPE public.event_type ADD VALUE 'SZK';
-ALTER TYPE public.event_type ADD VALUE 'SWI';
-```
-Plus INSERT seed data do `event_type_profiles` i `offer_themes` dla SZK i SWI.
+## Pliki do utworzenia/zmodyfikowania
 
-### Pliki frontendowe do aktualizacji (dodanie SZK i SWI w odpowiedniej kolejności):
+### 1. Konfiguracja Google OAuth
+- Wywołanie narzędzia **Configure Social Auth** (Lovable Cloud managed Google OAuth)
+- Wygeneruje `src/integrations/lovable/` z modułem `lovable.auth.signInWithOAuth("google")`
 
-1. **`src/types/database.ts`** — dodaj `'SZK' | 'SWI'` do `EventType`
-2. **`src/lib/constants.ts`** — dodaj SZK i SWI do `EVENT_TYPE_LABELS`
-3. **`src/lib/offer-constants.ts`** — dodaj do `EVENT_TYPE_OPTIONS` (SZK po KON, SWI przed SPE) + `DEFAULT_GREETINGS`
-4. **`src/components/features/offers/ai-inquiry-panel.tsx`** — `EVENT_TYPE_LABELS` import już obejmie nowe typy
-5. **`supabase/functions/generate-greeting/index.ts`** — dodaj SZK i SWI do promptu jeśli potrzebne
+### 2. `src/pages/auth/login.tsx`
+- Import `lovable` z `@/integrations/lovable`
+- Dodanie przycisku "Zaloguj się przez Google" pod formularzem email/hasło
+- Separator "lub" między formularzem a przyciskiem Google
+- `handleGoogleSignIn`: wywołuje `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`
+- Po zalogowaniu Google: sprawdź czy user istnieje (sesja się ustawi automatycznie przez `onAuthStateChange` — jeśli konto nie istnieje w systemie, Supabase Auth zwróci błąd bo nie ma signup)
+- Ikona Google (SVG inline)
 
-## B. Naprawa AI parsowania
+### 3. `src/hooks/use-auth.tsx`
+- Dodanie metod `updatePassword` i `deleteAccount` do kontekstu:
+  - `updatePassword(newPassword: string)` → `supabase.auth.updateUser({ password })`
+  - `deleteAccount(userId: string)` → wywołanie edge function `list-users` z metodą DELETE
 
-**`supabase/functions/parse-inquiry/index.ts`**:
-- Zamiana `eventTypeDescription` na rozbudowaną listę 14 kodów z dokładnymi opisami i zasadami dopasowania (jak w prompcie użytkownika)
-- Dodanie reguł do sekcji "Zasady:": SZK dla szkoleń, SWI dla świątecznych, instytucje→B2B/KAW nigdy PRY
-- Aktualizacja enum w tool calling schema o `"SZK"` i `"SWI"`
+### 4. `supabase/functions/list-users/index.ts`
+- Dodanie obsługi **DELETE** method:
+  - Body: `{ userId: string }`
+  - Walidacja: admin nie może usunąć samego siebie
+  - `adminClient.auth.admin.deleteUser(userId)`
+- Dodanie obsługi **PATCH** method (zmiana hasła przez admina):
+  - Body: `{ userId: string, password: string }`
+  - `adminClient.auth.admin.updateUserById(userId, { password })`
 
-## C. Ukrycie "null" w godzinach
+### 5. `src/components/features/settings/accounts-page.tsx`
+Rozbudowa tabeli kont o nowe akcje per user:
+- **Zmień hasło**: przycisk → Dialog z formularzem (nowe hasło, potwierdzenie hasła, min 6 znaków)
+  - Wywołuje edge function PATCH
+- **Usuń konto**: przycisk (czerwony, ikona Trash) → ConfirmDialog "Czy na pewno usunąć konto X? Tej operacji nie można cofnąć."
+  - Nie pozwala usunąć aktualnie zalogowanego usera
+  - Wywołuje edge function DELETE
+- Dropdown menu akcji zamiast pojedynczego przycisku (MoreHorizontal → DropdownMenu z: Wyślij reset, Zmień hasło, Usuń konto)
 
-**`src/components/features/offers/ai-inquiry-panel.tsx`**:
-- Linia 270: dodać sanityzację `time_from`/`time_to` — traktować string `"null"` jak prawdziwy null
-- Zmienić logikę: jeśli oba null → nie renderuj wiersza "Godziny" wcale (zamiast "Brak w zapytaniu")
-- Analogicznie dla innych pól: jeśli wartość to string `"null"` → traktuj jak null
+### 6. `src/pages/auth/reset-password.tsx` (nowy plik)
+- Strona do ustawienia nowego hasła po kliknięciu linku resetującego
+- Sprawdza `type=recovery` w URL hash
+- Formularz: nowe hasło + potwierdzenie
+- Wywołuje `supabase.auth.updateUser({ password })`
+- Po sukcesie: redirect do `/login` z toastem
 
-## Pliki do zmodyfikowania
-1. `src/types/database.ts` — EventType union
-2. `src/lib/constants.ts` — EVENT_TYPE_LABELS
-3. `src/lib/offer-constants.ts` — EVENT_TYPE_OPTIONS, DEFAULT_GREETINGS
-4. `supabase/functions/parse-inquiry/index.ts` — prompt, enum, zasady
-5. `src/components/features/offers/ai-inquiry-panel.tsx` — null sanityzacja + ukrycie pustych wierszy
+### 7. `src/App.tsx`
+- Dodanie route `/reset-password` → `ResetPasswordPage`
 
-## Migracja bazy danych
-- ALTER TYPE event_type ADD VALUE 'SZK', 'SWI'
-- INSERT seed data do event_type_profiles i offer_themes
+### 8. Konfiguracja auth (Lovable Cloud)
+- Wywołanie `cloud--configure_auth` aby upewnić się że Google provider jest włączony
+- **Wyłączenie rejestracji nowych użytkowników** — tylko istniejące konta mogą się logować (disable signup)
+
+## Ważne zasady
+- Google login NIE tworzy nowych kont — signup jest wyłączony, więc jeśli user z danym emailem Google nie istnieje w systemie, logowanie się nie powiedzie
+- Admin tworzy konta ręcznie przez AccountsPage (jak dotąd)
+- Managed Google OAuth — brak konieczności konfiguracji credentials
+- Edge function `list-users` obsługuje GET/POST/PATCH/DELETE
+
+## Brak zmian w bazie danych
+Wszystko oparte na Supabase Auth — bez nowych tabel.
 
