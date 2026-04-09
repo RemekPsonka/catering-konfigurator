@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Sparkles } from 'lucide-react';
 import { DishCard } from './dish-card';
+import type { DishModification } from './dish-edit-panel';
 import { formatCurrency } from '@/lib/calculations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,6 +17,8 @@ interface MenuVariantsSectionProps {
   pricingMode: Enums<'pricing_mode'>;
   peopleCount: number;
   priceDisplayMode: Enums<'price_display_mode'>;
+  modifications?: Map<string, DishModification>;
+  onModificationChange?: (itemId: string, mod: DishModification | undefined) => void;
 }
 
 const groupByCategory = (items: Variant['variant_items']) => {
