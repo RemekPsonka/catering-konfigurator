@@ -217,7 +217,7 @@ export const StepCalculation = ({
         .map((v) => {
           const dishes = v.variant_items
             .map((item) => {
-              const name = item.custom_name || item.dishes?.display_name || item.dishes?.name || '?';
+              const name = item.custom_name || item.dishes?.display_name || '?';
               const price = getItemPrice(item);
               return `${name} (${price} zł)`;
             })
