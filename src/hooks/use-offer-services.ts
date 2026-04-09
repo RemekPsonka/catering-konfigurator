@@ -60,14 +60,13 @@ export const useUpdateOfferService = () => {
       customPrice?: number | null;
       notes?: string | null;
     }) => {
-      const updates: Record<string, unknown> = {};
-      if (quantity !== undefined) updates.quantity = quantity;
-      if (customPrice !== undefined) updates.custom_price = customPrice;
-      if (notes !== undefined) updates.notes = notes;
-
       const { error } = await supabase
         .from('offer_services')
-        .update(updates)
+        .update({
+          ...(quantity !== undefined && { quantity }),
+          ...(customPrice !== undefined && { custom_price: customPrice }),
+          ...(notes !== undefined && { notes }),
+        })
         .eq('id', id);
       if (error) throw error;
     },
