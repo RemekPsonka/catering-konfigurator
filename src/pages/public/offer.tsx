@@ -17,6 +17,7 @@ import {
   FileX2,
   Phone,
   Mail,
+  Search,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
@@ -209,8 +210,24 @@ export const PublicOfferPage = () => {
             Nie znaleziono oferty
           </h1>
           <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
-            Ta oferta nie istnieje lub nie jest już dostępna.
+            Sprawdź link lub skontaktuj się z nami.
           </p>
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <a
+              href="/offer/find"
+              className="inline-flex items-center gap-2 rounded-xl bg-charcoal px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all hover:bg-charcoal/90"
+            >
+              <Search className="h-4 w-4" />
+              Szukaj oferty
+            </a>
+            <a
+              href="mailto:kontakt@cateringsl.pl"
+              className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal"
+            >
+              <Mail className="h-4 w-4" />
+              Skontaktuj się z nami
+            </a>
+          </div>
         </motion.div>
       </div>
     );
@@ -241,21 +258,21 @@ export const PublicOfferPage = () => {
           <p className="mt-6 font-body text-lg text-charcoal/60 leading-relaxed">
             Skontaktuj się z nami, aby otrzymać aktualną propozycję.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3">
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <a
-              href="tel:+48123456789"
+              href="/offer/find"
               className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all"
               style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
             >
-              <Phone className="h-4 w-4" />
-              Zadzwoń do nas
+              <Search className="h-4 w-4" />
+              Szukaj oferty
             </a>
             <a
               href="mailto:kontakt@cateringsl.pl"
               className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal"
             >
               <Mail className="h-4 w-4" />
-              kontakt@cateringsl.pl
+              Skontaktuj się z nami
             </a>
           </div>
         </motion.div>
