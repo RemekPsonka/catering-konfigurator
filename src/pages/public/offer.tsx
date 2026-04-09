@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { EVENT_TYPE_OPTIONS, DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
@@ -20,6 +20,7 @@ import {
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
 import { CalculationSection } from '@/components/public/calculation-section';
+import type { DishModification } from '@/components/public/dish-edit-panel';
 
 const loadGoogleFont = (fontFamily: string | null) => {
   if (!fontFamily) return;
@@ -38,6 +39,19 @@ export const PublicOfferPage = () => {
   const markViewed = useMarkOfferViewed();
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
+
+  const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
+  const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
+    setModifications((prev) => {
+      const next = new Map(prev);
+      if (mod) {
+        next.set(itemId, mod);
+      } else {
+        next.delete(itemId);
+      }
+      return next;
+    });
+  }, []);
 
   // Set CSS custom properties from theme
   useEffect(() => {
