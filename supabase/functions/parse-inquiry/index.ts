@@ -126,8 +126,8 @@ Zasady:
                   budget: {
                     type: "object",
                     properties: {
-                      per_person: { type: "number", description: "Budżet na osobę TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — null. NIGDY nie obliczaj z total÷osoby." },
-                      total: { type: "number", description: "Budżet łączny TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — null. NIGDY nie obliczaj z per_person×osoby." },
+                      per_person: { type: ["number", "null"], description: "Budżet na osobę TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — MUSI być null. NIGDY nie obliczaj z total÷osoby." },
+                      total: { type: ["number", "null"], description: "Budżet łączny TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — MUSI być null. NIGDY nie obliczaj z per_person×osoby." },
                       currency: { type: "string", description: "Waluta, domyślnie PLN" },
                     },
                     required: ["per_person", "total", "currency"],
