@@ -50,7 +50,7 @@ export const StepCalculation = ({
       if (!offerId) return null;
       const { data, error } = await supabase
         .from('offers')
-        .select('discount_percent, discount_value, delivery_cost, greeting_text, notes_client, notes_internal')
+        .select('discount_percent, discount_value, delivery_cost, greeting_text, ai_summary, notes_client, notes_internal')
         .eq('id', offerId)
         .single();
       if (error) throw error;
@@ -66,8 +66,10 @@ export const StepCalculation = ({
   const [greetingText, setGreetingText] = useState('');
   const [notesClient, setNotesClient] = useState('');
   const [notesInternal, setNotesInternal] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   useEffect(() => {
     if (offerQuery.data && !loaded) {
@@ -79,6 +81,7 @@ export const StepCalculation = ({
       setDiscountType(pct > 0 ? 'percent' : 'value');
       setDeliveryCost(Number(d.delivery_cost ?? 0));
       setGreetingText(d.greeting_text ?? '');
+      setAiSummary(d.ai_summary ?? '');
       setNotesClient(d.notes_client ?? '');
       setNotesInternal(d.notes_internal ?? '');
       setLoaded(true);
@@ -94,7 +97,7 @@ export const StepCalculation = ({
 
   // Auto-save mutation
   const saveMutation = useMutation({
-    mutationFn: async (payload: Partial<{ discount_percent: number; discount_value: number; delivery_cost: number; greeting_text: string | null; notes_client: string | null; notes_internal: string | null; total_dishes_value: number; total_services_value: number; total_value: number; price_per_person: number }>) => {
+    mutationFn: async (payload: Partial<{ discount_percent: number; discount_value: number; delivery_cost: number; greeting_text: string | null; ai_summary: string | null; notes_client: string | null; notes_internal: string | null; total_dishes_value: number; total_services_value: number; total_value: number; price_per_person: number }>) => {
       if (!offerId) return;
       const { error } = await supabase.from('offers').update(payload).eq('id', offerId);
       if (error) throw error;
@@ -108,6 +111,7 @@ export const StepCalculation = ({
   });
 
   const debouncedGreeting = useDebounce(greetingText, 800);
+  const debouncedAiSummary = useDebounce(aiSummary, 800);
   const debouncedNotesClient = useDebounce(notesClient, 800);
   const debouncedNotesInternal = useDebounce(notesInternal, 800);
 
@@ -115,6 +119,11 @@ export const StepCalculation = ({
     if (!loaded || !offerId) return;
     saveMutation.mutate({ greeting_text: debouncedGreeting || null });
   }, [debouncedGreeting]);
+
+  useEffect(() => {
+    if (!loaded || !offerId) return;
+    saveMutation.mutate({ ai_summary: debouncedAiSummary || null });
+  }, [debouncedAiSummary]);
 
   useEffect(() => {
     if (!loaded || !offerId) return;
@@ -192,6 +201,45 @@ export const StepCalculation = ({
       setIsGenerating(false);
     }
   };
+
+  // AI summary generation
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === eventType)?.label ?? eventType;
+      const variantsSummary = variants
+        .map((v) => `${v.name} (${v.variant_items.length} dań)`)
+        .join(', ');
+      const servicesSummary = offerServices
+        .map((os) => os.services.name)
+        .join(', ');
+
+      const { data, error } = await supabase.functions.invoke('generate-summary', {
+        body: {
+          inquiry_text: inquiryText,
+          event_type_label: eventTypeLabel,
+          variants_summary: variantsSummary,
+          total_value: totals.grandTotal,
+          services_summary: servicesSummary,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      if (data?.summary) {
+        setAiSummary(data.summary);
+        toast.success('Podsumowanie wygenerowane');
+      }
+    } catch (e) {
+      toast.error('Nie udało się wygenerować podsumowania');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
 
   if (!offerId) {
     return (
@@ -481,6 +529,42 @@ export const StepCalculation = ({
           {!inquiryText && (
             <p className="text-xs text-muted-foreground">
               Podpowiedź: uzupełnij „Treść zapytania" w kroku 1, aby AI wygenerował bardziej spersonalizowany tekst.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sekcja 6b — Podsumowanie AI */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4" />
+            Podsumowanie oferty (AI)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea
+            value={aiSummary}
+            onChange={(e) => setAiSummary(e.target.value)}
+            placeholder="Podsumowanie oferty widoczne dla klienta..."
+            rows={4}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateSummary}
+            disabled={isGeneratingSummary}
+          >
+            {isGeneratingSummary ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {isGeneratingSummary ? 'Generowanie...' : '🤖 Generuj podsumowanie AI'}
+          </Button>
+          {!inquiryText && (
+            <p className="text-xs text-muted-foreground">
+              Podpowiedź: uzupełnij „Treść zapytania" w kroku 1, aby podsumowanie było bardziej trafne.
             </p>
           )}
         </CardContent>
