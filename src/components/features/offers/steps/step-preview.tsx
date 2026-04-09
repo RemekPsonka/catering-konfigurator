@@ -16,6 +16,7 @@ import { getItemPrice } from '@/hooks/use-offer-variants';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import { OfferValidationPanel } from './offer-validation-panel';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
+import { PUBLIC_BASE_URL } from '@/lib/constants';
 import type { Tables } from '@/integrations/supabase/types';
 import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 
@@ -146,7 +147,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   const handleSaveAndShowLink = () => {
     statusMutation.mutate({ status: 'ready' }, {
       onSuccess: () => {
-        const link = `${window.location.origin}/offer/${offer?.public_token}`;
+        const link = `${PUBLIC_BASE_URL}/offer/${offer?.public_token}`;
         setPublicLink(link);
         setLinkDialogOpen(true);
         toast.success('Oferta zapisana jako gotowa');
@@ -162,7 +163,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
     }
     statusMutation.mutate({ status: 'sent', sentAt: new Date().toISOString() }, {
       onSuccess: () => {
-        const publicUrl = `${window.location.origin}/offer/${offer?.public_token}`;
+        const publicUrl = `${PUBLIC_BASE_URL}/offer/${offer?.public_token}`;
         // eslint-disable-next-line no-console
         console.log('Email wysłany do:', clientEmail, 'Link:', publicUrl);
         toast.success('Oferta wysłana!');
