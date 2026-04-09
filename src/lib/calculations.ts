@@ -24,6 +24,9 @@ export interface VariantTotal {
   name: string;
   perPerson: number;
   total: number;
+  discountAmount: number;
+  grandTotal: number;
+  pricePerPerson: number;
 }
 
 export interface OfferTotals {
@@ -53,13 +56,37 @@ export const calculateOfferTotals = (
   discountValue: number,
   deliveryCost: number,
 ): OfferTotals => {
+  const servicesTotalCalc = services.reduce((sum, os) => {
+    if (!os.services) {
+      const fallback = os.custom_price != null ? Number(os.custom_price) : 0;
+      return sum + fallback * (os.quantity ?? 1);
+    }
+    const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
+    return sum + price * (os.quantity ?? 1);
+  }, 0);
+
   const variantTotals: VariantTotal[] = variants.map((v) => {
     const perPerson = calculateVariantDishesTotal(v);
+    const total = pricingMode === 'PER_PERSON' ? perPerson * peopleCount : perPerson;
+
+    let variantDiscount = 0;
+    if (discountPercent > 0) {
+      variantDiscount = Math.round((total * discountPercent) / 100 * 100) / 100;
+    } else if (discountValue > 0) {
+      variantDiscount = discountValue;
+    }
+
+    const variantGrandTotal = (total - variantDiscount) + servicesTotalCalc + deliveryCost;
+    const variantPricePerPerson = peopleCount > 0 ? Math.round((variantGrandTotal / peopleCount) * 100) / 100 : 0;
+
     return {
       id: v.id,
       name: v.name,
       perPerson,
-      total: pricingMode === 'PER_PERSON' ? perPerson * peopleCount : perPerson,
+      total,
+      discountAmount: variantDiscount,
+      grandTotal: variantGrandTotal,
+      pricePerPerson: variantPricePerPerson,
     };
   });
 
@@ -75,16 +102,6 @@ export const calculateOfferTotals = (
   }
 
   const dishesAfterDiscount = maxDishesTotal - discountAmount;
-
-  const servicesTotalCalc = services.reduce((sum, os) => {
-    if (!os.services) {
-      const fallback = os.custom_price != null ? Number(os.custom_price) : 0;
-      return sum + fallback * (os.quantity ?? 1);
-    }
-    const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
-    return sum + price * (os.quantity ?? 1);
-  }, 0);
-
   const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost;
   const pricePerPerson = peopleCount > 0 ? Math.round((grandTotal / peopleCount) * 100) / 100 : 0;
 
