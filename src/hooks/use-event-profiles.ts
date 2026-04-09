@@ -230,6 +230,23 @@ export const useUpdateEventPhoto = () => {
   });
 };
 
+export const useUpdateEventPhotoTags = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, tags, eventTypeId }: { id: string; tags: string[]; eventTypeId: string }) => {
+      const { error } = await supabase
+        .from('event_type_photos')
+        .update({ tags })
+        .eq('id', id);
+      if (error) throw error;
+      return eventTypeId;
+    },
+    onSuccess: (eventTypeId) => {
+      qc.invalidateQueries({ queryKey: ['event-photos', eventTypeId] });
+    },
+  });
+};
+
 export const useReorderEventPhotos = () => {
   const qc = useQueryClient();
   return useMutation({
