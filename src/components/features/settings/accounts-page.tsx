@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { DEV_MODE } from '@/lib/constants';
 import { Plus, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -38,10 +39,15 @@ const createAccountSchema = z.object({
 
 type CreateAccountValues = z.infer<typeof createAccountSchema>;
 
+const DEV_MOCK_USERS: UserAccount[] = [
+  { id: 'dev-user-id', email: 'dev@test.pl', role: 'admin', last_sign_in_at: null, created_at: new Date().toISOString() },
+];
+
 const useUsers = () => {
   return useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
+      if (DEV_MODE) return DEV_MOCK_USERS;
       const { data, error } = await supabase.functions.invoke('list-users', { method: 'GET' });
       if (error) throw error;
       return data as UserAccount[];
