@@ -68,6 +68,13 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
     defaultValues: data,
   });
 
+  // Reset form when offer data loads asynchronously
+  useEffect(() => {
+    if (data.event_type) {
+      form.reset(data);
+    }
+  }, [data.event_type, data.client_id, data.people_count]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const watchEventType = form.watch('event_type');
   const watchInquiryText = form.watch('inquiry_text');
 
