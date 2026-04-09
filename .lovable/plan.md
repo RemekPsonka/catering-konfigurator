@@ -1,43 +1,44 @@
 
 
-# Naprawa: liczba uczestników nie przelicza + brak przycisku akceptacji
+# Podsumowanie kosztów: łączna kwota per wariant + widoczny rabat
 
-## Diagnoza
+## Co się zmieni
 
-### Problem 1: Liczba uczestników nie przelicza
-Oferta ma `price_display_mode = 'PER_PERSON_ONLY'`. W tym trybie:
-- Wyświetlane są tylko ceny per-person (`vt.perPerson`) — te NIE zależą od liczby osób
-- Sekcja z grand total jest UKRYTA (linia 282: `price_display_mode !== 'PER_PERSON_ONLY'` → nie renderuje)
-- Efekt: klient klika +/-, liczba się zmienia, ale nic się nie przelicza wizualnie
+### 1. Grand total per wariant (zamiast jednego grand total)
+Obecnie sekcja "Łącznie" pokazuje jedną kwotę (najdroższy wariant). Zmienię to, żeby każdy wariant miał swoją łączną kwotę (dania + usługi + dostawa - rabat), wyświetloną w oddzielnym wierszu.
 
-**Fix**: W trybie `PER_PERSON_ONLY` po wariantach per-person dodać sekcję z łączną kwotą (perPerson × peopleCount) dla najdroższego wariantu, żeby zmiana liczby osób miała widoczny efekt.
+### 2. Widoczny rabat
+Jeśli oferta ma rabat (procentowy lub kwotowy), pokażę go wyraźnie nad sekcją łącznych kwot — niezależnie od trybu wyświetlania (nie tylko w DETAILED).
 
-### Problem 2: Brak przycisku akceptacji
-Oferta ma `status = 'ready'`. `AcceptanceSection` sprawdza:
-```typescript
-const isVisible = ['sent', 'viewed', 'revision'].includes(offer.status);
+## Szczegóły techniczne
+
+### `src/lib/calculations.ts`
+- Dodać do `VariantTotal` pole `grandTotal` (= variant.total - discount + services + delivery) obliczane per wariant
+- Rabat per wariant: proporcjonalny do wartości wariantu (procent) lub stała kwota
+
+### `src/components/public/calculation-section.tsx`
+- W sekcji grand total (linia 282-305): zamiast jednej kwoty `totals.grandTotal`, wyświetlić listę wariantów z ich indywidualnymi łącznymi kwotami
+- Dodać wiersz rabatu (widoczny we WSZYSTKICH trybach, nie tylko DETAILED) przed grand total
+- Każdy wariant w grand total: nazwa + łączna kwota + cena/os.
+- Format:
+
+```text
+┌─────────────────────────────────────┐
+│ Rabat: -10%           -2 145,52 zł  │  ← jeśli jest rabat
+├─────────────────────────────────────┤
+│         ŁĄCZNIE                      │
+│                                      │
+│ Classic        19 309,68 zł          │
+│                185,67 zł / osoba     │
+│                                      │
+│ Premium        21 455,20 zł          │
+│                206,30 zł / osoba     │
+└─────────────────────────────────────┘
 ```
-`ready` NIE jest na liście → sekcja się nie renderuje.
 
-**Fix**: Dodać `'ready'` do listy statusów w `AcceptanceSection`.
+### Pliki do zmiany
+1. **`src/lib/calculations.ts`** — dodać `grandTotal` per wariant do `VariantTotal`
+2. **`src/components/public/calculation-section.tsx`** — renderować grand total per wariant + rabat widoczny globalnie
 
-## Plan zmian
-
-### 1. `src/components/public/acceptance-section.tsx` linia 24
-```typescript
-// PRZED:
-const isVisible = ['sent', 'viewed', 'revision'].includes(offer.status)
-
-// PO:
-const isVisible = ['ready', 'sent', 'viewed', 'revision'].includes(offer.status)
-```
-
-### 2. `src/components/public/calculation-section.tsx`
-W trybie `PER_PERSON_ONLY` — po liście wariantów per-person dodać podsumowanie z łączną kwotą (grand total), żeby zmiana liczby osób miała widoczny efekt. Dodać sekcję analogiczną do grand total z linii 281-305, ale pokazywaną też dla `PER_PERSON_ONLY`.
-
-Zmiana: usunąć warunek `price_display_mode !== 'PER_PERSON_ONLY'` z linii 282, żeby grand total zawsze się wyświetlał (oprócz HIDDEN, które ma osobny return).
-
-Alternatywnie: zmienić warunek na `price_display_mode !== 'HIDDEN'` — bo HIDDEN już ma early return wyżej, więc można po prostu zawsze renderować grand total.
-
-## Brak zmian w bazie danych
+### Brak zmian w bazie danych
 
