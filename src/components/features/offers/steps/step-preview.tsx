@@ -18,7 +18,7 @@ import { getItemPrice } from '@/hooks/use-offer-variants';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import { OfferValidationPanel } from './offer-validation-panel';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
-import { PUBLIC_BASE_URL } from '@/lib/constants';
+import { buildPublicOfferUrl } from '@/lib/constants';
 import { buildRichOfferEmail } from '@/lib/email-templates';
 import type { Tables } from '@/integrations/supabase/types';
 import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
@@ -152,7 +152,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   const handleSaveAndShowLink = () => {
     statusMutation.mutate({ status: 'ready' }, {
       onSuccess: () => {
-        const link = `${PUBLIC_BASE_URL}/offer/${offer?.public_token}`;
+        const link = buildPublicOfferUrl(offer?.public_token ?? '');
         setPublicLink(link);
         setLinkDialogOpen(true);
         toast.success('Oferta zapisana jako gotowa');

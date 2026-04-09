@@ -23,7 +23,7 @@ import { SaveTemplateDialog } from '@/components/features/offers/save-template-d
 import { UseTemplateDialog } from '@/components/features/offers/use-template-dialog';
 import type { TemplateData } from '@/hooks/use-offer-templates';
 import {
-  OFFER_STATUS_LABELS, EVENT_TYPE_LABELS, ITEMS_PER_PAGE,
+  OFFER_STATUS_LABELS, EVENT_TYPE_LABELS, ITEMS_PER_PAGE, buildPublicOfferUrl,
 } from '@/lib/constants';
 import type { OfferStatus, EventType } from '@/types';
 
@@ -201,7 +201,7 @@ export const OffersListPage = () => {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              window.open(`/offer/${offer.public_token}`, '_blank');
+                              window.open(buildPublicOfferUrl(offer.public_token!), '_blank');
                             }}
                           >
                             <ExternalLink className="mr-2 h-4 w-4" />Podgląd klienta
