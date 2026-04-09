@@ -16,6 +16,7 @@ import { getItemPrice } from '@/hooks/use-offer-variants';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import { OfferValidationPanel } from './offer-validation-panel';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
+import { PUBLIC_BASE_URL } from '@/lib/constants';
 import type { Tables } from '@/integrations/supabase/types';
 import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 

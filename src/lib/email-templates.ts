@@ -1,3 +1,5 @@
+import { PUBLIC_BASE_URL } from '@/lib/constants';
+
 export const OFFER_EMAIL_TEMPLATE = `Szanowna/y {clientName},
 
 Przygotowaliśmy dla Państwa ofertę cateringową {offerNumber}.
