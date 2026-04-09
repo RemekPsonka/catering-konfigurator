@@ -242,6 +242,15 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
   const saveDraftMutation = useMutation({
     mutationFn: async (eventData: StepEventData) => {
       if (!user) throw new Error('Nie jesteś zalogowany');
+      if (!eventData.event_type) {
+        toast.error('Wybierz typ imprezy przed zapisem');
+        throw new Error('Event type is required');
+      }
+
+      const sanitizeTime = (v: string | null | undefined): string | null => {
+        if (!v || v === 'null') return null;
+        return v;
+      };
 
       const payload: TablesInsert<'offers'> = {
         event_type: eventData.event_type as TablesInsert<'offers'>['event_type'],
@@ -251,8 +260,8 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
         created_by: user.id,
         pricing_mode: (eventData.pricing_mode || 'PER_PERSON') as TablesInsert<'offers'>['pricing_mode'],
         event_date: eventData.event_date || null,
-        event_time_from: eventData.event_time_from || null,
-        event_time_to: eventData.event_time_to || null,
+        event_time_from: sanitizeTime(eventData.event_time_from),
+        event_time_to: sanitizeTime(eventData.event_time_to),
         event_location: eventData.event_location || null,
         inquiry_text: eventData.inquiry_text || null,
         greeting_text: eventData.greeting_text || null,
