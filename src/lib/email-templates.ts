@@ -25,7 +25,7 @@ export const buildOfferEmailText = (params: {
   validUntil: string;
   baseUrl?: string;
 }): string => {
-  const base = params.baseUrl ?? window.location.origin;
+  const base = params.baseUrl ?? PUBLIC_BASE_URL;
   return OFFER_EMAIL_TEMPLATE
     .replace(/{clientName}/g, params.clientName)
     .replace(/{offerNumber}/g, params.offerNumber)

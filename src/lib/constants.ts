@@ -73,3 +73,5 @@ export const DISH_CATEGORY_LABELS: Record<DishCategory, string> = {
 };
 
 export const ITEMS_PER_PAGE = 20;
+
+export const PUBLIC_BASE_URL = 'https://catering-konfigurator.lovable.app';
