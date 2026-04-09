@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { fireNotification } from '@/hooks/use-notifications';
@@ -28,6 +28,9 @@ import { TermsSection } from '@/components/public/terms-section';
 import { CommunicationSection } from '@/components/public/communication-section';
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
+import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
+import { EditableTooltip } from '@/components/public/editable-tooltip';
+import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
 import { AboutCateringSection } from '@/components/public/about-catering-section';
 import { FeaturesSection } from '@/components/public/features-section';
 import { EventGallerySection } from '@/components/public/event-gallery-section';
@@ -67,6 +70,9 @@ export const PublicOfferPage = () => {
 
   const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
   const [offerAccepted, setOfferAccepted] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [preSelectedVariantId, setPreSelectedVariantId] = useState<string | null>(null);
+  const isFirstVisitRef = useRef<boolean | null>(null);
 
   // Fetch event profile data
   const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
@@ -172,6 +178,13 @@ export const PublicOfferPage = () => {
       root.style.removeProperty('--theme-primary-rgb');
     };
   }, [offer?.offer_themes]);
+
+  // Track first visit before marking as viewed
+  useEffect(() => {
+    if (offer && isFirstVisitRef.current === null) {
+      isFirstVisitRef.current = !offer.viewed_at;
+    }
+  }, [offer]);
 
   // Mark as viewed on first open + fire notification
   useEffect(() => {
