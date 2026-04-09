@@ -1,61 +1,49 @@
 
 
-# Trzy usprawnienia: rabat, logistyka, podgląd klienta
+# Dashboard managera — `/admin/dashboard`
 
-## Usprawnienie 1: Rabat widoczny dla klienta
+## Nowe pliki
 
-### Plik: `src/components/public/calculation-section.tsx`
+### 1. `src/hooks/use-dashboard.ts`
+Hook z 4 zapytaniami React Query:
+- **KPI**: `offers` grouped by status → `{ draft, sent, viewed, revision, accepted }`
+- **Nowe korekty**: `offer_corrections` WHERE `status = 'new'` → count
+- **Wygasające**: `offers` WHERE `valid_until` between today and today+7, status IN (sent, viewed, revision), with `clients(name)`
+- **Aktywność**: `notifications` WHERE `event_type` IN (offer_viewed, proposal_submitted, correction_submitted, question_submitted, offer_accepted) ORDER BY created_at DESC LIMIT 10
+- **Manager name**: `get_setting('manager_name')`
 
-W sekcji DETAILED (linia 172-246) — po wariantach, przed services — dodać widoczny blok rabatu:
-- Wiersz "Menu": cena PRZED rabatem (przekreślona, opacity-50)
-- Wiersz "Rabat [X]%: -kwota" lub "Rabat: -kwota" (zielony, green-50 tło)
-- Wiersz "Menu po rabacie": cena finalna (bold, --theme-primary)
+### 2. `src/pages/admin/dashboard.tsx` — pełna implementacja
+Zastępuje placeholder. Sekcje:
 
-W trybach PER_PERSON_ONLY / PER_PERSON_AND_TOTAL / TOTAL_ONLY (linie 248-270) — obecny blok rabatu (linia 249) już istnieje ale jest ukryty w DETAILED. Zmienić:
-- Usunąć warunek `price_display_mode !== 'DETAILED'` z linii 249 i 261
-- W DETAILED: rabat już wbudowany w sekcję wariantów (wyżej)
-- W TOTAL_ONLY: "Uwzględniono rabat [X]% na menu" (bez kwot szczegółowych)
-- W PER_PERSON_ONLY / PER_PERSON_AND_TOTAL: pełny wiersz rabatu z kwotą
+**Nagłówek**: "Dzień dobry, [manager_name]!" + dzisiejsza data (format dd MMMM yyyy, pl locale)
 
-Potrzebna wartość `maxDishesTotal` (suma przed rabatem) — już dostępna w `totals.maxDishesTotal`.
+**Wiersz 1 — 4 kafelki KPI** (grid 2x2 mobile, 4x1 desktop, Card):
+- Szkice (szary) → `/admin/offers?status=draft`
+- Wysłane (niebieski, podtekst "w tym X otworzonych") → `/admin/offers?status=sent`
+- Do obsłużenia (pomarańczowy, pulsujący dot jeśli >0) → `/admin/offers?status=revision`
+- Zaakceptowane (zielony) → `/admin/offers?status=accepted`
 
-## Usprawnienie 2: Sekcja Logistyka i Dostawa
+**Wiersz 2 — Ostrzeżenia** (warunkowo, ukryte jeśli brak):
+- Lista wygasających ofert (numer + klient + data + link)
+- Lista nowych pytań/korekt (count + link do `/admin/notifications`)
 
-### Nowy plik: `src/components/public/logistics-section.tsx`
+**Wiersz 3 — Ostatnia aktywność** (max 10):
+- Ikona per event_type, tytuł, formatDistanceToNow (pl), bold jeśli unread
+- Klik → navigate(link)
 
-Sekcja z 2-3 kartami:
-- **Karta 1: Forma dostawy** — ikona 🚗 + delivery_type z opisem (COLD/HEATED/FULL_SERVICE mapowane na opisy)
-- **Karta 2: Usługi dodatkowe** (jeśli `offer_services.length > 0`) — lista usług z ilościami
-- **Karta 3: Kontakt na dzień eventu** — telefon i imię managera z `system_settings` (fetch via `supabase.rpc('get_setting', { p_key: 'manager_phone' })` i `get_setting('manager_name')`)
+**Wiersz 4 — Szybkie akcje**: 3 przyciski (Nowa oferta, Wszystkie oferty, Klienci)
 
-Styl: rounded-2xl, shadow-premium, fadeInUp, stagger, grid 1-3 kolumn
+## Modyfikowane pliki
 
-### Plik: `src/pages/public/offer.tsx`
-Dodać `LogisticsSection` między kalkulacją (sekcja 10) a warunkami (sekcja 12), po porównaniu wariantów.
+### 3. `src/components/layout/admin-layout.tsx`
+- Import `LayoutDashboard` z lucide-react
+- Dodać jako pierwszy element NAV_ITEMS: `{ title: 'Dashboard', url: '/admin/dashboard', icon: LayoutDashboard }`
 
-## Usprawnienie 3: Podgląd oczami klienta
-
-### Plik: `src/components/features/offers/steps/step-preview.tsx`
-Dodać przycisk "👁️ Otwórz podgląd jak widzi klient" w sekcji actions (linia 404):
-- Jeśli `offer?.public_token` → `window.open(buildPublicOfferUrl(offer.public_token), '_blank')`
-- Jeśli brak tokenu → disabled + tooltip "Zapisz ofertę, aby zobaczyć podgląd klienta"
-
-### Plik: `src/pages/admin/offers-list.tsx`
-W DropdownMenuContent (linia 173-210) dodać:
-- "👁️ Podgląd klienta" → `window.open(buildPublicOfferUrl(offer.public_token), '_blank')` (tylko jeśli `offer.public_token`)
-- "📋 Kopiuj link" → `navigator.clipboard.writeText(url)` + toast "Link skopiowany!" (widoczny dla statusów sent/viewed/revision/accepted)
-
-Uwaga: `offers-list` już ma opcję "Podgląd klienta" (linia 196-204) ale tylko dla `offer.public_token`. Trzeba dodać "Kopiuj link" i rozszerzyć widoczność.
-
-## Podsumowanie plików
-
-| Plik | Zmiana |
-|------|--------|
-| `src/components/public/calculation-section.tsx` | Rabat: przekreślona cena + zielony wiersz rabatu |
-| `src/components/public/logistics-section.tsx` | NOWY — sekcja logistyki z 3 kartami |
-| `src/pages/public/offer.tsx` | Import + render LogisticsSection |
-| `src/components/features/offers/steps/step-preview.tsx` | Przycisk podglądu klienta |
-| `src/pages/admin/offers-list.tsx` | "Kopiuj link" w menu akcji |
+### 4. `src/App.tsx`
+- Import `DashboardPage`
+- Zmienić `<Route index>` redirect z `/admin/offers` na `/admin/dashboard`
+- Dodać: `<Route path="dashboard" element={<DashboardPage />} />`
 
 ## Brak zmian w bazie danych
+Wszystkie dane z istniejących tabel (offers, offer_corrections, notifications, system_settings).
 
