@@ -32,6 +32,7 @@ Zasady:
 - Jeśli nie możesz wyodrębnić informacji — ustaw null
 - type_confidence: "high" gdy klient wprost mówi (komunia, wesele), "medium" gdy wynika z kontekstu, "low" gdy domyślasz się
 - requirements: wylistuj WSZYSTKO czego klient oczekuje lub wspomina — to będzie checklistka do weryfikacji
+- Typ imprezy: instytucja/firma/urząd/organizacja zamawiająca catering = NIGDY nie klasyfikuj jako PRY (impreza prywatna). PRY to wyłącznie prywatne spotkania domowe/rodzinne.
 - BUDŻET — KRYTYCZNE ZASADY:
   * Wpisz kwotę TYLKO jeśli klient DOSŁOWNIE podaje liczbę z kontekstem pieniężnym (np. "budżet 5000 zł", "do 100 zł/os", "max 8000", "w granicach 150 zł na osobę")
   * Jeśli klient podaje kwotę jako SZACUNEK WŁASNY lub PYTANIE ("czy 32 zł/os to realna cena?", "orientacyjnie 50 zł") — wpisz kwotę ale dodaj w notes: "Kwota podana jako pytanie/szacunek, nie jako twardy budżet"
@@ -41,6 +42,29 @@ Zasady:
 - Nie wymyślaj danych — ABSOLUTNIE nic co nie jest dosłownie w tekście. Lepiej null niż zgadywanie.
 - Nie wyliczaj wartości z innych pól (np. nie mnóż ceny × osoby, nie dziel łącznej kwoty przez osoby)
 - Kody typów wydarzeń: KOM=Komunia, WES=Wesele, FIR=Firmowy, KON=Konferencja, PRY=Przyjęcie prywatne, GAL=Gala, STY=Stypa, GRI=Grill, B2B=Spotkanie B2B, BOX=Catering pudełkowy, KAW=Przerwa kawowa, SPE=Specjalny`;
+
+    const eventTypeDescription = `Kod typu imprezy. Wybierz NAJLEPIEJ pasujący z listy:
+KOM = Komunia (dziecko, kościół, rodzina)
+WES = Wesele (ślub, wesele)
+FIR = Impreza firmowa (integracja, event firmowy, firma zamawia)
+KON = Konferencja (konferencja, szkolenie, seminarium)
+PRY = Impreza prywatna DOMOWA (urodziny w domu, imieniny, spotkanie rodzinne w domu)
+GAL = Gala / bankiet (elegancki event, bal)
+STY = Stypa (pogrzeb, stypa, wspomnienie)
+GRI = Grill / piknik (plener, grill, piknik)
+B2B = Catering biznesowy (zamówienie od firmy/instytucji, regularny catering, catering biurowy)
+BOX = Box cateringowy (lunch box, dostawa pudełek)
+KAW = Serwis kawowy (kawa, ciasto, przerwa kawowa, drobny poczęstunek)
+SPE = Specjalne / inne (nie pasuje do żadnego powyższego)
+
+WSKAZÓWKI WYBORU:
+- Jeśli zamawiający to instytucja/firma/urząd/fundacja/stowarzyszenie → rozważ B2B, FIR lub KAW (NIE PRY!)
+- Jeśli zamówienie to głównie kawa+ciasto+lekki posiłek → KAW
+- Jeśli zamówienie to pełny obiad/kolacja dla instytucji → B2B
+- PRY używaj TYLKO gdy kontekst jasno wskazuje prywatne spotkanie rodzinne/domowe
+- Jeśli nie jesteś pewien między dwoma typami → wybierz bardziej specyficzny i ustaw confidence na medium
+
+lub null jeśli kompletnie nie da się określić`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -79,7 +103,7 @@ Zasady:
                       type: {
                         type: "string",
                         enum: ["KOM", "WES", "FIR", "KON", "PRY", "GAL", "STY", "GRI", "B2B", "BOX", "KAW", "SPE"],
-                        description: "Kod typu wydarzenia lub null",
+                        description: eventTypeDescription,
                       },
                       type_confidence: {
                         type: "string",

@@ -12,23 +12,50 @@ serve(async (req) => {
   }
 
   try {
-    const { event_type_label, event_date, inquiry_text, client_name, people_count } = await req.json();
+    const { event_type_label, event_date, inquiry_text, client_name, people_count, location, company, requirements, notes } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Determine if we have rich AI-parsed data
+    const hasRichContext = !!(requirements?.length || location || company || notes);
+
     const contextParts: string[] = [];
+    if (client_name) contextParts.push(`Klient: ${client_name}${company ? ` z ${company}` : ''}`);
     if (event_type_label) contextParts.push(`Typ imprezy: ${event_type_label}`);
     if (event_date) contextParts.push(`Data: ${event_date}`);
     if (people_count) contextParts.push(`Liczba osób: ${people_count}`);
-    if (client_name) contextParts.push(`Klient: ${client_name}`);
+    if (location) contextParts.push(`Lokalizacja: ${location}`);
+    if (requirements?.length) contextParts.push(`Wymagania klienta:\n${requirements.map((r: string) => `- ${r}`).join('\n')}`);
+    if (notes) contextParts.push(`Notatki: ${notes}`);
     if (inquiry_text) contextParts.push(`Treść zapytania klienta:\n${inquiry_text}`);
 
-    const userPrompt = contextParts.length > 0
-      ? `Napisz tekst powitalny do oferty cateringowej na podstawie poniższych informacji:\n\n${contextParts.join("\n")}`
-      : "Napisz ogólny tekst powitalny do oferty cateringowej.";
+    let systemContent: string;
+    let userPrompt: string;
+
+    if (hasRichContext) {
+      systemContent = `Jesteś copywriterem firmy cateringowej "Catering Śląski". Napisz tekst powitalny do oferty cateringowej.
+
+ZASADY:
+- Napisz 3-5 zdań, ciepły ale profesjonalny ton
+- NAWIĄŻ do konkretnych elementów zapytania klienta (lokalizacja, typ eventu, szczególne wymagania)
+- Pokaż że przeczytaliśmy i rozumiemy potrzeby klienta
+- Wspomnij o doświadczeniu Catering Śląski w tego typu wydarzeniach
+- NIE podawaj cen ani szczegółów menu — to będzie dalej w ofercie
+- Zwracaj się: "Szanowna Pani [nazwisko]" / "Szanowny Panie [nazwisko]" (jeśli znamy) lub "Szanowni Państwo"
+- Po polsku, bez emoji, bez markdown
+- Zwracaj sam tekst`;
+
+      userPrompt = `Napisz spersonalizowany tekst powitalny do oferty cateringowej na podstawie poniższych informacji:\n\n${contextParts.join('\n')}`;
+    } else {
+      systemContent = 'Jesteś copywriterem firmy cateringowej "Catering Śląski". Napisz elegancki, profesjonalny tekst powitalny do oferty cateringowej. Max 3-4 zdania. Język polski. Nie używaj markdown. Zwracaj sam tekst.';
+
+      userPrompt = contextParts.length > 0
+        ? `Napisz tekst powitalny do oferty cateringowej na podstawie poniższych informacji:\n\n${contextParts.join("\n")}`
+        : "Napisz ogólny tekst powitalny do oferty cateringowej.";
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -39,11 +66,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          {
-            role: "system",
-            content:
-              'Jestes copywriterem firmy cateringowej "Catering Slaski". Napisz elegancki, profesjonalny tekst powitalny do oferty cateringowej. Max 3-4 zdania. Jezyk polski. Nie uzywaj markdown. Zwracaj sam tekst.',
-          },
+          { role: "system", content: systemContent },
           { role: "user", content: userPrompt },
         ],
       }),
