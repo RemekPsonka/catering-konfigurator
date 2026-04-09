@@ -420,10 +420,23 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           <CheckCircle className="mr-2 h-4 w-4" />
           Oznacz jako gotowa
         </Button>
-        <Button onClick={handleSend} disabled={statusMutation.isPending}>
-          <Send className="mr-2 h-4 w-4" />
-          Wyślij do klienta
+        <Button onClick={handleGenerateEmail} disabled={statusMutation.isPending}>
+          <Mail className="mr-2 h-4 w-4" />
+          Wygeneruj treść emaila
         </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button disabled className="opacity-50">
+                  <Send className="mr-2 h-4 w-4" />
+                  Wyślij do klienta
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Funkcja w przygotowaniu</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {offerId && (
@@ -458,6 +471,40 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
               <Button onClick={() => window.open(publicLink, '_blank')}>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Otwórz w nowej karcie
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Treść emaila do klienta</DialogTitle>
+            <DialogDescription>Skopiuj treść i wklej do swojego klienta email:</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea readOnly value={emailText} className="font-mono text-sm min-h-[400px]" />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(emailText);
+                  toast.success('Treść skopiowana do schowka');
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Kopiuj treść
+              </Button>
+              <Button
+                onClick={() => {
+                  const subject = encodeURIComponent(`Oferta cateringowa ${offer?.offer_number ?? ''}`);
+                  const body = encodeURIComponent(emailText);
+                  window.open(`mailto:${offer?.clients?.email ?? ''}?subject=${subject}&body=${body}`, '_blank');
+                }}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Otwórz w kliencie email
               </Button>
             </div>
           </div>
