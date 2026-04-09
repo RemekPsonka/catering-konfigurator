@@ -143,6 +143,17 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
     });
   };
 
+  const handleSaveAndShowLink = () => {
+    statusMutation.mutate({ status: 'ready' }, {
+      onSuccess: () => {
+        const link = `${window.location.origin}/offer/${offer?.public_token}`;
+        setPublicLink(link);
+        setLinkDialogOpen(true);
+        toast.success('Oferta zapisana jako gotowa');
+      },
+    });
+  };
+
   const handleSend = () => {
     const clientEmail = offer?.clients?.email;
     if (!clientEmail) {
