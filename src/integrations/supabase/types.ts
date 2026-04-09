@@ -478,36 +478,89 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string | null
+          event_type: string
+          id: string
+          is_read: boolean | null
+          link: string | null
+          offer_id: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          event_type: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          offer_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          offer_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_corrections: {
         Row: {
           client_name: string | null
           created_at: string | null
           id: string
+          manager_response: string | null
           message: string
           offer_id: string
           resolved_at: string | null
           resolved_notes: string | null
+          responded_at: string | null
+          responded_by: string | null
           status: Database["public"]["Enums"]["correction_status"]
+          type: string | null
         }
         Insert: {
           client_name?: string | null
           created_at?: string | null
           id?: string
+          manager_response?: string | null
           message: string
           offer_id: string
           resolved_at?: string | null
           resolved_notes?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
           status?: Database["public"]["Enums"]["correction_status"]
+          type?: string | null
         }
         Update: {
           client_name?: string | null
           created_at?: string | null
           id?: string
+          manager_response?: string | null
           message?: string
           offer_id?: string
           resolved_at?: string | null
           resolved_notes?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
           status?: Database["public"]["Enums"]["correction_status"]
+          type?: string | null
         }
         Relationships: [
           {
@@ -1081,6 +1134,27 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       variant_items: {
         Row: {
           allowed_modifications: Json | null
@@ -1152,6 +1226,20 @@ export type Database = {
           status: Database["public"]["Enums"]["offer_status"]
         }[]
       }
+      get_setting: { Args: { p_key: string }; Returns: string }
+      get_unread_notification_count: { Args: never; Returns: number }
+      insert_notification: {
+        Args: {
+          p_body: string
+          p_event_type: string
+          p_link?: string
+          p_offer_id: string
+          p_title: string
+        }
+        Returns: string
+      }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
+      mark_notification_read: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
       activity_type:
