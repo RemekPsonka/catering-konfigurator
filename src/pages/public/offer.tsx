@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
+import { usePublicEventProfile, usePublicEventPhotos } from '@/hooks/use-public-event-profile';
 import { EVENT_TYPE_OPTIONS, DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { fadeInUp, fadeIn, staggerContainer, scaleIn } from '@/lib/animations';
@@ -25,6 +26,10 @@ import { TermsSection } from '@/components/public/terms-section';
 import { CorrectionsSection } from '@/components/public/corrections-section';
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
+import { AboutCateringSection } from '@/components/public/about-catering-section';
+import { FeaturesSection } from '@/components/public/features-section';
+import { EventGallerySection } from '@/components/public/event-gallery-section';
+import { TestimonialSection } from '@/components/public/testimonial-section';
 import type { DishModification } from '@/components/public/dish-edit-panel';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
@@ -50,6 +55,25 @@ export const PublicOfferPage = () => {
 
   const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
   const [offerAccepted, setOfferAccepted] = useState(false);
+
+  // Fetch event profile data
+  const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
+  const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
+
+  const heroPhoto = useMemo(
+    () => eventPhotos?.find((p) => p.is_hero) ?? null,
+    [eventPhotos],
+  );
+
+  const features = useMemo(() => {
+    if (!eventProfile?.features) return [];
+    try {
+      const parsed = eventProfile.features as unknown;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [eventProfile?.features]);
 
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
@@ -77,7 +101,6 @@ export const PublicOfferPage = () => {
       offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
     );
 
-    // Apply modifications
     const adjustedVariants = variants.map((v) => ({
       ...v,
       variant_items: v.variant_items.map((item) => {
@@ -113,7 +136,6 @@ export const PublicOfferPage = () => {
     root.style.setProperty('--theme-font', t.font_family);
     root.style.setProperty('--theme-header-font', t.header_font ?? t.font_family);
 
-    // Parse hex to RGB for glow shadow
     const hexToRgb = (hex: string) => {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
@@ -287,6 +309,8 @@ export const PublicOfferPage = () => {
       : null,
   ].filter(Boolean) as { icon: React.ElementType; label: string; value: string }[];
 
+  const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : 'Catering Śląski');
+
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
       {/* 1. HERO */}
@@ -295,14 +319,31 @@ export const PublicOfferPage = () => {
           style={{ y: heroY }}
           className="absolute inset-0"
         >
-          <div
-            className="h-full w-full"
-            style={{
-              background: `linear-gradient(135deg, var(--theme-primary, #1A1A1A), var(--theme-secondary, #333))`,
-            }}
-          />
+          {heroPhoto ? (
+            <img
+              src={heroPhoto.photo_url}
+              alt={heroPhoto.alt_text || heroHeadline}
+              className="h-full w-full object-cover object-center"
+              style={{ minHeight: '110%' }}
+            />
+          ) : (
+            <div
+              className="h-full w-full"
+              style={{
+                background: `linear-gradient(135deg, var(--theme-primary, #1A1A1A), var(--theme-secondary, #333))`,
+              }}
+            />
+          )}
         </motion.div>
-        <div className="absolute inset-0 bg-charcoal/20" />
+        {/* Gradient overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: heroPhoto
+              ? 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.1) 100%)'
+              : 'rgba(0,0,0,0.2)',
+          }}
+        />
 
         <div className="relative z-10 flex min-h-[50vh] flex-col items-center justify-center px-4 text-center md:min-h-[60vh]">
           <motion.div
@@ -324,16 +365,14 @@ export const PublicOfferPage = () => {
             {offer.offer_number}
           </motion.p>
 
-          {eventTypeInfo && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-              className="mt-6 text-4xl md:text-6xl"
-            >
-              {eventTypeInfo.emoji}
-            </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            className="mt-6 font-display text-xl font-semibold text-ivory/90 md:text-2xl"
+          >
+            {heroHeadline}
+          </motion.div>
 
           {offer.valid_until && (
             <motion.div
@@ -374,7 +413,45 @@ export const PublicOfferPage = () => {
         </motion.section>
       )}
 
-      {/* 3. SZCZEGÓŁY EVENTU */}
+      {/* 3. AI PODSUMOWANIE */}
+      {offer.ai_summary && (
+        <motion.section
+          variants={fadeIn}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-50px' }}
+          className="py-16 md:py-24"
+          style={{ backgroundColor: 'var(--theme-secondary, #f0ebe3)', opacity: 0.97 }}
+        >
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <motion.div
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+              className="mb-4 inline-block"
+            >
+              <Sparkles className="h-7 w-7" style={{ color: 'var(--theme-accent, #c9a84c)' }} />
+            </motion.div>
+            <p className="font-body text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
+              {offer.ai_summary}
+            </p>
+          </div>
+        </motion.section>
+      )}
+
+      {/* 4. O NASZYM CATERINGU */}
+      {eventProfile?.description_long && (
+        <AboutCateringSection descriptionLong={eventProfile.description_long} />
+      )}
+
+      {/* 5. DLACZEGO MY — wyróżniki */}
+      {features.length > 0 && <FeaturesSection features={features} />}
+
+      {/* 6. GALERIA REALIZACJI */}
+      {eventPhotos && eventPhotos.length > 0 && (
+        <EventGallerySection photos={eventPhotos} />
+      )}
+
+      {/* 7. SZCZEGÓŁY EVENTU */}
       <motion.section
         variants={staggerContainer}
         initial="hidden"
@@ -419,32 +496,7 @@ export const PublicOfferPage = () => {
         </div>
       </motion.section>
 
-      {/* 4. AI PODSUMOWANIE */}
-      {offer.ai_summary && (
-        <motion.section
-          variants={fadeIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-50px' }}
-          className="py-16 md:py-24"
-          style={{ backgroundColor: 'var(--theme-secondary, #f0ebe3)', opacity: 0.97 }}
-        >
-          <div className="mx-auto max-w-3xl px-6 text-center">
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-              className="mb-4 inline-block"
-            >
-              <Sparkles className="h-7 w-7" style={{ color: 'var(--theme-accent, #c9a84c)' }} />
-            </motion.div>
-            <p className="font-body text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
-              {offer.ai_summary}
-            </p>
-          </div>
-        </motion.section>
-      )}
-
-      {/* 5. WARIANTY MENU */}
+      {/* 8. WARIANTY MENU */}
       {offer.offer_variants.length > 0 && (
         <MenuVariantsSection
           variants={offer.offer_variants}
@@ -456,7 +508,7 @@ export const PublicOfferPage = () => {
         />
       )}
 
-      {/* 6. USŁUGI DODATKOWE */}
+      {/* 9. USŁUGI DODATKOWE */}
       {offer.offer_services.length > 0 && (
         <ServicesSection
           services={offer.offer_services}
@@ -464,22 +516,31 @@ export const PublicOfferPage = () => {
         />
       )}
 
-      {/* 7. KALKULACJA */}
+      {/* 10. KALKULACJA */}
       <CalculationSection offer={offer} modifications={modifications} />
 
-      {/* 8. WARUNKI OFERTY */}
+      {/* 11. OPINIA KLIENTA */}
+      {eventProfile?.testimonial_text && (
+        <TestimonialSection
+          text={eventProfile.testimonial_text}
+          author={eventProfile.testimonial_author}
+          event={eventProfile.testimonial_event}
+        />
+      )}
+
+      {/* 12. WARUNKI OFERTY */}
       <TermsSection />
 
-      {/* 9. UWAGI I KOREKTY */}
+      {/* 13. KOREKTY */}
       <CorrectionsSection offerId={offer.id} />
 
-      {/* 10. AKCEPTACJA OFERTY */}
+      {/* 14. AKCEPTACJA OFERTY */}
       {!offerAccepted && (
         <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} />
       )}
 
-      {/* 11. KONTAKT */}
-      <ContactSection />
+      {/* 15. KONTAKT */}
+      <ContactSection ctaText={eventProfile?.cta_text} />
 
       {/* Floating changes panel */}
       <ChangesPanel
@@ -490,7 +551,7 @@ export const PublicOfferPage = () => {
         proposedTotal={proposedTotal}
       />
 
-      {/* 12. FOOTER */}
+      {/* 16. FOOTER */}
       <motion.footer
         variants={fadeIn}
         initial="hidden"
