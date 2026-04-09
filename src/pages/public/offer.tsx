@@ -48,9 +48,19 @@ const loadGoogleFont = (fontFamily: string | null) => {
   document.head.appendChild(link);
 };
 
+const isValidToken = (token: string | undefined): boolean => {
+  if (!token || token.length === 0) return false;
+  // Old format: 64-char hex
+  if (/^[a-f0-9]{64}$/.test(token)) return true;
+  // New format: 12-char alphanumeric (safe chars, no 0/O/1/l/I)
+  if (/^[A-HJ-NP-Za-hj-km-np-z2-9]{12}$/.test(token)) return true;
+  return false;
+};
+
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
-  const { data: offer, isLoading, error } = usePublicOffer(publicToken);
+  const tokenValid = isValidToken(publicToken);
+  const { data: offer, isLoading, error } = usePublicOffer(tokenValid ? publicToken : undefined);
   const markViewed = useMarkOfferViewed();
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
