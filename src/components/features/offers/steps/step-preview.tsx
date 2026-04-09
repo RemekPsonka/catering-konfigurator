@@ -13,10 +13,6 @@ import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import type { Tables } from '@/integrations/supabase/types';
-import { LoadingSpinner } from '@/components/common/loading-spinner';
-import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
-import { getItemPrice } from '@/hooks/use-offer-variants';
-import type { Tables } from '@/integrations/supabase/types';
 
 interface StepPreviewProps {
   offerId: string | null;
