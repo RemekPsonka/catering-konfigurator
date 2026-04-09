@@ -1,50 +1,54 @@
 
 
-# Premium Performance Audit — wyniki i plan napraw
+# AI Parsowanie maila klienta — Krok 1 wizarda
 
-## Wyniki audytu
+## Zakres
+Nowa Edge Function `parse-inquiry` + przycisk "🤖 Analizuj zapytanie" w Kroku 1 wizarda + panel wyników AI z sekcjami: dane klienta, dane eventu, wymagania, budżet, notatki. Kolumny `ai_parsed_data` i `client_requirements` już istnieją w tabeli `offers`.
 
-### 1. prefers-reduced-motion
-- **CSS animations**: ✅ `index.css` wyłącza `animation-duration` i `transition-duration` via `!important`
-- **Framer Motion**: ❌ **FAIL** — brak `MotionConfig reducedMotion="user"` na poziomie app. Framer Motion ignoruje CSS `prefers-reduced-motion` — wymaga własnej konfiguracji. Wszystkie `motion.div`, `AnimatePresence`, `useScroll`, `useTransform` nadal animują na urządzeniach z włączoną preferencją.
+## Pliki do utworzenia
 
-### 2. Lazy loading zdjęć
-- `dish-card.tsx`: ✅ ma `loading="lazy"` na `<motion.img>`
-- Lightbox: ✅ ładuje on-demand (otwierany kliknięciem)
-- Hero/offer page: ❌ brak lazy loading na zdjęciach w sekcji hero (jeśli są)
-- Dish edit panel (swap alternatives): ❌ brak `loading="lazy"` na miniaturkach alternatyw
+### 1. `supabase/functions/parse-inquiry/index.ts`
+Edge Function wywołująca Gemini z tool calling (structured output):
+- Input: `{ inquiry_text: string }`
+- System prompt: ekspert cateringowy, analizuje zapytanie klienta
+- Tool calling schema z wymaganą strukturą JSON (client, event, pricing_mode_suggestion, requirements, budget, notes)
+- Model: `google/gemini-3-flash-preview`
+- Obsługa 429/402 z polskimi komunikatami
+- CORS headers (ten sam pattern co `generate-greeting`)
 
-### 3. Bundle size — framer-motion w admin
-- **Admin pages**: `proposal-diff.tsx` importuje `motion, AnimatePresence` z framer-motion
-- **Admin features**: ✅ żaden komponent w `src/components/features/` nie importuje framer-motion
-- **Wniosek**: framer-motion trafia do bundla admin przez `proposal-diff.tsx`. Vite code-splits po route, więc wpływ jest ograniczony do tego jednego route'a — ale lepiej zastąpić CSS transitions.
+### 2. `src/components/features/offers/ai-inquiry-panel.tsx` (nowy)
+Panel wyników analizy AI z sekcjami:
+- Props: `parsedData`, `onApplyAll`, `onApplyField`, `onCreateClient`, `onUseExistingClient`, `form` (react-hook-form)
+- **Dane klienta**: nazwa/email/telefon/firma + przyciski "Zastosuj"/"Utwórz klienta". Query `clients` by email/phone to check if exists.
+- **Dane eventu**: per pole: ikona + label + wartość + confidence badge (🟢/🟡/🔴) + przycisk "Zastosuj". Brakujące pola: "⚠️ Brak w zapytaniu".
+- **Wymagania**: checklistka z checkboxami, badge kategorii (menu/budget/service/logistics/dietary/special), priorytet (must=czerwony, nice=szary). Inline edit, dodaj/usuń.
+- **Budżet**: kwota per person / total jeśli znalezione.
+- **Notatki AI**: tekst z notes.
+- Przycisk "Zastosuj wszystko" na górze.
+- Animacja slide-down (CSS transition, nie framer-motion — to admin panel).
 
-### 4. Lighthouse / Performance
-- Wymaga ręcznego testu w przeglądarce, ale znalezione problemy wpływające na wynik:
-  - Brak `MotionConfig` = zbędne animacje na słabych urządzeniach
-  - Framer-motion w admin bundle (minor)
+### 3. `src/components/features/offers/steps/step-event-data.tsx` (modyfikacja)
+- Import `supabase` + nowy komponent `AiInquiryPanel`
+- Nowy state: `aiResult`, `isAnalyzing`, `requirements`
+- Przycisk "🤖 Analizuj zapytanie" obok textarea `inquiry_text` — aktywny gdy ≥20 znaków
+- Na klik: `supabase.functions.invoke('parse-inquiry', { body: { inquiry_text } })`
+- Po odpowiedzi: wyświetl `AiInquiryPanel` pod textarea
+- `handleApplyAll`: wypełnia event_type, event_date, times, people_count, location, delivery_type, pricing_mode w formularzu
+- `handleApplyField`: wypełnia pojedyncze pole
+- `handleCreateClient`: tworzy klienta z danych AI i przypisuje do formularza
+- Requirements przechowywane w local state, przekazywane do `onSubmit`
 
-## Plan napraw
+### 4. `src/hooks/use-offer-wizard.ts` (modyfikacja)
+- Rozszerz `StepEventData` o opcjonalne pola: `ai_parsed_data?: unknown`, `client_requirements?: unknown`
+- W `saveDraftMutation`: dodaj `ai_parsed_data` i `client_requirements` do payload INSERT/UPDATE
 
-### 1. `src/App.tsx` — dodaj MotionConfig
-Owij całą aplikację w `<MotionConfig reducedMotion="user">`. To sprawi, że framer-motion automatycznie wyłączy animacje gdy użytkownik ma `prefers-reduced-motion: reduce`.
+## Brak migracji
+Kolumny `ai_parsed_data` (JSONB) i `client_requirements` (JSONB) już istnieją w tabeli `offers`.
 
-```tsx
-import { MotionConfig } from 'framer-motion';
-// W renderze:
-<MotionConfig reducedMotion="user">
-  {/* existing app tree */}
-</MotionConfig>
-```
-
-### 2. `src/pages/admin/proposal-diff.tsx` — usuń framer-motion
-Zastąp `motion.tr` zwykłym `<tr>` z CSS transition classes. Flash animację zrób via `className` toggle z `transition-colors duration-300`. Badge status: CSS `animate-scale-in`. To usunie import framer-motion z admin bundla.
-
-### 3. `src/components/public/dish-edit-panel.tsx` — lazy loading na miniaturkach swap
-Dodaj `loading="lazy"` do `<img>` w SwapPanel (miniaturki alternatywnych dań).
-
-### 4. `src/components/common/smooth-scroll.tsx` — respect reduced motion
-Dodaj check `window.matchMedia('(prefers-reduced-motion: reduce)').matches` — jeśli true, nie inicjalizuj Lenis.
-
-### Brak zmian w bazie danych
+## Szczegóły techniczne
+- Edge Function używa tool calling (nie `response_format: json_object`) dla pewnego structured output
+- Matching klienta: query `clients` WHERE `email = X` OR `phone = Y` — jeśli znaleziony, pokaż "Znaleziono klienta"
+- Requirements: `[{ text, category, priority, is_met: null }]` — zapisywane do `client_requirements` przy save draft
+- Przycisk AI nie blokuje flow — opcjonalny helper
+- Loading: Loader2 spinner na przycisku + skeleton na panelu wyników
 
