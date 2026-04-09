@@ -23,7 +23,11 @@ const CONTACTS = [
   },
 ];
 
-export const ContactSection = () => {
+interface ContactSectionProps {
+  ctaText?: string | null;
+}
+
+export const ContactSection = ({ ctaText }: ContactSectionProps) => {
   return (
     <motion.section
       variants={staggerContainer}
@@ -40,6 +44,19 @@ export const ContactSection = () => {
         >
           Kontakt
         </motion.h2>
+
+        {ctaText && (
+          <motion.div variants={fadeInUp} className="mb-8 text-center">
+            <a
+              href="tel:+48123456789"
+              className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 font-display text-lg font-semibold text-ivory tracking-wide shadow-premium transition-all hover:shadow-premium-hover"
+              style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
+            >
+              <Phone className="h-5 w-5" />
+              {ctaText}
+            </a>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {CONTACTS.map((contact) => (
