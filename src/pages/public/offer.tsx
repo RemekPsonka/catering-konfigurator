@@ -162,10 +162,20 @@ export const PublicOfferPage = () => {
     };
   }, [offer?.offer_themes]);
 
-  // Mark as viewed on first open
+  // Mark as viewed on first open + fire notification
   useEffect(() => {
     if (offer && !offer.viewed_at && offer.status === 'sent') {
       markViewed.mutate(offer.id);
+      // Fire-and-forget notification
+      const clientName = offer.clients?.name ?? 'Klient';
+      const eventTypeLabel = eventTypeInfo?.label ?? offer.event_type;
+      fireNotification({
+        offerId: offer.id,
+        eventType: 'offer_viewed',
+        title: `👁️ Klient otworzył ofertę ${offer.offer_number ?? ''}`,
+        body: `${clientName} otworzył(a) ofertę. Typ: ${eventTypeLabel}, ${offer.people_count ?? '?'} osób.`,
+        link: `/admin/offers/${offer.id}/edit`,
+      });
     }
   }, [offer?.id, offer?.viewed_at, offer?.status]);
 
