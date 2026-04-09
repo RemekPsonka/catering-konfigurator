@@ -35,8 +35,10 @@ const groupByCategory = (items: Variant['variant_items']) => {
   return Array.from(groups.values());
 };
 
-export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode }: MenuVariantsSectionProps) => {
+export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, modifications, onModificationChange }: MenuVariantsSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const [activeId, setActiveId] = useState(sorted[0]?.id ?? '');
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState(sorted[0]?.id ?? '');
   const isMobile = useIsMobile();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
@@ -183,6 +185,10 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                         priceDisplayMode={priceDisplayMode}
                         pricingMode={pricingMode}
                         peopleCount={peopleCount}
+                        isExpanded={expandedItemId === item.id}
+                        onToggleExpand={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                        modification={modifications?.get(item.id)}
+                        onModificationChange={(mod) => onModificationChange?.(item.id, mod)}
                       />
                     </motion.div>
                   ))}
