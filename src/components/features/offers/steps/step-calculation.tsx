@@ -9,13 +9,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Info, Truck, Receipt, MessageSquare, FileText } from 'lucide-react';
-import { useOfferVariants, getItemPrice, type VariantWithItems } from '@/hooks/use-offer-variants';
+import { Sparkles, Truck, Receipt, MessageSquare, FileText, Lock, Loader2 } from 'lucide-react';
+import { useOfferVariants, getItemPrice } from '@/hooks/use-offer-variants';
 import { useOfferServices } from '@/hooks/use-offer-services';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
+import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/use-debounce';
 
@@ -23,11 +23,23 @@ interface StepCalculationProps {
   offerId: string | null;
   pricingMode: string;
   peopleCount: number;
+  inquiryText?: string;
+  eventType?: string;
+  eventDate?: string | null;
+  clientName?: string;
 }
 
 type DiscountType = 'percent' | 'value';
 
-export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalculationProps) => {
+export const StepCalculation = ({
+  offerId,
+  pricingMode,
+  peopleCount,
+  inquiryText,
+  eventType,
+  eventDate,
+  clientName,
+}: StepCalculationProps) => {
   const queryClient = useQueryClient();
   const { data: variants = [] } = useOfferVariants(offerId);
   const { data: offerServices = [] } = useOfferServices(offerId);
@@ -55,6 +67,7 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
   const [notesClient, setNotesClient] = useState('');
   const [notesInternal, setNotesInternal] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (offerQuery.data && !loaded) {
@@ -72,52 +85,16 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
     }
   }, [offerQuery.data, loaded]);
 
-  // Calculations
-  const calculateVariantTotal = (variant: VariantWithItems): number => {
-    return variant.variant_items.reduce((sum, item) => {
-      const price = getItemPrice(item);
-      const qty = item.quantity ?? 1;
-      return sum + price * qty;
-    }, 0);
-  };
-
-  const variantTotals = useMemo(() => {
-    return variants.map(v => ({
-      id: v.id,
-      name: v.name,
-      perPerson: calculateVariantTotal(v),
-      total: pricingMode === 'PER_PERSON'
-        ? calculateVariantTotal(v) * peopleCount
-        : calculateVariantTotal(v),
-    }));
-  }, [variants, pricingMode, peopleCount]);
-
-  const maxDishesTotal = useMemo(() => {
-    if (variantTotals.length === 0) return 0;
-    return Math.max(...variantTotals.map(v => v.total));
-  }, [variantTotals]);
-
-  const servicesTotalCalc = useMemo(() => {
-    return offerServices.reduce((sum, os) => {
-      const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
-      return sum + price * (os.quantity ?? 1);
-    }, 0);
-  }, [offerServices]);
-
-  const discountAmount = useMemo(() => {
-    if (discountType === 'percent' && discountPercent > 0) {
-      return Math.round(maxDishesTotal * discountPercent / 100 * 100) / 100;
-    }
-    return discountValue;
-  }, [discountType, discountPercent, discountValue, maxDishesTotal]);
-
-  const dishesAfterDiscount = maxDishesTotal - discountAmount;
-  const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost;
-  const pricePerPerson = peopleCount > 0 ? Math.round(grandTotal / peopleCount * 100) / 100 : 0;
+  // Use shared calculation function
+  const totals = useMemo(() => {
+    const dp = discountType === 'percent' ? discountPercent : 0;
+    const dv = discountType === 'value' ? discountValue : 0;
+    return calculateOfferTotals(pricingMode, peopleCount, variants, offerServices, dp, dv, deliveryCost);
+  }, [variants, offerServices, pricingMode, peopleCount, discountType, discountPercent, discountValue, deliveryCost]);
 
   // Auto-save mutation
   const saveMutation = useMutation({
-    mutationFn: async (payload: Partial<{ discount_percent: number; discount_value: number; delivery_cost: number; greeting_text: string | null; notes_client: string | null; notes_internal: string | null; total_dishes_value: number; total_services_value: number; total_value: number; price_per_person: number }>) => {
+    mutationFn: async (payload: Record<string, unknown>) => {
       if (!offerId) return;
       const { error } = await supabase.from('offers').update(payload).eq('id', offerId);
       if (error) throw error;
@@ -134,7 +111,6 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
   const debouncedNotesClient = useDebounce(notesClient, 800);
   const debouncedNotesInternal = useDebounce(notesInternal, 800);
 
-  // Auto-save texts
   useEffect(() => {
     if (!loaded || !offerId) return;
     saveMutation.mutate({ greeting_text: debouncedGreeting || null });
@@ -159,10 +135,10 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
       discount_percent: dp,
       discount_value: dv,
       delivery_cost: deliveryCost,
-      total_dishes_value: maxDishesTotal,
-      total_services_value: servicesTotalCalc,
-      total_value: grandTotal,
-      price_per_person: pricePerPerson,
+      total_dishes_value: totals.maxDishesTotal,
+      total_services_value: totals.servicesTotalCalc,
+      total_value: totals.grandTotal,
+      price_per_person: totals.pricePerPerson,
     });
   };
 
@@ -178,11 +154,44 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
     else setDiscountValue(val);
   };
 
-  // Save financials on blur
   useEffect(() => {
     if (!loaded) return;
     saveFinancials();
-  }, [discountPercent, discountValue, discountType, deliveryCost, maxDishesTotal, servicesTotalCalc]);
+  }, [discountPercent, discountValue, discountType, deliveryCost, totals.maxDishesTotal, totals.servicesTotalCalc]);
+
+  // AI greeting generation
+  const handleGenerateGreeting = async () => {
+    setIsGenerating(true);
+    try {
+      const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === eventType)?.label ?? eventType;
+
+      const { data, error } = await supabase.functions.invoke('generate-greeting', {
+        body: {
+          event_type_label: eventTypeLabel,
+          event_date: eventDate,
+          inquiry_text: inquiryText,
+          client_name: clientName,
+          people_count: peopleCount,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data?.greeting) {
+        setGreetingText(data.greeting);
+        toast.success('Tekst wygenerowany');
+      }
+    } catch (e) {
+      toast.error('Nie udało się wygenerować tekstu');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (!offerId) {
     return (
@@ -210,7 +219,7 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
           ) : (
             <Accordion type="multiple" defaultValue={variants.map(v => v.id)}>
               {variants.map((variant) => {
-                const vTotal = variantTotals.find(vt => vt.id === variant.id);
+                const vTotal = totals.variantTotals.find(vt => vt.id === variant.id);
                 return (
                   <AccordionItem key={variant.id} value={variant.id}>
                     <AccordionTrigger className="text-sm font-medium">
@@ -303,7 +312,7 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
               <TableFooter>
                 <TableRow>
                   <TableCell colSpan={3} className="text-right font-medium">Usługi łącznie:</TableCell>
-                  <TableCell className="text-right font-bold">{formatCurrency(servicesTotalCalc)}</TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(totals.servicesTotalCalc)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
@@ -343,7 +352,7 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
               <span className="text-sm text-muted-foreground">%</span>
               {discountPercent > 0 && (
                 <span className="text-sm">
-                  Rabat {discountPercent}% = <strong>{formatCurrency(discountAmount)}</strong>
+                  Rabat {discountPercent}% = <strong>{formatCurrency(totals.discountAmount)}</strong>
                 </span>
               )}
             </div>
@@ -365,9 +374,9 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
           <p className="text-sm text-muted-foreground">
             Rabat dotyczy tylko dań (nie usług i dostawy).
           </p>
-          {discountAmount > 0 && (
+          {totals.discountAmount > 0 && (
             <p className="text-sm font-medium">
-              Dania po rabacie: {formatCurrency(dishesAfterDiscount)}
+              Dania po rabacie: {formatCurrency(totals.dishesAfterDiscount)}
             </p>
           )}
         </CardContent>
@@ -405,17 +414,23 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
         <CardContent className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Dania (najdroższy wariant):</span>
-            <span>{formatCurrency(maxDishesTotal)}</span>
+            <span>{formatCurrency(totals.maxDishesTotal)}</span>
           </div>
-          {discountAmount > 0 && (
-            <div className="flex justify-between text-sm text-destructive">
-              <span>Rabat:</span>
-              <span>-{formatCurrency(discountAmount)}</span>
-            </div>
+          {totals.discountAmount > 0 && (
+            <>
+              <div className="flex justify-between text-sm text-destructive">
+                <span>Rabat:</span>
+                <span>-{formatCurrency(totals.discountAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Dania po rabacie:</span>
+                <span>{formatCurrency(totals.dishesAfterDiscount)}</span>
+              </div>
+            </>
           )}
           <div className="flex justify-between text-sm">
             <span>Usługi:</span>
-            <span>{formatCurrency(servicesTotalCalc)}</span>
+            <span>{formatCurrency(totals.servicesTotalCalc)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span>Dostawa:</span>
@@ -424,12 +439,12 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
           <Separator />
           <div className="flex justify-between text-lg font-bold">
             <span>ŁĄCZNIE:</span>
-            <span>{formatCurrency(grandTotal)}</span>
+            <span>{formatCurrency(totals.grandTotal)}</span>
           </div>
           {peopleCount > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Cena za osobę:</span>
-              <span>{formatCurrency(pricePerPerson)}</span>
+              <span>{formatCurrency(totals.pricePerPerson)}</span>
             </div>
           )}
         </CardContent>
@@ -450,17 +465,24 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
             placeholder="Tekst powitalny dla klienta..."
             rows={4}
           />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" disabled>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Wygeneruj z AI
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Wkrótce</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateGreeting}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {isGenerating ? 'Generowanie...' : '🤖 Generuj z AI'}
+          </Button>
+          {!inquiryText && (
+            <p className="text-xs text-muted-foreground">
+              Podpowiedź: uzupełnij „Treść zapytania" w kroku 1, aby AI wygenerował bardziej spersonalizowany tekst.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -484,7 +506,10 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
             />
           </div>
           <div>
-            <Label>Notatki wewnętrzne</Label>
+            <Label className="flex items-center gap-1.5">
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              Notatki wewnętrzne
+            </Label>
             <Textarea
               value={notesInternal}
               onChange={(e) => setNotesInternal(e.target.value)}
@@ -492,7 +517,7 @@ export const StepCalculation = ({ offerId, pricingMode, peopleCount }: StepCalcu
               rows={3}
               className="mt-1"
             />
-            <p className="text-xs text-muted-foreground mt-1">Nie będą widoczne na ofercie klienta.</p>
+            <p className="text-xs text-muted-foreground mt-1">🔒 Nie będą widoczne na ofercie klienta.</p>
           </div>
         </CardContent>
       </Card>
