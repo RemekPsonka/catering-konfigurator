@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Loader2, Bot } from 'lucide-react';
+import { CalendarIcon, Loader2, Bot, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +60,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
   // AI state
   const [aiResult, setAiResult] = useState<AiParsedData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingGreeting, setIsGeneratingGreeting] = useState(false);
   const [requirements, setRequirements] = useState<ClientRequirement[]>([]);
 
   const form = useForm<FormValues>({
@@ -134,6 +135,41 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
       toast.error('Nie udało się przeanalizować zapytania. Wypełnij pola ręcznie.');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Generate personalized greeting via Edge Function
+  const generateGreeting = async (parsedDataOverride?: AiParsedData) => {
+    const ai = parsedDataOverride ?? aiResult;
+    setIsGeneratingGreeting(true);
+    try {
+      const eventType = form.getValues('event_type');
+      const eventTypeLabel = EVENT_TYPE_OPTIONS.find(o => o.value === eventType)?.label ?? eventType;
+      const reqTexts = (ai?.requirements ?? requirements).map(r => r.text);
+
+      const { data: fnData, error } = await supabase.functions.invoke('generate-greeting', {
+        body: {
+          event_type_label: eventTypeLabel,
+          event_date: form.getValues('event_date'),
+          people_count: form.getValues('people_count'),
+          client_name: ai?.client?.name ?? form.getValues('client_name') ?? undefined,
+          company: ai?.client?.company ?? undefined,
+          location: ai?.event?.location ?? form.getValues('event_location') ?? undefined,
+          inquiry_text: form.getValues('inquiry_text'),
+          requirements: reqTexts.length > 0 ? reqTexts : undefined,
+          notes: ai?.notes ?? undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (fnData?.greeting) {
+        form.setValue('greeting_text', fnData.greeting);
+        toast.success('Tekst powitalny wygenerowany');
+      }
+    } catch {
+      toast.error('Nie udało się wygenerować tekstu powitalnego');
+    } finally {
+      setIsGeneratingGreeting(false);
     }
   };
 
