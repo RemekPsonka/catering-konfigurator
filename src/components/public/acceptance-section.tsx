@@ -27,9 +27,6 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId }: A
       setSelectedVariantId(preSelectedVariantId);
     }
   }, [preSelectedVariantId]);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [accepted, setAccepted] = useState(false);
-  const acceptOffer = useAcceptOffer();
 
   const isVisible = ['ready', 'sent', 'viewed', 'revision'].includes(offer.status) && !offer.accepted_at && !accepted;
 
