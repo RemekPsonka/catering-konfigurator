@@ -25,7 +25,7 @@ import { ServicesSection } from '@/components/public/services-section';
 import { CalculationSection } from '@/components/public/calculation-section';
 import { ChangesPanel } from '@/components/public/changes-panel';
 import { TermsSection } from '@/components/public/terms-section';
-import { CorrectionsSection } from '@/components/public/corrections-section';
+import { CommunicationSection } from '@/components/public/communication-section';
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
 import { AboutCateringSection } from '@/components/public/about-catering-section';
@@ -585,8 +585,8 @@ export const PublicOfferPage = () => {
       {/* 12. WARUNKI OFERTY */}
       <TermsSection />
 
-      {/* 13. KOREKTY */}
-      <CorrectionsSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
+      {/* 13. PYTANIA I UWAGI + HISTORIA KOMUNIKACJI */}
+      <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
 
       {/* 14. AKCEPTACJA OFERTY */}
       {!offerAccepted && (
