@@ -103,9 +103,10 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
             peopleCount={state.stepData.eventData.people_count}
           />
         );
-    }
       default:
         return null;
+    }
+  };
 
   return (
     <div className="space-y-6">
