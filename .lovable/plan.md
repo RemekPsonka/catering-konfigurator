@@ -1,21 +1,30 @@
 
 
-# Zamiana adresu email kontakt@cateringsl.pl → zamowienia@cateringslaski.pl
+# Naprawa: link oferty ze statusem "ready" nie działa
 
-## Pliki do zmodyfikowania
+## Diagnoza
+Oferta ma status `ready` (ustawiony przez "Zapisz i pokaż link"), ale:
+1. **RLS policy `public_offer_read`** pozwala tylko na `sent, viewed, revision, accepted` — brak `ready`
+2. **Hook `usePublicOffer`** filtruje `.in('status', ['sent', 'viewed', 'revision', 'accepted', 'won'])` — brak `ready`
+3. **RLS na powiązanych tabelach** (`offer_variants`, `variant_items`, `offer_services`) — też brak `ready`
 
-### 1. `src/components/public/contact-section.tsx` (linie 15-16)
-- `value: 'kontakt@cateringsl.pl'` → `'zamowienia@cateringslaski.pl'`
-- `href: 'mailto:kontakt@cateringsl.pl'` → `'mailto:zamowienia@cateringslaski.pl'`
+## Rozwiązanie
+Dodać `ready` do wszystkich miejsc kontrolujących dostęp publiczny.
 
-### 2. `src/lib/email-templates.ts` (linia 20)
-- `kontakt@cateringsl.pl` → `zamowienia@cateringslaski.pl`
+## Zmiany
 
-### 3. `src/pages/public/offer.tsx` (linie 235, 282)
-- Oba `href="mailto:kontakt@cateringsl.pl"` → `"mailto:zamowienia@cateringslaski.pl"`
+### 1. Migracja — aktualizacja 5 RLS policies
+- `public_offer_read` na `offers` — dodać `ready`
+- `public_offer_accept` na `offers` — dodać `ready` do USING
+- `public_variants_read` na `offer_variants` — dodać `ready`
+- `public_items_read` na `variant_items` — dodać `ready`
+- `public_services_read` na `offer_services` — dodać `ready`
 
-## Uwaga
-Screenshot pokazuje "Nie znaleziono oferty" — to osobny problem (status oferty lub token). Jeśli chcesz to też zbadać, daj znać.
+### 2. `src/hooks/use-public-offer.ts`
+- Linia z `.in('status', [...])` — dodać `'ready'` do tablicy
 
-## Brak zmian w bazie danych
+### 3. `src/pages/public/offer-find.tsx`
+- Sprawdzić czy `ACCESSIBLE_STATUSES` zawiera `ready` — jeśli nie, dodać
+
+## Brak zmian strukturalnych w bazie danych — tylko aktualizacja policies.
 
