@@ -408,6 +408,29 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
             Zapisz jako szablon
           </Button>
         )}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  variant="outline"
+                  disabled={!offer?.public_token}
+                  onClick={() => {
+                    if (offer?.public_token) {
+                      window.open(buildPublicOfferUrl(offer.public_token), '_blank');
+                    }
+                  }}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Podgląd klienta
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!offer?.public_token && (
+              <TooltipContent>Zapisz ofertę, aby zobaczyć podgląd klienta</TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
         <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           Zapisz szkic
