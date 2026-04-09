@@ -279,7 +279,7 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
         )}
 
         {/* Grand total summary */}
-        {price_display_mode !== 'PER_PERSON_ONLY' && (
+        {(
           <motion.div
             variants={fadeInUp}
             className="rounded-2xl p-8 md:p-10 text-center"

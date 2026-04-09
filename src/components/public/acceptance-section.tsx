@@ -21,7 +21,7 @@ export const AcceptanceSection = ({ offer, onAccepted }: AcceptanceSectionProps)
   const [accepted, setAccepted] = useState(false);
   const acceptOffer = useAcceptOffer();
 
-  const isVisible = ['sent', 'viewed', 'revision'].includes(offer.status) && !offer.accepted_at && !accepted;
+  const isVisible = ['ready', 'sent', 'viewed', 'revision'].includes(offer.status) && !offer.accepted_at && !accepted;
 
   if (!isVisible) return null;
 
