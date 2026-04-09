@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Sparkles } from 'lucide-react';
 import { DishCard } from './dish-card';
+import type { DishModification } from './dish-edit-panel';
 import { formatCurrency } from '@/lib/calculations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,6 +17,8 @@ interface MenuVariantsSectionProps {
   pricingMode: Enums<'pricing_mode'>;
   peopleCount: number;
   priceDisplayMode: Enums<'price_display_mode'>;
+  modifications?: Map<string, DishModification>;
+  onModificationChange?: (itemId: string, mod: DishModification | undefined) => void;
 }
 
 const groupByCategory = (items: Variant['variant_items']) => {
@@ -32,9 +35,10 @@ const groupByCategory = (items: Variant['variant_items']) => {
   return Array.from(groups.values());
 };
 
-export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode }: MenuVariantsSectionProps) => {
+export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, modifications, onModificationChange }: MenuVariantsSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const [activeId, setActiveId] = useState(sorted[0]?.id ?? '');
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedDot, setSelectedDot] = useState(0);
@@ -180,6 +184,10 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                         priceDisplayMode={priceDisplayMode}
                         pricingMode={pricingMode}
                         peopleCount={peopleCount}
+                        isExpanded={expandedItemId === item.id}
+                        onToggleExpand={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                        modification={modifications?.get(item.id)}
+                        onModificationChange={(mod) => onModificationChange?.(item.id, mod)}
                       />
                     </motion.div>
                   ))}

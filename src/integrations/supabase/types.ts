@@ -699,8 +699,10 @@ export type Database = {
         Row: {
           accepted_at: string | null
           accepted_variant_id: string | null
+          ai_parsed_data: Json | null
           ai_summary: string | null
-          client_id: string
+          client_id: string | null
+          client_requirements: Json | null
           created_at: string | null
           created_by: string
           current_version: number | null
@@ -741,8 +743,10 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           accepted_variant_id?: string | null
+          ai_parsed_data?: Json | null
           ai_summary?: string | null
-          client_id: string
+          client_id?: string | null
+          client_requirements?: Json | null
           created_at?: string | null
           created_by: string
           current_version?: number | null
@@ -783,8 +787,10 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           accepted_variant_id?: string | null
+          ai_parsed_data?: Json | null
           ai_summary?: string | null
-          client_id?: string
+          client_id?: string | null
+          client_requirements?: Json | null
           created_at?: string | null
           created_by?: string
           current_version?: number | null
