@@ -46,7 +46,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
       if (!offerId) return null;
       const { data, error } = await supabase
         .from('offers')
-        .select('*, clients!client_id(name, email), offer_themes!theme_id(*)')
+        .select('*, clients(name, email), offer_themes(*)')
         .eq('id', offerId)
         .single();
       if (error) throw error;
