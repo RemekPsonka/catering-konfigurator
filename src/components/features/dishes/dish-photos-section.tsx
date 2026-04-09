@@ -56,7 +56,7 @@ const SortablePhoto = ({
       {...attributes}
       {...listeners}
       className={`group relative aspect-square rounded-lg overflow-hidden border-2 cursor-grab active:cursor-grabbing ${
-        photo.is_primary ? 'border-yellow-400 ring-2 ring-yellow-400/30' : 'border-border'
+        photo.is_primary ? 'border-primary ring-2 ring-primary/30' : 'border-border'
       }`}
     >
       <img
@@ -66,7 +66,7 @@ const SortablePhoto = ({
         draggable={false}
       />
       {photo.is_primary && (
-        <span className="absolute top-1.5 left-1.5 rounded bg-yellow-400 px-1.5 py-0.5 text-xs font-semibold text-yellow-900">
+        <span className="absolute top-1.5 left-1.5 rounded bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">
           Główne
         </span>
       )}
