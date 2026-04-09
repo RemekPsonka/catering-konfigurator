@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { TagChipsField } from './tag-chips-field';
 import { DishPhotosSection } from './dish-photos-section';
+import { ModifiableItemsSection } from './modifiable-items-section';
 import { useDishCategories } from '@/hooks/use-dish-categories';
 import { useCreateDish, useUpdateDish } from '@/hooks/use-dishes';
 import {
@@ -47,6 +48,7 @@ const dishSchema = z.object({
   margin_percent: z.coerce.number().min(0).nullable().optional(),
   is_active: z.boolean().default(true),
   is_modifiable: z.boolean().default(false),
+  modifiable_items: z.any().nullable().optional(),
 });
 
 type DishFormValues = z.infer<typeof dishSchema>;
@@ -97,6 +99,7 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
           margin_percent: dish.margin_percent ? Number(dish.margin_percent) : undefined,
           is_active: dish.is_active ?? true,
           is_modifiable: dish.is_modifiable ?? false,
+          modifiable_items: (dish.modifiable_items as Record<string, unknown>) ?? null,
         }
       : {
           name: '',
@@ -115,10 +118,12 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
           allergens: [],
           is_active: true,
           is_modifiable: false,
+          modifiable_items: null,
         },
   });
 
   const unitType = form.watch('unit_type');
+  const isModifiable = form.watch('is_modifiable');
   const costPerUnit = form.watch('cost_per_unit');
   const marginPercent = form.watch('margin_percent');
   const descShort = form.watch('description_short') ?? '';
@@ -158,6 +163,7 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
       margin_percent: values.margin_percent ?? null,
       is_active: values.is_active,
       is_modifiable: values.is_modifiable,
+      modifiable_items: values.is_modifiable ? (values.modifiable_items ?? null) : null,
     };
   };
 
@@ -538,6 +544,21 @@ export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
             />
           </CardContent>
         </Card>
+
+        {/* Section 6 — Modyfikacje (conditional) */}
+        {isModifiable && (
+          <FormField
+            control={form.control}
+            name="modifiable_items"
+            render={({ field }) => (
+              <ModifiableItemsSection
+                value={field.value as Record<string, unknown> | null}
+                onChange={field.onChange}
+                currentDishId={dish?.id}
+              />
+            )}
+          />
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-3">
