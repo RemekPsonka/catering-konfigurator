@@ -1,54 +1,63 @@
 
 
-# AI Parsowanie maila klienta — Krok 1 wizarda
+# Checklistka wymagań klienta — sidebar w wizardzie
 
 ## Zakres
-Nowa Edge Function `parse-inquiry` + przycisk "🤖 Analizuj zapytanie" w Kroku 1 wizarda + panel wyników AI z sekcjami: dane klienta, dane eventu, wymagania, budżet, notatki. Kolumny `ai_parsed_data` i `client_requirements` już istnieją w tabeli `offers`.
+Nowy komponent sidebar "Wymagania klienta" widoczny w krokach 2-7 wizarda, gdy `client_requirements` nie jest puste. Desktop: sticky sidebar po prawej. Mobile: floating button + bottom sheet. Hinty kontekstowe w krokach 2, 3, 5.
 
 ## Pliki do utworzenia
 
-### 1. `supabase/functions/parse-inquiry/index.ts`
-Edge Function wywołująca Gemini z tool calling (structured output):
-- Input: `{ inquiry_text: string }`
-- System prompt: ekspert cateringowy, analizuje zapytanie klienta
-- Tool calling schema z wymaganą strukturą JSON (client, event, pricing_mode_suggestion, requirements, budget, notes)
-- Model: `google/gemini-3-flash-preview`
-- Obsługa 429/402 z polskimi komunikatami
-- CORS headers (ten sam pattern co `generate-greeting`)
+### 1. `src/components/features/offers/requirements-sidebar.tsx` (nowy)
+Komponent sidebar z checklistką wymagań:
+- Props: `requirements: ClientRequirement[]`, `onUpdate: (reqs: ClientRequirement[]) => void`
+- Interface `ClientRequirement`: `{ text, category, priority, is_met: boolean | null, note?: string }`
+- Desktop: `sticky top-24 w-[280px] max-h-[calc(100vh-200px)] overflow-y-auto` Card
+- Mobile: floating button `📋 Wymagania ([N])` (fixed bottom-20 right-4) → Sheet (bottom, max-h-[80vh])
+- Zawartość:
+  - Nagłówek "Wymagania klienta" z ikoną ClipboardList
+  - Lista: Checkbox + tekst + badge kategorii + badge priorytetu (must=🔴, nice=🟡)
+  - Po zaznaczeniu checkbox: opcjonalny Input "Jak spełnione?"
+  - Podsumowanie: "[X] z [Y] wymagań spełnionych" + Progress bar
+  - Przycisk "Dodaj wymaganie" (inline form)
+- `useIsMobile()` do wykrycia mobile
 
-### 2. `src/components/features/offers/ai-inquiry-panel.tsx` (nowy)
-Panel wyników analizy AI z sekcjami:
-- Props: `parsedData`, `onApplyAll`, `onApplyField`, `onCreateClient`, `onUseExistingClient`, `form` (react-hook-form)
-- **Dane klienta**: nazwa/email/telefon/firma + przyciski "Zastosuj"/"Utwórz klienta". Query `clients` by email/phone to check if exists.
-- **Dane eventu**: per pole: ikona + label + wartość + confidence badge (🟢/🟡/🔴) + przycisk "Zastosuj". Brakujące pola: "⚠️ Brak w zapytaniu".
-- **Wymagania**: checklistka z checkboxami, badge kategorii (menu/budget/service/logistics/dietary/special), priorytet (must=czerwony, nice=szary). Inline edit, dodaj/usuń.
-- **Budżet**: kwota per person / total jeśli znalezione.
-- **Notatki AI**: tekst z notes.
-- Przycisk "Zastosuj wszystko" na górze.
-- Animacja slide-down (CSS transition, nie framer-motion — to admin panel).
+### 2. `src/components/features/offers/requirement-hints.tsx` (nowy)
+Komponent renderujący kontekstowe hinty:
+- Props: `requirements: ClientRequirement[]`, `category: string`, `currentPricePerPerson?: number`
+- Filtruje wymagania po kategorii, renderuje alert-like banner:
+  - "💡 Klient oczekuje: [tekst wymagania]"
+  - Dla budget: porównanie aktualnej ceny z oczekiwaną (zielony/czerwony)
+- Zwraca `null` jeśli brak wymagań w danej kategorii
 
-### 3. `src/components/features/offers/steps/step-event-data.tsx` (modyfikacja)
-- Import `supabase` + nowy komponent `AiInquiryPanel`
-- Nowy state: `aiResult`, `isAnalyzing`, `requirements`
-- Przycisk "🤖 Analizuj zapytanie" obok textarea `inquiry_text` — aktywny gdy ≥20 znaków
-- Na klik: `supabase.functions.invoke('parse-inquiry', { body: { inquiry_text } })`
-- Po odpowiedzi: wyświetl `AiInquiryPanel` pod textarea
-- `handleApplyAll`: wypełnia event_type, event_date, times, people_count, location, delivery_type, pricing_mode w formularzu
-- `handleApplyField`: wypełnia pojedyncze pole
-- `handleCreateClient`: tworzy klienta z danych AI i przypisuje do formularza
-- Requirements przechowywane w local state, przekazywane do `onSubmit`
+## Pliki do zmodyfikowania
 
-### 4. `src/hooks/use-offer-wizard.ts` (modyfikacja)
-- Rozszerz `StepEventData` o opcjonalne pola: `ai_parsed_data?: unknown`, `client_requirements?: unknown`
-- W `saveDraftMutation`: dodaj `ai_parsed_data` i `client_requirements` do payload INSERT/UPDATE
+### 3. `src/hooks/use-offer-wizard.ts`
+- Dodaj `client_requirements` do `LOAD_OFFER` action (z `action.offer.client_requirements`)
+- Dodaj nową akcję `SET_REQUIREMENTS` do reducera
+- Reducer obsługuje update requirements w `stepData.eventData.client_requirements`
 
-## Brak migracji
-Kolumny `ai_parsed_data` (JSONB) i `client_requirements` (JSONB) już istnieją w tabeli `offers`.
+### 4. `src/components/features/offers/offer-wizard.tsx`
+- Import `RequirementsSidebar`
+- Parse `state.stepData.eventData.client_requirements` jako `ClientRequirement[]`
+- Dla kroków 2-7: zmień layout na `flex` — step content po lewej (flex-1), sidebar po prawej (jeśli requirements istnieją)
+- Dispatch `SET_REQUIREMENTS` przy zmianach w checklistce
+- Przy `handleSaveDraft`: requirements zapisywane przez istniejący flow (już w `saveDraftMutation`)
 
-## Szczegóły techniczne
-- Edge Function używa tool calling (nie `response_format: json_object`) dla pewnego structured output
-- Matching klienta: query `clients` WHERE `email = X` OR `phone = Y` — jeśli znaleziony, pokaż "Znaleziono klienta"
-- Requirements: `[{ text, category, priority, is_met: null }]` — zapisywane do `client_requirements` przy save draft
-- Przycisk AI nie blokuje flow — opcjonalny helper
-- Loading: Loader2 spinner na przycisku + skeleton na panelu wyników
+### 5. `src/components/features/offers/steps/step-menu.tsx`
+- Import `RequirementHints`
+- Nad listą dań: `<RequirementHints requirements={requirements} category="menu" />` i `category="dietary"`
+- Props: dodaj opcjonalny `requirements?: ClientRequirement[]`
+
+### 6. `src/components/features/offers/steps/step-services.tsx`
+- Import `RequirementHints`
+- Nad listą usług: `<RequirementHints requirements={requirements} category="service" />`
+- Props: dodaj opcjonalny `requirements?: ClientRequirement[]`
+
+### 7. `src/components/features/offers/steps/step-calculation.tsx`
+- Import `RequirementHints`
+- Przy podsumowaniu: `<RequirementHints requirements={requirements} category="budget" currentPricePerPerson={pricePerPerson} />`
+- Props: dodaj opcjonalny `requirements?: ClientRequirement[]`
+
+## Brak zmian w bazie danych
+Kolumna `client_requirements` (JSONB) już istnieje w tabeli `offers`.
 
