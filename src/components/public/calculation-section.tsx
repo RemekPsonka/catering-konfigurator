@@ -7,12 +7,14 @@ import { calculateOfferTotals, formatCurrency } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import { useDebounce } from '@/hooks/use-debounce';
 import { AnimatedPrice } from './animated-price';
+import type { DishModification } from './dish-edit-panel';
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 interface CalculationSectionProps {
   offer: PublicOffer;
+  modifications?: Map<string, DishModification>;
 }
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
