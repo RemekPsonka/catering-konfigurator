@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback, useEffect } from 'react';
 import { ArrowLeft, Check, X, RefreshCw, Palette, Scissors, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,8 +30,8 @@ const CHANGE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string 
 
 const STATUS_BADGE: Record<string, { className: string; label: string }> = {
   pending: { className: 'bg-muted text-muted-foreground', label: 'Oczekuje' },
-  accepted: { className: 'bg-green-100 text-green-800', label: 'Zaakceptowano' },
-  rejected: { className: 'bg-red-100 text-red-800', label: 'Odrzucono' },
+  accepted: { className: 'bg-green-100 text-green-800 animate-scale-in', label: 'Zaakceptowano' },
+  rejected: { className: 'bg-red-100 text-red-800 animate-scale-in', label: 'Odrzucono' },
   invalidated: { className: 'bg-yellow-100 text-yellow-800', label: 'Nieaktualny' },
 };
 
@@ -60,25 +59,14 @@ const DiffRow = ({ item, onAccept, onReject, flashState }: DiffRowProps) => {
   const priceDiff = item.proposed_price - item.original_price;
   const isPending = item.status === 'pending';
 
-  const flashKeyframes = flashState === 'green'
-    ? ['rgba(34,197,94,0.25)', 'rgba(34,197,94,0)']
+  const flashClass = flashState === 'green'
+    ? 'bg-green-100/60'
     : flashState === 'red'
-      ? ['rgba(239,68,68,0.25)', 'rgba(239,68,68,0)']
-      : undefined;
+      ? 'bg-red-100/60'
+      : '';
 
   return (
-    <motion.tr
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{
-        opacity: 1,
-        y: 0,
-        backgroundColor: flashKeyframes ?? 'rgba(0,0,0,0)',
-      }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.35 }}
-      className="border-b"
-    >
+    <TableRow className={`transition-colors duration-300 ${flashClass}`}>
       <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">{config.icon}</span>
@@ -121,19 +109,9 @@ const DiffRow = ({ item, onAccept, onReject, flashState }: DiffRowProps) => {
       </TableCell>
 
       <TableCell>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={item.status}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Badge variant="outline" className={`${statusBadge.className} border-none`}>
-              {statusBadge.label}
-            </Badge>
-          </motion.div>
-        </AnimatePresence>
+        <Badge variant="outline" className={`${statusBadge.className} border-none`}>
+          {statusBadge.label}
+        </Badge>
       </TableCell>
 
       <TableCell>
@@ -158,7 +136,7 @@ const DiffRow = ({ item, onAccept, onReject, flashState }: DiffRowProps) => {
           </div>
         )}
       </TableCell>
-    </motion.tr>
+    </TableRow>
   );
 };
 
@@ -303,17 +281,15 @@ export const ProposalDiffPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <AnimatePresence>
-                {items.map(item => (
-                  <DiffRow
-                    key={item.id}
-                    item={item}
-                    onAccept={handleAccept}
-                    onReject={handleReject}
-                    flashState={flashStates[item.id] ?? null}
-                  />
-                ))}
-              </AnimatePresence>
+              {items.map(item => (
+                <DiffRow
+                  key={item.id}
+                  item={item}
+                  onAccept={handleAccept}
+                  onReject={handleReject}
+                  flashState={flashStates[item.id] ?? null}
+                />
+              ))}
             </TableBody>
           </Table>
         </CardContent>
