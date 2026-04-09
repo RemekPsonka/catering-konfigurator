@@ -12,12 +12,18 @@ import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
+import { OfferValidationPanel } from './offer-validation-panel';
+import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import type { Tables } from '@/integrations/supabase/types';
+import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 
 interface StepPreviewProps {
   offerId: string | null;
   pricingMode: string;
   peopleCount: number;
+  requirements?: ClientRequirement[];
+  inquiryText?: string;
+  onGoToStep?: (step: number) => void;
 }
 
 type FullOffer = Tables<'offers'> & {
@@ -25,7 +31,7 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 
-export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewProps) => {
+export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -319,6 +325,34 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
           <div className="h-1 w-full" style={{ backgroundColor: theme?.accent_color ?? '#ccc' }} />
         </div>
       </Card>
+
+      {/* AI Validation */}
+      {requirements.length > 0 && (
+        <OfferValidationPanel
+          offerId={offerId}
+          requirements={requirements}
+          inquiryText={inquiryText}
+          eventType={offer?.event_type ?? ''}
+          eventDate={offer?.event_date ?? null}
+          peopleCount={peopleCount}
+          pricingMode={pricingMode}
+          variantsSummary={variants.map((v) => `${v.name} (${(v as { variant_items: unknown[] }).variant_items?.length ?? 0} dań)`).join(', ')}
+          servicesSummary={services.map((os) => (os as unknown as { services: { name: string } }).services.name).join(', ') || 'Brak'}
+          totalValue={totals.grandTotal}
+          pricePerPerson={totals.pricePerPerson}
+          discountInfo={
+            Number(offer?.discount_percent ?? 0) > 0
+              ? `${offer?.discount_percent}%`
+              : Number(offer?.discount_value ?? 0) > 0
+                ? `${offer?.discount_value} zł`
+                : 'Brak'
+          }
+          budgetInfo={
+            requirements.find((r) => r.category === 'budget')?.text ?? ''
+          }
+          onGoToStep={onGoToStep}
+        />
+      )}
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3 justify-end pt-4 border-t">
