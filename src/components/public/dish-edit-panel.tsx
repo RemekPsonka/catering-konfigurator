@@ -151,7 +151,7 @@ const SwapPanel = ({
             >
               <div className="h-14 w-14 overflow-hidden rounded-xl">
                 {alt.photo_url ? (
-                  <img src={alt.photo_url} alt={alt.label} className="h-full w-full object-cover" />
+                  <img src={alt.photo_url} alt={alt.label} loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   <div
                     className="flex h-full w-full items-center justify-center"

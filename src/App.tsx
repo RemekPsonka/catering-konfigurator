@@ -29,54 +29,56 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Auth */}
-            <Route path="/login" element={<LoginPage />} />
+    <MotionConfig reducedMotion="user">
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Auth */}
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* Public offer */}
-            <Route element={<PublicLayout />}>
-              <Route path="/offer/:publicToken" element={<PublicOfferPage />} />
-            </Route>
+              {/* Public offer */}
+              <Route element={<PublicLayout />}>
+                <Route path="/offer/:publicToken" element={<PublicOfferPage />} />
+              </Route>
 
-            {/* Admin (protected) */}
-            <Route
-              path="/admin"
-              element={
-                <AuthGuard>
-                  <AdminLayout />
-                </AuthGuard>
-              }
-            >
-              <Route index element={<Navigate to="/admin/offers" replace />} />
-              <Route path="offers" element={<OffersListPage />} />
-              <Route path="offers/new" element={<OfferNewPage />} />
-              <Route path="offers/:id/edit" element={<OfferEditPage />} />
-              <Route path="offers/:id/proposals/:proposalId" element={<ProposalDiffPage />} />
-              <Route path="dishes" element={<DishesListPage />} />
-              <Route path="dishes/categories" element={<DishCategoriesPage />} />
-              <Route path="dishes/new" element={<DishNewPage />} />
-              <Route path="dishes/:id/edit" element={<DishEditPage />} />
-              <Route path="services" element={<ServicesListPage />} />
-              <Route path="clients" element={<ClientsListPage />} />
-              <Route path="leads" element={<LeadsListPage />} />
-              <Route path="leads/:id" element={<LeadDetailPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
+              {/* Admin (protected) */}
+              <Route
+                path="/admin"
+                element={
+                  <AuthGuard>
+                    <AdminLayout />
+                  </AuthGuard>
+                }
+              >
+                <Route index element={<Navigate to="/admin/offers" replace />} />
+                <Route path="offers" element={<OffersListPage />} />
+                <Route path="offers/new" element={<OfferNewPage />} />
+                <Route path="offers/:id/edit" element={<OfferEditPage />} />
+                <Route path="offers/:id/proposals/:proposalId" element={<ProposalDiffPage />} />
+                <Route path="dishes" element={<DishesListPage />} />
+                <Route path="dishes/categories" element={<DishCategoriesPage />} />
+                <Route path="dishes/new" element={<DishNewPage />} />
+                <Route path="dishes/:id/edit" element={<DishEditPage />} />
+                <Route path="services" element={<ServicesListPage />} />
+                <Route path="clients" element={<ClientsListPage />} />
+                <Route path="leads" element={<LeadsListPage />} />
+                <Route path="leads/:id" element={<LeadDetailPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
 
-            {/* Root redirect */}
-            <Route path="/" element={<Navigate to="/admin" replace />} />
+              {/* Root redirect */}
+              <Route path="/" element={<Navigate to="/admin" replace />} />
 
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </MotionConfig>
   </QueryClientProvider>
 );
 
