@@ -36,7 +36,7 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     if (step >= 2 && !state.offerId) {
       saveDraftMutation.mutate(state.stepData.eventData, {
         onSuccess: (offer) => {
-          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id });
+          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id, offerNumber: offer.offer_number });
           if (!offerId) {
             navigate(`/admin/offers/${offer.id}/edit`, { replace: true });
           }
@@ -51,6 +51,16 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
   const handleStep1Submit = (data: typeof state.stepData.eventData) => {
     dispatch({ type: 'SET_EVENT_DATA', data });
     dispatch({ type: 'COMPLETE_STEP', step: 1 });
+
+    // Show toast about missing fields for draft awareness
+    const missing: string[] = [];
+    if (!data.client_id) missing.push('Klient');
+    if (!data.people_count || data.people_count < 1) missing.push('Liczba osób');
+    if (!data.delivery_type) missing.push('Forma dostawy');
+    if (missing.length > 0) {
+      toast.info(`Brakujące pola: ${missing.join(', ')} — możesz uzupełnić później`);
+    }
+
     goToStep(2);
   };
 
@@ -58,7 +68,7 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     saveDraftMutation.mutate(state.stepData.eventData, {
       onSuccess: (offer) => {
         if (!state.offerId) {
-          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id });
+          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id, offerNumber: offer.offer_number });
           navigate(`/admin/offers/${offer.id}/edit`, { replace: true });
         }
       },
@@ -128,11 +138,22 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     }
   };
 
+  // Compute warning steps (missing required data for non-draft status)
+  const warningSteps: number[] = [];
+  const ed = state.stepData.eventData;
+  if (!ed.client_id || !ed.people_count || ed.people_count < 1 || !ed.delivery_type) {
+    warningSteps.push(1);
+  }
+
+  const offerTitle = state.offerNumber
+    ? `Oferta ${state.offerNumber} (szkic)`
+    : offerId ? 'Edycja oferty' : 'Nowa oferta';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{offerId ? 'Edycja oferty' : 'Nowa oferta'}</h1>
-        <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={saveDraftMutation.isPending}>
+        <h1 className="text-2xl font-bold">{offerTitle}</h1>
+        <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={saveDraftMutation.isPending || !ed.event_type}>
           <Save className="mr-2 h-4 w-4" />
           Zapisz szkic
         </Button>
@@ -142,6 +163,7 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
         currentStep={state.currentStep}
         completedSteps={state.completedSteps}
         onStepClick={goToStep}
+        warningSteps={warningSteps}
       />
 
       <div className={showSidebar ? 'flex gap-6 items-start' : ''}>

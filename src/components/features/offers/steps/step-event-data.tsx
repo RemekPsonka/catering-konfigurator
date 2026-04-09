@@ -36,11 +36,11 @@ const stepSchema = z.object({
   event_date: z.string().nullable(),
   event_time_from: z.string(),
   event_time_to: z.string(),
-  people_count: z.coerce.number().min(1, 'Minimum 1 osoba'),
+  people_count: z.coerce.number().min(0).default(0),
   event_location: z.string(),
-  delivery_type: z.string().min(1, 'Wybierz formę dostawy'),
-  pricing_mode: z.string().min(1, 'Wybierz tryb kalkulacji'),
-  client_id: z.string().min(1, 'Wybierz klienta'),
+  delivery_type: z.string().default(''),
+  pricing_mode: z.string().default('PER_PERSON'),
+  client_id: z.string().default(''),
   client_name: z.string(),
   inquiry_text: z.string(),
   greeting_text: z.string(),
@@ -239,8 +239,8 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="people_count" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Liczba osób *</FormLabel>
-                    <FormControl><Input type="number" min={1} {...field} /></FormControl>
+                    <FormLabel>Liczba osób</FormLabel>
+                    <FormControl><Input type="number" min={0} placeholder="0 = nie podano" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -262,7 +262,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
             <CardContent className="space-y-6">
               <FormField control={form.control} name="delivery_type" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Forma dostawy *</FormLabel>
+                  <FormLabel>Forma dostawy</FormLabel>
                   <FormControl>
                     <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {DELIVERY_TYPE_OPTIONS.map((opt) => (
@@ -289,7 +289,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
 
               <FormField control={form.control} name="pricing_mode" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tryb kalkulacji *</FormLabel>
+                  <FormLabel>Tryb kalkulacji</FormLabel>
                   <FormControl>
                     <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {PRICING_MODE_OPTIONS.map((opt) => (
@@ -322,7 +322,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
             <CardContent className="space-y-4">
               <FormField control={form.control} name="client_id" render={() => (
                 <FormItem>
-                  <FormLabel>Klient *</FormLabel>
+                  <FormLabel>Klient</FormLabel>
                   <FormControl>
                     <ClientAutocomplete
                       value={form.watch('client_id')}
@@ -331,6 +331,9 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
                       onAddNew={() => setClientDialogOpen(true)}
                     />
                   </FormControl>
+                  {!form.watch('client_id') && (
+                    <p className="text-xs text-amber-600">⚠️ Uzupełnij klienta przed wysłaniem oferty</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )} />

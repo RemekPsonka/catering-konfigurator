@@ -27,6 +27,7 @@ export interface WizardState {
   currentStep: number;
   completedSteps: number[];
   offerId: string | null;
+  offerNumber: string | null;
   stepData: {
     eventData: StepEventData;
   };
@@ -51,6 +52,7 @@ const initialState: WizardState = {
   currentStep: 1,
   completedSteps: [],
   offerId: null,
+  offerNumber: null,
   stepData: {
     eventData: { ...initialEventData },
   },
@@ -60,7 +62,7 @@ type WizardAction =
   | { type: 'SET_STEP'; step: number }
   | { type: 'SET_EVENT_DATA'; data: StepEventData }
   | { type: 'COMPLETE_STEP'; step: number }
-  | { type: 'SET_OFFER_ID'; offerId: string }
+  | { type: 'SET_OFFER_ID'; offerId: string; offerNumber?: string | null }
   | { type: 'LOAD_OFFER'; offer: Tables<'offers'>; clientName: string }
   | { type: 'SET_REQUIREMENTS'; requirements: unknown };
 
@@ -78,11 +80,12 @@ const wizardReducer = (state: WizardState, action: WizardAction): WizardState =>
           : [...state.completedSteps, action.step],
       };
     case 'SET_OFFER_ID':
-      return { ...state, offerId: action.offerId };
+      return { ...state, offerId: action.offerId, offerNumber: action.offerNumber ?? state.offerNumber };
     case 'LOAD_OFFER':
       return {
         ...state,
         offerId: action.offer.id,
+        offerNumber: action.offer.offer_number ?? state.offerNumber,
         completedSteps: [1],
         stepData: {
           ...state.stepData,
@@ -242,11 +245,11 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
 
       const payload: TablesInsert<'offers'> = {
         event_type: eventData.event_type as TablesInsert<'offers'>['event_type'],
-        delivery_type: eventData.delivery_type as TablesInsert<'offers'>['delivery_type'],
-        people_count: eventData.people_count,
-        client_id: eventData.client_id,
+        delivery_type: (eventData.delivery_type || null) as TablesInsert<'offers'>['delivery_type'],
+        people_count: eventData.people_count > 0 ? eventData.people_count : null,
+        client_id: eventData.client_id || null,
         created_by: user.id,
-        pricing_mode: eventData.pricing_mode as TablesInsert<'offers'>['pricing_mode'],
+        pricing_mode: (eventData.pricing_mode || 'PER_PERSON') as TablesInsert<'offers'>['pricing_mode'],
         event_date: eventData.event_date || null,
         event_time_from: eventData.event_time_from || null,
         event_time_to: eventData.event_time_to || null,
@@ -283,9 +286,10 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['offers'] });
-      toast.success('Szkic zapisany');
+      const num = data.offer_number ? ` Numer oferty: ${data.offer_number}` : '';
+      toast.success(`Szkic zapisany!${num}`);
     },
     onError: () => {
       toast.error('Nie udało się zapisać szkicu');
