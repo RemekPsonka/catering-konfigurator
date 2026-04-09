@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Save, CheckCircle, Send, RefreshCw } from 'lucide-react';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
+import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 interface StepPreviewProps {
@@ -26,6 +28,7 @@ type FullOffer = Tables<'offers'> & {
 export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const offerQuery = useQuery({
     queryKey: ['offer-preview', offerId],
@@ -319,6 +322,12 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3 justify-end pt-4 border-t">
+        {offerId && (
+          <Button variant="ghost" onClick={() => setTemplateDialogOpen(true)}>
+            <BookTemplate className="mr-2 h-4 w-4" />
+            Zapisz jako szablon
+          </Button>
+        )}
         <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           Zapisz szkic
@@ -332,6 +341,16 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
           Wyślij do klienta
         </Button>
       </div>
+
+      {offerId && (
+        <SaveTemplateDialog
+          offerId={offerId}
+          eventType={offer?.event_type ?? ''}
+          pricingMode={pricingMode}
+          open={templateDialogOpen}
+          onOpenChange={setTemplateDialogOpen}
+        />
+      )}
     </div>
   );
 };
