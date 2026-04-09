@@ -37,6 +37,8 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [publicLink, setPublicLink] = useState('');
 
   const offerQuery = useQuery({
     queryKey: ['offer-preview', offerId],
