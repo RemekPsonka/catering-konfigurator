@@ -12,12 +12,18 @@ import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
+import { OfferValidationPanel } from './offer-validation-panel';
+import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import type { Tables } from '@/integrations/supabase/types';
+import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 
 interface StepPreviewProps {
   offerId: string | null;
   pricingMode: string;
   peopleCount: number;
+  requirements?: ClientRequirement[];
+  inquiryText?: string;
+  onGoToStep?: (step: number) => void;
 }
 
 type FullOffer = Tables<'offers'> & {

@@ -106,7 +106,7 @@ export const OfferValidationPanel = ({
 
       // Save to ai_parsed_data
       await supabase.from('offers').update({
-        ai_parsed_data: { validation } as unknown as Record<string, unknown>,
+        ai_parsed_data: { validation } as unknown as import('@/integrations/supabase/types').Json,
       }).eq('id', offerId);
     } catch (err) {
       toast.error('Nie udało się przeprowadzić walidacji. Sprawdź ręcznie.');
