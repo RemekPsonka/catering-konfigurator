@@ -251,6 +251,19 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
         </p>
       )}
 
+      {(() => {
+        const editableItems = variant.variant_items.filter((item) => {
+          const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
+          return item.is_client_editable && mods && typeof mods === 'object';
+        });
+        return editableItems.length > 0 ? (
+          <p className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 10%, transparent)', color: 'var(--theme-primary, #1A1A1A)' }}>
+            🔄 {editableItems.length} pozycji do personalizacji
+          </p>
+        ) : null;
+      })()}
+
       {showPrice && variant.price_per_person != null && Number(variant.price_per_person) > 0 && (
         <p className="mt-3 font-body text-base font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
           {formatCurrency(Number(variant.price_per_person))}/os

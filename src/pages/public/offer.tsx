@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { fireNotification } from '@/hooks/use-notifications';
@@ -28,6 +28,9 @@ import { TermsSection } from '@/components/public/terms-section';
 import { CommunicationSection } from '@/components/public/communication-section';
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
+import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
+import { EditableTooltip } from '@/components/public/editable-tooltip';
+import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
 import { AboutCateringSection } from '@/components/public/about-catering-section';
 import { FeaturesSection } from '@/components/public/features-section';
 import { EventGallerySection } from '@/components/public/event-gallery-section';
@@ -67,6 +70,9 @@ export const PublicOfferPage = () => {
 
   const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
   const [offerAccepted, setOfferAccepted] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [preSelectedVariantId, setPreSelectedVariantId] = useState<string | null>(null);
+  const isFirstVisitRef = useRef<boolean | null>(null);
 
   // Fetch event profile data
   const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
@@ -173,6 +179,13 @@ export const PublicOfferPage = () => {
     };
   }, [offer?.offer_themes]);
 
+  // Track first visit before marking as viewed
+  useEffect(() => {
+    if (offer && isFirstVisitRef.current === null) {
+      isFirstVisitRef.current = !offer.viewed_at;
+    }
+  }, [offer]);
+
   // Mark as viewed on first open + fire notification
   useEffect(() => {
     if (offer && !offer.viewed_at && offer.status === 'sent') {
@@ -199,6 +212,14 @@ export const PublicOfferPage = () => {
     if (!offer?.valid_until) return false;
     return new Date() > new Date(offer.valid_until);
   }, [offer?.valid_until]);
+
+  const editableCount = useMemo(() => {
+    if (!offer) return 0;
+    return offer.offer_variants.reduce((acc, v) => acc + v.variant_items.filter((item) => {
+      const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
+      return item.is_client_editable && mods && typeof mods === 'object';
+    }).length, 0);
+  }, [offer]);
 
   // Invalid token format
   if (!tokenValid) {
@@ -365,8 +386,21 @@ export const PublicOfferPage = () => {
 
   const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : 'Catering Śląski');
 
+  const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
+
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
+      {/* Onboarding overlay */}
+      {showOnboarding && (
+        <OnboardingOverlay
+          variantCount={offer.offer_variants.length}
+          editableCount={editableCount}
+          onDismiss={() => setOnboardingDismissed(true)}
+        />
+      )}
+
+      {/* Editable tooltip */}
+      <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
       {/* 1. HERO */}
       <section className="relative min-h-[50vh] overflow-hidden md:min-h-[60vh]">
         <motion.div
@@ -573,6 +607,17 @@ export const PublicOfferPage = () => {
       {/* 10. KALKULACJA */}
       <CalculationSection offer={offer} modifications={modifications} />
 
+      {/* 10.5. PORÓWNANIE WARIANTÓW */}
+      {offer.offer_variants.length >= 2 && (
+        <VariantComparisonSection
+          variants={offer.offer_variants}
+          pricingMode={offer.pricing_mode}
+          peopleCount={offer.people_count}
+          priceDisplayMode={offer.price_display_mode}
+          onSelectVariant={setPreSelectedVariantId}
+        />
+      )}
+
       {/* 11. OPINIA KLIENTA */}
       {eventProfile?.testimonial_text && (
         <TestimonialSection
@@ -590,7 +635,9 @@ export const PublicOfferPage = () => {
 
       {/* 14. AKCEPTACJA OFERTY */}
       {!offerAccepted && (
-        <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} />
+        <div id="acceptance-section">
+          <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} />
+        </div>
       )}
 
       {/* 15. KONTAKT */}
