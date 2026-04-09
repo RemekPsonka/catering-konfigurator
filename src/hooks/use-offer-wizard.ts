@@ -19,6 +19,8 @@ export interface StepEventData {
   client_name: string;
   inquiry_text: string;
   greeting_text: string;
+  ai_parsed_data?: unknown;
+  client_requirements?: unknown;
 }
 
 export interface WizardState {
