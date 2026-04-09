@@ -202,7 +202,45 @@ export const StepCalculation = ({
     }
   };
 
-  if (!offerId) {
+  // AI summary generation
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === eventType)?.label ?? eventType;
+      const variantsSummary = variants
+        .map((v) => `${v.name} (${v.variant_items.length} dań)`)
+        .join(', ');
+      const servicesSummary = offerServices
+        .map((os) => os.services.name)
+        .join(', ');
+
+      const { data, error } = await supabase.functions.invoke('generate-summary', {
+        body: {
+          inquiry_text: inquiryText,
+          event_type_label: eventTypeLabel,
+          variants_summary: variantsSummary,
+          total_value: totals.grandTotal,
+          services_summary: servicesSummary,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      if (data?.summary) {
+        setAiSummary(data.summary);
+        toast.success('Podsumowanie wygenerowane');
+      }
+    } catch (e) {
+      toast.error('Nie udało się wygenerować podsumowania');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
