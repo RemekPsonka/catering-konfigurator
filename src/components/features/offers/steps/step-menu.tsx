@@ -22,17 +22,20 @@ import {
 } from '@/hooks/use-offer-variants';
 import { VariantItemsTable } from './variant-items-table';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { RequirementHints } from '../requirement-hints';
+import type { ClientRequirement } from '../requirements-sidebar';
 import { toast } from 'sonner';
 
 interface StepMenuProps {
   offerId: string | null;
   pricingMode: string;
   peopleCount: number;
+  requirements?: ClientRequirement[];
 }
 
 const DEFAULT_VARIANT_NAMES = ['Classic', 'Premium', 'De Luxe'];
 
-export const StepMenu = ({ offerId, pricingMode, peopleCount }: StepMenuProps) => {
+export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] }: StepMenuProps) => {
   const { data: variants, isLoading } = useOfferVariants(offerId);
   const createVariant = useCreateVariant();
   const updateVariant = useUpdateVariant();
@@ -127,6 +130,12 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount }: StepMenuProps) =
 
   return (
     <div className="space-y-4">
+      {requirements.length > 0 && (
+        <>
+          <RequirementHints requirements={requirements} category="menu" />
+          <RequirementHints requirements={requirements} category="dietary" />
+        </>
+      )}
       {variantsList.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
