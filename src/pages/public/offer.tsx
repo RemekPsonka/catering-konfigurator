@@ -17,6 +17,8 @@ import {
   Phone,
   Mail,
 } from 'lucide-react';
+import { MenuVariantsSection } from '@/components/public/menu-variants-section';
+import { ServicesSection } from '@/components/public/services-section';
 
 const loadGoogleFont = (fontFamily: string | null) => {
   if (!fontFamily) return;
@@ -380,7 +382,25 @@ export const PublicOfferPage = () => {
         </motion.section>
       )}
 
-      {/* 5-11: Placeholder — sekcje wariantów, usług, kalkulacji, warunków, zmian, akceptacji, kontaktu — P-3.2 – P-3.5 */}
+      {/* 5. WARIANTY MENU */}
+      {offer.offer_variants.length > 0 && (
+        <MenuVariantsSection
+          variants={offer.offer_variants}
+          pricingMode={offer.pricing_mode}
+          peopleCount={offer.people_count}
+          priceDisplayMode={offer.price_display_mode}
+        />
+      )}
+
+      {/* 6. USŁUGI DODATKOWE */}
+      {offer.offer_services.length > 0 && (
+        <ServicesSection
+          services={offer.offer_services}
+          priceDisplayMode={offer.price_display_mode}
+        />
+      )}
+
+      {/* 7-11: Placeholder — kalkulacja, warunki, zmiany, akceptacja, kontakt — P-3.3 – P-3.5 */}
 
       {/* 12. FOOTER */}
       <motion.footer
