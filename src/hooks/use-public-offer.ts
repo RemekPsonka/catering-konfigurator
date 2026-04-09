@@ -31,7 +31,7 @@ export const usePublicOffer = (publicToken: string | undefined) => {
           *,
           clients(*),
           offer_themes(*),
-          offer_variants(
+          offer_variants!offer_variants_offer_id_fkey(
             *,
             variant_items(
               *,
