@@ -9,6 +9,7 @@ import { AuthGuard } from "@/components/layout/auth-guard";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { LoginPage } from "@/pages/auth/login";
+import { ResetPasswordPage } from "@/pages/auth/reset-password";
 import { OffersListPage } from "@/pages/admin/offers-list";
 import { OfferNewPage } from "@/pages/admin/offer-new";
 import { OfferEditPage } from "@/pages/admin/offer-edit";
@@ -40,6 +41,7 @@ const App = () => (
             <Routes>
               {/* Auth */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Public offer */}
               <Route element={<PublicLayout />}>

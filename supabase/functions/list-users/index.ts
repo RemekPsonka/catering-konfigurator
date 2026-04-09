@@ -70,6 +70,48 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (req.method === 'PATCH') {
+      const { userId, password } = await req.json();
+      if (!userId || !password) {
+        return new Response(JSON.stringify({ error: 'userId i password są wymagane' }), {
+          status: 400, headers: corsHeaders,
+        });
+      }
+      if (password.length < 6) {
+        return new Response(JSON.stringify({ error: 'Hasło musi mieć minimum 6 znaków' }), {
+          status: 400, headers: corsHeaders,
+        });
+      }
+
+      const { error } = await adminClient.auth.admin.updateUserById(userId, { password });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (req.method === 'DELETE') {
+      const { userId } = await req.json();
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId jest wymagane' }), {
+          status: 400, headers: corsHeaders,
+        });
+      }
+      if (userId === user.id) {
+        return new Response(JSON.stringify({ error: 'Nie możesz usunąć własnego konta' }), {
+          status: 400, headers: corsHeaders,
+        });
+      }
+
+      const { error } = await adminClient.auth.admin.deleteUser(userId);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405, headers: corsHeaders,
     });
