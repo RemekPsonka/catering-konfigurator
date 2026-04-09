@@ -1,74 +1,31 @@
 
 
-# Skrócenie public_token z 64 na 12 znaków alfanumerycznych
+# Naprawa ikony edycji + testowe dane modyfikacji
 
-## Diagnoza
-Token jest generowany przez **trigger bazodanowy** `generate_public_token` na tabeli `offers`:
-```sql
-IF NEW.public_token IS NULL THEN
-    NEW.public_token := encode(gen_random_bytes(32), 'hex');
-END IF;
-```
-Produkuje 64-znakowy hex string. Trzeba zmienić na 12-znakowy alfanumeryczny (bez mylących znaków 0/O/1/l/I).
-
-Frontend **nie generuje** tokenu — tylko go odczytuje i buduje URL. Zmiana dotyczy wyłącznie funkcji bazodanowej.
-
-## Plan
-
-### 1. Migracja SQL — zmiana funkcji `generate_public_token`
-Nowa wersja funkcji generuje 12-znakowy token z bezpiecznego alfabetu:
-
-```sql
-CREATE OR REPLACE FUNCTION generate_public_token()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  chars text := 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  bytes bytea;
-  result text := '';
-  i int;
-BEGIN
-  IF NEW.public_token IS NULL THEN
-    bytes := gen_random_bytes(12);
-    FOR i IN 0..11 LOOP
-      result := result || substr(chars, (get_byte(bytes, i) % 54) + 1, 1);
-    END LOOP;
-    NEW.public_token := result;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-```
-
-Alfabet: 54 znaki (bez 0, O, 1, l, I) — czytelny przy przepisywaniu.
-
-### 2. Frontend — walidacja tokenu w `src/pages/public/offer.tsx`
-Dodać walidację formatu tokenu z kompatybilnością wsteczną:
-- Akceptuj stare tokeny (>12 znaków, hex)
-- Akceptuj nowe tokeny (12 znaków alfanumerycznych)
-- Odrzuć tokeny z niedozwolanymi znakami → komunikat "Nieprawidłowy link do oferty"
+## 1. Fix w `src/components/public/dish-card.tsx`
+Przesunąć definicję `modifications` przed `isEditable` i dodać warunek `!!modifications`:
 
 ```typescript
-const isValidToken = (token: string): boolean => {
-  if (!token || token.length === 0) return false;
-  // Old format: 64-char hex
-  if (/^[a-f0-9]{64}$/.test(token)) return true;
-  // New format: 12-char alphanumeric (safe chars)
-  if (/^[A-HJ-NP-Za-hj-km-np-z2-9]{12}$/.test(token)) return true;
-  return false;
-};
+// linia 88-91 zmienić na:
+const modifications: Json | null = (item.allowed_modifications ?? dish.modifiable_items) as Json | null;
+const isEditable = item.is_client_editable && onToggleExpand && !!modifications;
 ```
 
-### 3. Pliki BEZ zmian
-- `src/hooks/use-public-offer.ts` — token to string, działa z dowolną długością
-- `src/lib/constants.ts` — `buildPublicOfferUrl` konkatenuje token, OK
-- `src/lib/email-templates.ts` — placeholder `{offerLink}`, OK
-- RLS policies — sprawdzają `public_token IS NOT NULL`, OK
-- Routing — `:publicToken` to dowolny string, OK
+## 2. Ustawić `modifiable_items` na daniach (UPDATE via insert tool)
 
-### Istniejące oferty
-Stare tokeny (64 znaki) **pozostają** w bazie i działają nadal. Nowe oferty dostaną 12-znakowe tokeny.
+| Danie | Typ modyfikacji | Konfiguracja |
+|-------|----------------|--------------|
+| Rosołek tradycyjny | SWAP | Zamień na: Krem z pomidorów, Pierogi ruskie |
+| Polędwica wołowa | VARIANT | Warianty: medium rare (+0 zł), well done (+0 zł), z sosem pieprzowym (+8 zł) |
+| Pierogi ruskie | SWAP | Zamień na: Polędwica wołowa, Kiełbasa śląska |
+| Tarta cytrynowa | VARIANT | Warianty: z bezą (+0 zł), z kremem mascarpone (+4 zł), bez glutenu (+6 zł) |
+| Kiełbasa śląska | SPLIT | Podziel z: Polędwica wołowa, min 30% |
+| Kawa przelewowa | VARIANT | Warianty: arabica (+0 zł), specialty (+5 zł) |
 
-## Brak zmian strukturalnych w bazie — tylko `CREATE OR REPLACE FUNCTION`.
+Ustawić `is_modifiable = true` na tych daniach.
 
+## 3. Ustawić `is_client_editable = true` i `allowed_modifications` na variant_items oferty CS-2026-0001
+
+Dla itemów w ofercie, ustawić `is_client_editable = true` tam gdzie danie ma `modifiable_items`, aby klient mógł testować zamianę/warianty/split.
+
+## Brak zmian w schemacie bazy — tylko UPDATE danych + 1 linia kodu.
