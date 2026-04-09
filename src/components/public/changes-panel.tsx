@@ -185,12 +185,10 @@ export const ChangesPanel = ({
             </AnimatePresence>
 
             {/* Expanded panel */}
-            <AnimatePresence>
-              {(expanded || typeof window !== 'undefined') && (
-                <motion.div
-                  className={`rounded-2xl shadow-premium ${expanded ? 'block max-h-[80vh] overflow-y-auto' : 'hidden md:block'}`}
-                  style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)' }}
-                >
+            <motion.div
+              className={`rounded-2xl shadow-premium ${expanded ? 'block max-h-[80vh] overflow-y-auto' : 'hidden md:block'}`}
+              style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)' }}
+            >
               {/* Header */}
               <div
                 className="flex items-center justify-between rounded-t-2xl px-6 py-4"
