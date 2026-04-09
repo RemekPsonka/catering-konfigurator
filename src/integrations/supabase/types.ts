@@ -1143,7 +1143,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      find_offer_by_email_and_number: {
+        Args: { p_email: string; p_offer_number: string }
+        Returns: {
+          client_name: string
+          offer_number: string
+          public_token: string
+          status: Database["public"]["Enums"]["offer_status"]
+        }[]
+      }
     }
     Enums: {
       activity_type:

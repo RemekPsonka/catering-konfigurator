@@ -1,6 +1,6 @@
+import type { EventType } from '@/types/database';
 import type { Enums } from '@/integrations/supabase/types';
 
-type EventType = Enums<'event_type'>;
 type DeliveryType = Enums<'delivery_type'>;
 type PricingMode = Enums<'pricing_mode'>;
 
@@ -15,6 +15,7 @@ export const EVENT_TYPE_OPTIONS: EventTypeOption[] = [
   { value: 'WES', label: 'Wesele', emoji: '💒' },
   { value: 'FIR', label: 'Event firmowy', emoji: '🏢' },
   { value: 'KON', label: 'Konferencja', emoji: '🎤' },
+  { value: 'SZK', label: 'Szkolenie', emoji: '📚' },
   { value: 'PRY', label: 'Impreza prywatna', emoji: '🎉' },
   { value: 'GAL', label: 'Gala / Bankiet', emoji: '🥂' },
   { value: 'STY', label: 'Stypa', emoji: '🕯️' },
@@ -22,6 +23,7 @@ export const EVENT_TYPE_OPTIONS: EventTypeOption[] = [
   { value: 'B2B', label: 'Stała współpraca', emoji: '🤝' },
   { value: 'BOX', label: 'Boxy', emoji: '📦' },
   { value: 'KAW', label: 'Przerwa kawowa', emoji: '☕' },
+  { value: 'SWI', label: 'Spotkanie świąteczne', emoji: '🎄' },
   { value: 'SPE', label: 'Specjalne', emoji: '✨' },
 ];
 
@@ -55,6 +57,7 @@ export const DEFAULT_GREETINGS: Record<EventType, string> = {
   WES: 'Szanowni Państwo, z przyjemnością prezentujemy ofertę cateringową na Państwa wesele.',
   FIR: 'Szanowni Państwo, przedstawiamy ofertę cateringową na Państwa event firmowy.',
   KON: 'Szanowni Państwo, prezentujemy ofertę cateringową na konferencję.',
+  SZK: 'Szanowni Państwo, prezentujemy ofertę cateringową na szkolenie.',
   PRY: 'Szanowni Państwo, z przyjemnością prezentujemy ofertę na Państwa przyjęcie.',
   GAL: 'Szanowni Państwo, mamy zaszczyt przedstawić ofertę cateringową na galę.',
   STY: 'Szanowni Państwo, z szacunkiem prezentujemy ofertę cateringową na stypę.',
@@ -62,6 +65,7 @@ export const DEFAULT_GREETINGS: Record<EventType, string> = {
   B2B: 'Szanowni Państwo, prezentujemy ofertę stałej współpracy cateringowej.',
   BOX: 'Szanowni Państwo, prezentujemy ofertę na catering pudełkowy.',
   KAW: 'Szanowni Państwo, prezentujemy ofertę na przerwę kawową.',
+  SWI: 'Szanowni Państwo, prezentujemy ofertę cateringową na spotkanie świąteczne.',
   SPE: 'Szanowni Państwo, z przyjemnością prezentujemy ofertę cateringową na Państwa wydarzenie.',
 };
 
