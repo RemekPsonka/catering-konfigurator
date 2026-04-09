@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { TagChipsField } from './tag-chips-field';
+import { DishPhotosSection } from './dish-photos-section';
 import { useDishCategories } from '@/hooks/use-dish-categories';
 import { useCreateDish, useUpdateDish } from '@/hooks/use-dishes';
 import {
@@ -63,9 +64,10 @@ const getPriceFromDish = (dish: Tables<'dishes'>): number => {
 interface DishFormProps {
   dish?: Tables<'dishes'>;
   mode: 'create' | 'edit';
+  onCreated?: (dishId: string) => void;
 }
 
-export const DishForm = ({ dish, mode }: DishFormProps) => {
+export const DishForm = ({ dish, mode, onCreated }: DishFormProps) => {
   const navigate = useNavigate();
   const { data: categories } = useDishCategories();
   const createDish = useCreateDish();
@@ -165,7 +167,11 @@ export const DishForm = ({ dish, mode }: DishFormProps) => {
       if (mode === 'edit' && dish) {
         await updateDish.mutateAsync({ id: dish.id, ...payload });
       } else {
-        await createDish.mutateAsync(payload);
+        const newDish = await createDish.mutateAsync(payload);
+        if (onCreated && newDish?.id) {
+          onCreated(newDish.id);
+          return;
+        }
       }
       if (addAnother) {
         form.reset();
