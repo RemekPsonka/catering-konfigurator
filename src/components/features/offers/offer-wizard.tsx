@@ -81,6 +81,7 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
         );
       default:
         return <StepPlaceholder title={STEP_TITLES[state.currentStep - 1]} />;
+    }
   };
 
   return (
