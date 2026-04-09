@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { WizardStepper } from './wizard-stepper';
 import { StepEventData } from './steps/step-event-data';
+import { StepMenu } from './steps/step-menu';
 import { StepPlaceholder } from './steps/step-placeholder';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
@@ -22,19 +23,33 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
   }
 
   const goToStep = (step: number) => {
+    // For step 2+, ensure offer is saved first
+    if (step >= 2 && !state.offerId) {
+      saveDraftMutation.mutate(state.stepData.eventData, {
+        onSuccess: (offer) => {
+          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id });
+          if (!offerId) {
+            navigate(`/admin/offers/${offer.id}/edit`, { replace: true });
+          }
+          dispatch({ type: 'SET_STEP', step });
+        },
+      });
+      return;
+    }
     dispatch({ type: 'SET_STEP', step });
   };
 
   const handleStep1Submit = (data: typeof state.stepData.eventData) => {
     dispatch({ type: 'SET_EVENT_DATA', data });
     dispatch({ type: 'COMPLETE_STEP', step: 1 });
-    dispatch({ type: 'SET_STEP', step: 2 });
+    goToStep(2);
   };
 
   const handleSaveDraft = () => {
     saveDraftMutation.mutate(state.stepData.eventData, {
       onSuccess: (offer) => {
         if (!state.offerId) {
+          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id });
           navigate(`/admin/offers/${offer.id}/edit`, { replace: true });
         }
       },
@@ -45,6 +60,14 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
     switch (state.currentStep) {
       case 1:
         return <StepEventData data={state.stepData.eventData} onSubmit={handleStep1Submit} />;
+      case 2:
+        return (
+          <StepMenu
+            offerId={state.offerId}
+            pricingMode={state.stepData.eventData.pricing_mode}
+            peopleCount={state.stepData.eventData.people_count}
+          />
+        );
       default:
         return <StepPlaceholder title={STEP_TITLES[state.currentStep - 1]} />;
     }
