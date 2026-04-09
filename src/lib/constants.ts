@@ -49,6 +49,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   WES: 'Wesele',
   FIR: 'Firmowy',
   KON: 'Konferencja',
+  SZK: 'Szkolenie',
   PRY: 'Przyjęcie prywatne',
   GAL: 'Gala',
   STY: 'Stypa',
@@ -56,6 +57,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   B2B: 'Spotkanie B2B',
   BOX: 'Catering pudełkowy',
   KAW: 'Przerwa kawowa',
+  SWI: 'Spotkanie świąteczne',
   SPE: 'Specjalny',
 };
 

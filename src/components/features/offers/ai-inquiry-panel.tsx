@@ -264,17 +264,22 @@ export const AiInquiryPanel = ({
             value={parsedData.event.date}
             onApply={parsedData.event.date ? () => applyField('event_date', parsedData.event.date) : undefined}
           />
-          <EventField
-            icon={<Clock className="h-4 w-4" />}
-            label="Godziny"
-            value={parsedData.event.time_from || parsedData.event.time_to
-              ? `${parsedData.event.time_from ?? '—'} – ${parsedData.event.time_to ?? '—'}`
-              : null}
-            onApply={parsedData.event.time_from ? () => {
-              if (parsedData.event.time_from) applyField('event_time_from', parsedData.event.time_from);
-              if (parsedData.event.time_to) applyField('event_time_to', parsedData.event.time_to);
-            } : undefined}
-          />
+          {(() => {
+            const tf = parsedData.event.time_from && parsedData.event.time_from !== 'null' ? parsedData.event.time_from : null;
+            const tt = parsedData.event.time_to && parsedData.event.time_to !== 'null' ? parsedData.event.time_to : null;
+            if (!tf && !tt) return null;
+            return (
+              <EventField
+                icon={<Clock className="h-4 w-4" />}
+                label="Godziny"
+                value={`${tf ?? '—'} – ${tt ?? '—'}`}
+                onApply={tf ? () => {
+                  if (tf) applyField('event_time_from', tf);
+                  if (tt) applyField('event_time_to', tt);
+                } : undefined}
+              />
+            );
+          })()}
           <EventField
             icon={<Users className="h-4 w-4" />}
             label="Liczba osób"
