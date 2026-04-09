@@ -14,7 +14,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const DEV_USER = { id: 'dev-user-id', email: 'dev@test.pl', app_metadata: {}, user_metadata: { role: 'admin' }, aud: 'authenticated', created_at: '' } as User;
-const DEV_SESSION = { user: DEV_USER, access_token: '', refresh_token: '', expires_in: 0, token_type: '' } as Session;
+const DEV_SESSION = { user: DEV_USER, access_token: '', refresh_token: '', expires_in: 0, token_type: 'bearer' as const };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(DEV_MODE ? DEV_SESSION : null);
