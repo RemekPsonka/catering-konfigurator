@@ -32,6 +32,18 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     return <LoadingSpinner />;
   }
 
+  if (offerId && offerQuery.isError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <p className="text-destructive font-medium">Nie udało się załadować oferty.</p>
+        <Button variant="outline" onClick={() => navigate('/admin/offers')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Wróć do listy ofert
+        </Button>
+      </div>
+    );
+  }
+
   const goToStep = (step: number) => {
     // For step 2+, ensure offer is saved first
     if (step >= 2 && !state.offerId) {
