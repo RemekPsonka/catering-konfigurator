@@ -41,6 +41,7 @@ const App = () => (
             <Routes>
               {/* Auth */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Public offer */}
               <Route element={<PublicLayout />}>
