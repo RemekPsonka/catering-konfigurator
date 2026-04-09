@@ -1,65 +1,52 @@
 
 
-# Audyt Spójności — Faza 0+1: Wyniki
+# Lista ofert — /admin/offers
 
-## BAZA DANYCH
+## Zakres
+Zamiana placeholdera `offers-list.tsx` na pełną stronę listy ofert z tabelą, filtrami, paginacją, menu kontekstowym i duplikacją.
 
-| # | Punkt | Status | Uwagi |
-|---|-------|--------|-------|
-| 1 | 20 tabel | **FAIL** | 19 tabel w `public` schema (brak tabeli `users` — OK, bo to `auth.users` zarządzane przez Supabase). Ale 19 z 19 wymaganych tabel publicznych istnieje. **OK** po korekcie — 19 tabel + auth.users = komplet. |
-| 2 | 17 typów ENUM | **OK** | Wszystkie 17: activity_type, change_type, client_type, correction_status, delivery_type, event_type, lead_source, lead_status, lost_reason, offer_status, price_display_mode, price_type, pricing_mode, proposal_item_status, proposal_status, service_type, unit_type |
-| 3 | Seed data | **OK** | 14 kategorii, 12 motywów, 5 warunków, 9 usług — wszystkie potwierdzone |
-| 4 | Triggery | **FAIL** | Brakuje `updated_at` triggera na tabeli `offer_templates` — **KOREKTA**: trigger `tr_offer_templates_updated_at` **istnieje**. Triggery: offer_number, public_token, valid_until, default_theme, sync_offer_client + updated_at na dishes, leads, offers, offer_terms, offer_templates = **10 triggerów**. **OK** |
-| 5 | RLS | **OK** | Wszystkie tabele mają RLS enabled. Polityki auth (zalogowani) na wszystkich. Publiczne SELECT na: dishes, dish_photos, offer_themes, offer_terms, offers, offer_variants, variant_items, offer_services. Publiczne INSERT na: change_proposals, proposal_items, offer_corrections, offer_events. |
-| 6 | CHECK discount XOR | **OK** | `chk_discount_exclusive: NOT ((discount_percent > 0) AND (discount_value > 0))` |
-| 7 | Indeksy na FK | **OK** | 26 indeksów na FK i polach filtrowanych |
+## Wymagane zmiany w typach i stałych
 
-## FRONTEND
+### 1. `src/types/database.ts`
+Zaktualizować typ `OfferStatus` z 6 do 8 wartości (dodać `ready`, `revision`, `won`, `lost`; usunąć `rejected`, `expired` — nie istnieją w DB enum).
 
-| # | Punkt | Status | Uwagi |
-|---|-------|--------|-------|
-| 8 | Routing 14+ ścieżek | **OK** | 14 ścieżek admin + /login + /offer/:publicToken + / redirect + catch-all |
-| 9 | Auth guard | **OK** | `/admin/*` chronione przez `AuthGuard` |
-| 10 | /offer/:publicToken | **OK** | Publiczna, w `PublicLayout`, bez auth |
-| 11 | AdminLayout | **OK** | Sidebar z 6 linkami + topbar z email i wylogowaniem |
-| 12 | Lista dań | **OK** | Filtry (kategoria, status, szukaj, diet_tags), paginacja 20/stronę, miniaturki |
-| 13 | Formularz dania | **OK** | 5+ sekcji, Zod walidacja, zapis do Supabase |
-| 14 | Upload zdjęć | **OK** | drag&drop, max 5, JPEG/PNG/WebP, 5MB, Supabase Storage bucket `dish-photos` |
-| 15 | Zamienniki | **OK** | 3 typy (SWAP/VARIANT/SPLIT), zapis jako JSONB `modifiable_items`, podgląd kliencki |
-| 16 | CRUD usług | **OK** | Tabela + modal, tabs filtrujące (Wszystkie/Obsługa/Sprzęt/Logistyka), toggle aktywności |
-| 17 | CRUD klientów | **OK** | Tabela + modal, wyszukiwarka debounced, count ofert |
-| 18 | Konta | **FAIL** | Edge function `list-users` używa `anonClient.auth.getClaims()` — ta metoda **nie istnieje** w Supabase JS SDK v2. Function prawdopodobnie zwraca 500. |
+### 2. `src/lib/constants.ts`
+- Zaktualizować `OFFER_STATUS_LABELS` i `OFFER_STATUS_COLORS` do 8 statusów z poprawnymi kolorami:
+  - draft: szary, ready: niebieski, sent: indygo, viewed: fioletowy, revision: pomarańczowy, accepted: zielony, won: ciemno-zielony bold, lost: czerwony
+- Dodać `EVENT_TYPE_LABELS_FULL` z 12 typami eventów (KOM→Komunia, WES→Wesele, FIR→Firmowy, KON→Konferencja, PRY→Przyjęcie prywatne, GAL→Gala, STY→Stypa, GRI→Grill, B2B→Spotkanie B2B, BOX→Catering pudełkowy, KAW→Przerwa kawowa, SPE→Specjalny)
 
-## KRYTYCZNE
+## Pliki do utworzenia
 
-| # | Punkt | Status | Uwagi |
-|---|-------|--------|-------|
-| 19 | Dodanie dania z ceną, kategorią, zdjęciem | **OK** | Formularz → create → redirect do edit → upload zdjęcia |
-| 20 | Dodanie klienta z nazwą i emailem | **OK** | Dialog z walidacją Zod |
-| 21 | Zamienniki JSONB | **OK** | `modifiable_items` w schema, parsowanie w formularzu, zapis w `buildPayload` |
-| 22 | Seed data widoczne | **OK** | Potwierdzone queryami SQL |
+### 3. `src/hooks/use-offers.ts`
+Hook React Query:
+- `useOffers({ status?, eventType?, search?, page })` — query `offers` z LEFT JOIN na `clients` (nazwa klienta), sortowanie `created_at DESC`, paginacja 20/stronę, filtr statusu/event_type, search po `offer_number` i `client.name` via `.or()`
+- `useDuplicateOffer()` — mutation: pobiera ofertę + warianty + variant_items + offer_services, tworzy kopię z: status=draft, wyczyszczony client_id, event_date, sent_at, viewed_at, accepted_at, nowy public_token (trigger)
 
----
+### 4. `src/pages/admin/offers-list.tsx`
+Pełna strona listy ofert:
 
-## ZNALEZIONE PROBLEMY DO NAPRAWY
+**Filtry:**
+- Status tabs: Wszystkie + 8 statusów
+- Wyszukiwarka debounced 300ms (po numerze oferty, nazwie klienta)
+- Dropdown typ eventu (12 typów + "Wszystkie")
 
-### FAIL 1: Edge function `list-users` — `getClaims()` nie istnieje
+**Tabela:**
+- Kolumny: Numer | Klient | Typ eventu | Data | Wartość | Status | Utworzono | Akcje
+- Klik w wiersz → `/admin/offers/:id/edit`
+- Formatowanie: data DD.MM.YYYY, wartość w zł, StatusBadge
 
-**Problem**: Linia 25 w `supabase/functions/list-users/index.ts` wywołuje `anonClient.auth.getClaims()` — ta metoda nie istnieje w SDK `@supabase/supabase-js@2.49.1`. Function zwraca 500 error.
+**Menu kontekstowe (DropdownMenu per wiersz):**
+- Edytuj → navigate
+- Duplikuj → `useDuplicateOffer` + toast + navigate do nowej oferty
+- Podgląd klienta → `window.open(/offer/:publicToken)` w nowej karcie
 
-**Naprawa**: Zamienić na `anonClient.auth.getUser()` — potwierdzi tożsamość callera:
-```typescript
-const { data: { user }, error: authError } = await anonClient.auth.getUser();
-if (authError || !user) {
-  return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
-}
-```
+**Paginacja:** 20/stronę, wzorowana na dishes-list
 
-### Pliki do zmiany
+**Przycisk:** "Nowa oferta" → `/admin/offers/new`
 
-1. **`supabase/functions/list-users/index.ts`** — zamiana `getClaims()` na `getUser()`, usunięcie nieużywanego `claimsData`, re-deploy edge function.
-
-### Brak dalszych FAIL-i
-
-Pozostałe 21/22 punktów audytu = **OK**. Po naprawie edge function projekt jest gotowy do Fazy 2.
+## Szczegóły techniczne
+- Join klienta: `supabase.from('offers').select('*, clients!client_id(name)')` — Supabase embedded select
+- Duplikacja: INSERT offer (bez client_id, event_date, timestamps) → dla każdego wariantu INSERT variant → bulk INSERT variant_items → bulk INSERT offer_services. Wszystko w jednym mutation.
+- Search: `.or('offer_number.ilike.%${search}%,clients.name.ilike.%${search}%')` — jeśli cross-table or nie działa, fallback do filtrowania offer_number w query + client name w JS
+- Brak zmian w bazie danych
 
