@@ -118,6 +118,9 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
             offerId={state.offerId}
             pricingMode={state.stepData.eventData.pricing_mode}
             peopleCount={state.stepData.eventData.people_count}
+            requirements={requirements}
+            inquiryText={state.stepData.eventData.inquiry_text}
+            onGoToStep={goToStep}
           />
         );
       default:
