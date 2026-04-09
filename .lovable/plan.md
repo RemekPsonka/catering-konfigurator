@@ -1,75 +1,79 @@
 
 
-# Kreator oferty — Wizard 7 kroków (Krok 1: Dane podstawowe)
+# Krok 2 wizarda — Warianty i dania
 
 ## Zakres
-Zbudowanie szkieletu wizarda 7-krokowego z pełną implementacją Kroku 1 (Dane podstawowe). Kroki 2-7 jako placeholdery z nagłówkami. Strony `/admin/offers/new` i `/admin/offers/:id/edit` współdzielą ten sam komponent wizarda.
+Implementacja kroku 2 kreatora ofert: zarządzanie wariantami (Classic/Premium/De Luxe), dodawanie dań z autocomplete, konfiguracja ilości/cen/zamienników, live kalkulacja, drag & drop sortowanie.
 
 ## Pliki do utworzenia
 
-### 1. `src/components/features/offers/offer-wizard.tsx`
-Główny komponent wizarda:
-- Stepper na górze: 7 kroków (1. Dane | 2. Menu | 3. Usługi | 4. Ustawienia | 5. Kalkulacja | 6. Motyw | 7. Podgląd) — aktywny krok podświetlony, ukończone z checkmarkiem
-- Stan wizarda w `useReducer` — obiekt `WizardState` przechowujący dane wszystkich kroków
-- Nawigacja: "← Wstecz" / "Dalej →" z walidacją per krok
-- W trybie edycji: ładuje dane oferty z Supabase i pre-filluje state
-- Renderuje aktualny krok jako child komponent
+### 1. `src/hooks/use-offer-variants.ts`
+Hook React Query do CRUD wariantów i pozycji:
+- `useOfferVariants(offerId)` — query `offer_variants` + `variant_items` z joinem na `dishes` (display_name, photo_url, unit_type, prices, is_modifiable, modifiable_items) dla danego offerId
+- `useCreateVariant()` — INSERT do `offer_variants` (name, offer_id, sort_order)
+- `useUpdateVariant()` — UPDATE nazwy, opisu, is_recommended
+- `useDeleteVariant()` — DELETE wariantu (i kaskadowo variant_items)
+- `useAddVariantItem()` — INSERT do `variant_items` (variant_id, dish_id, quantity=1, sort_order)
+- `useUpdateVariantItem()` — UPDATE quantity, custom_price, is_client_editable, allowed_modifications, sort_order
+- `useRemoveVariantItem()` — DELETE z variant_items
+- `useDuplicateVariant()` — kopiuje wariant z pozycjami do nowego
+- `useReorderVariantItems()` — batch UPDATE sort_order
 
-### 2. `src/components/features/offers/wizard-stepper.tsx`
-Komponent steppera:
-- 7 kroków w rzędzie, ikony + tekst, połączone linią
-- Stany: completed (zielony check), active (primary color), upcoming (szary)
-- Responsywny: na mobile tylko ikony + numer kroku
+### 2. `src/components/features/offers/steps/step-menu.tsx`
+Główny komponent kroku 2:
+- **Tabs** na górze: warianty (max 3) + przycisk [+ Dodaj wariant]
+- Nazwy tabów edytowalne (klik → inline input)
+- Per tab: checkbox "Polecany" (is_recommended, max 1 — wyłącz inne przy zaznaczeniu)
+- Przycisk "Duplikuj wariant" w nagłówku taba
+- Renderuje `VariantItemsTable` per wariant
+- **Live kalkulacja** na dole: 
+  - PER_PERSON: `Σ cen × ilości = X/osobę × N osób = TOTAL zł`
+  - FIXED_QUANTITY: `Σ (cena × ilość) = TOTAL zł`
+- Wymaga `offerId` — jeśli brak (nowa oferta), wymusza zapis szkicu przed wejściem na krok 2
 
-### 3. `src/components/features/offers/steps/step-event-data.tsx`
-Krok 1 — Dane podstawowe (React Hook Form + Zod):
-- **Rodzaj imprezy**: Select z 12 typów + emoji (KOM 🙏 Komunia, WES 💒 Wesele, etc.)
-- **Data wydarzenia**: DatePicker (shadcn Calendar w Popover, `pointer-events-auto`)
-- **Godziny**: dwa Input type="time" (od-do)
-- **Liczba osób**: Input number (min 1, wymagane)
-- **Lokalizacja**: Input text
-- **Forma dostawy**: RadioGroup (Zimna / Podgrzewana / Full service) → COLD/HEATED/FULL_SERVICE enum
-- **Tryb kalkulacji**: RadioGroup z opisami — PER_PERSON vs FIXED_QUANTITY
-- **Klient**: Client autocomplete (Combobox z query `clients` debounced) + przycisk "Dodaj nowego" → otwiera `ClientDialog` inline
-- **Treść zapytania**: Textarea (opcjonalne)
-- Auto-fill `greeting_text` po wyborze `event_type` (domyślne teksty per typ)
-- Walidacja: event_type, client_id, people_count, delivery_type wymagane
+### 3. `src/components/features/offers/steps/variant-items-table.tsx`
+Tabela pozycji wariantu:
+- Kolumny: [Drag] | Miniaturka | Nazwa | Cena | Ilość | Suma | Edytowalne? | Akcje
+- Drag & drop sortowanie via `@dnd-kit`
+- Per pozycja:
+  - Ilość: inline number input (min 1)
+  - Cena: wyświetla dish price, klik → input `custom_price` (nadpisanie)
+  - Toggle `is_client_editable`
+  - Jeśli edytowalne + dish.is_modifiable: badge "🔄 SWAP/VARIANT/SPLIT", przycisk "Edytuj zamienniki" → modal
+  - Przycisk usuwania pozycji
+- Przycisk "Dodaj dania" → otwiera `DishPickerSheet`
 
-### 4. `src/components/features/offers/client-autocomplete.tsx`
-Autocomplete klienta (wzorowany na `DishAutocomplete`):
-- Combobox z `Command` + `Popover`
-- Szukaj po nazwie/email (debounce 300ms)
-- Wyświetla: nazwa + email/firma
-- Przycisk "Dodaj nowego klienta" na końcu listy → callback otwierający `ClientDialog`
+### 4. `src/components/features/offers/steps/dish-picker-sheet.tsx`
+Sheet (panel boczny) do wyboru dań:
+- Filtry: tabs z 14 kategorii (z `useDishCategories`), wyszukiwarka debounced
+- Lista dań: miniaturka + nazwa + cena + unit_type
+- Klik na danie → dodaje do aktywnego wariantu (quantity=1), toast potwierdzenia
+- Wyklucza dania już dodane do wariantu (excludeIds)
 
-### 5. `src/hooks/use-offer-wizard.ts`
-Hook do zarządzania stanem wizarda:
-- `useReducer` z akcjami: SET_STEP_DATA, SET_STEP, LOAD_OFFER
-- `useOffer(id)` — query pojedynczej oferty z Supabase (do trybu edycji)
-- `useSaveOffer` — mutation INSERT/UPDATE oferty (na Kroku 7 lub "Zapisz szkic" w dowolnym momencie)
-
-### 6. `src/lib/offer-constants.ts`
-Stałe wizarda:
-- `EVENT_TYPE_OPTIONS`: tablica `{ value, label, emoji }` dla 12 typów
-- `DELIVERY_TYPE_LABELS`: COLD→"Zimna dostawa", HEATED→"Podgrzewana", FULL_SERVICE→"Full service"
-- `DEFAULT_GREETINGS`: Record<EventType, string> — domyślne teksty powitalne per typ eventu
-- `PRICING_MODE_OPTIONS`: tablica z opisami dwóch trybów
-
-### 7. `src/components/features/offers/steps/step-placeholder.tsx`
-Placeholder dla kroków 2-7: Card z tytułem kroku i "W budowie"
+### 5. `src/components/features/offers/steps/modification-override-dialog.tsx`
+Dialog do nadpisania zamienników per offer:
+- Ładuje `dishes.modifiable_items` jako bazę
+- Manager może: dodać/usunąć zamienniki, zmienić typ modyfikacji
+- Zapisuje do `variant_items.allowed_modifications` (JSONB override)
+- UI wzorowany na `ModifiableItemsSection` ale uproszczony (bez podglądu klienta)
 
 ## Pliki do zmodyfikowania
 
-### 8. `src/pages/admin/offer-new.tsx`
-Zamiana placeholdera na `<OfferWizard />` (tryb: create)
+### 6. `src/hooks/use-offer-wizard.ts`
+- Dodać `offerId` do state po udanym zapisie szkicu (potrzebne dla kroku 2)
+- Mutation `saveDraftMutation` → onSuccess ustawia `offerId` w state
 
-### 9. `src/pages/admin/offer-edit.tsx`
-Zamiana placeholdera na `<OfferWizard offerId={id} />` (tryb: edit, ładuje dane z Supabase)
+### 7. `src/components/features/offers/offer-wizard.tsx`
+- Import `StepMenu` i renderowanie w `case 2`
+- Przekazanie `offerId` i `pricingMode` do `StepMenu`
+- Przed wejściem na krok 2: jeśli brak offerId, auto-save draft
 
 ## Szczegóły techniczne
-- Offers INSERT required fields: `client_id`, `created_by` (auth.uid()), `event_type`, `delivery_type`, `people_count`
-- Greeting auto-fill: np. KOM → "Szanowni Państwo, z przyjemnością prezentujemy ofertę cateringową na Państwa komunię."
-- Client autocomplete: `supabase.from('clients').select('id, name, email, company').or('name.ilike.%q%,email.ilike.%q%').limit(10)`
-- Stepper klikable tylko dla ukończonych kroków (nie można przeskoczyć do przodu)
-- Brak zmian w bazie danych
+- Warianty query: `supabase.from('offer_variants').select('*, variant_items(*, dishes(id, display_name, photo_url, unit_type, price_per_person, price_per_piece, price_per_kg, price_per_set, is_modifiable, modifiable_items))').eq('offer_id', id).order('sort_order')`
+- Cena pozycji: `custom_price ?? dish[price_field_for_unit_type]`
+- Kalkulacja PER_PERSON: `Σ(item_price × quantity) × people_count`
+- Kalkulacja FIXED_QUANTITY: `Σ(item_price × quantity)`
+- Max 3 warianty — ukryj przycisk dodawania gdy osiągnięto limit
+- Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` (już zainstalowane)
+- Brak zmian w bazie danych — tabele `offer_variants` i `variant_items` już istnieją
 
