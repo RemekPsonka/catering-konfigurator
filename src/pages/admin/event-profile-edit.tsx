@@ -1,0 +1,467 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LoadingSpinner } from '@/components/common/loading-spinner';
+import {
+  useEventProfile,
+  useUpdateEventProfile,
+  useEventPhotos,
+  useUploadEventPhoto,
+  useDeleteEventPhoto,
+  useSetHeroPhoto,
+  useUpdateEventPhoto,
+  useReorderEventPhotos,
+} from '@/hooks/use-event-profiles';
+import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
+import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2 } from 'lucide-react';
+import type { Tables } from '@/integrations/supabase/types';
+
+interface Feature {
+  icon: string;
+  title: string;
+  text: string;
+}
+
+// --- Sortable Photo Card ---
+const SortablePhotoCard = ({
+  photo,
+  onDelete,
+  onSetHero,
+  onUpdateMeta,
+}: {
+  photo: Tables<'event_type_photos'>;
+  onDelete: () => void;
+  onSetHero: () => void;
+  onUpdateMeta: (caption: string | null, altText: string | null) => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: photo.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div ref={setNodeRef} style={style} className="border rounded-lg p-2 bg-background space-y-2">
+      <div className="flex items-start gap-2">
+        <button type="button" {...attributes} {...listeners} className="mt-1 cursor-grab text-muted-foreground">
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="w-20 h-16 rounded overflow-hidden flex-shrink-0">
+          <img src={photo.photo_url} alt={photo.alt_text ?? ''} className="w-full h-full object-cover" loading="lazy" />
+        </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <Input
+            placeholder="Podpis (opcjonalny)"
+            defaultValue={photo.caption ?? ''}
+            className="h-7 text-xs"
+            onBlur={(e) => onUpdateMeta(e.target.value || null, photo.alt_text)}
+          />
+          <Input
+            placeholder="Alt text (dostępność)"
+            defaultValue={photo.alt_text ?? ''}
+            className="h-7 text-xs"
+            onBlur={(e) => onUpdateMeta(photo.caption, e.target.value || null)}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Button
+            type="button"
+            variant={photo.is_hero ? 'default' : 'ghost'}
+            size="icon"
+            className="h-7 w-7"
+            onClick={onSetHero}
+            title="Ustaw jako hero"
+          >
+            <Star className={`h-3.5 w-3.5 ${photo.is_hero ? 'fill-current' : ''}`} />
+          </Button>
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      {photo.is_hero && <Badge variant="secondary" className="text-xs">⭐ Hero</Badge>}
+    </div>
+  );
+};
+
+// --- Sortable Feature Row ---
+const SortableFeatureRow = ({
+  feature,
+  index,
+  onChange,
+  onRemove,
+}: {
+  feature: Feature;
+  index: number;
+  onChange: (i: number, f: Feature) => void;
+  onRemove: (i: number) => void;
+}) => {
+  const id = `feature-${index}`;
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 border rounded-lg p-2 bg-background">
+      <button type="button" {...attributes} {...listeners} className="cursor-grab text-muted-foreground">
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <Input
+        className="w-14 h-8 text-center text-lg"
+        maxLength={4}
+        value={feature.icon}
+        onChange={(e) => onChange(index, { ...feature, icon: e.target.value })}
+        placeholder="🎂"
+      />
+      <Input
+        className="flex-1 h-8 text-sm"
+        maxLength={30}
+        value={feature.title}
+        onChange={(e) => onChange(index, { ...feature, title: e.target.value })}
+        placeholder="Tytuł (max 30)"
+      />
+      <Input
+        className="flex-[2] h-8 text-sm"
+        maxLength={80}
+        value={feature.text}
+        onChange={(e) => onChange(index, { ...feature, text: e.target.value })}
+        placeholder="Opis (max 80)"
+      />
+      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onRemove(index)}>
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+};
+
+// --- Main Page ---
+export const EventProfileEditPage = () => {
+  const { eventTypeId } = useParams<{ eventTypeId: string }>();
+  const navigate = useNavigate();
+  const { data: profile, isLoading } = useEventProfile(eventTypeId);
+  const { data: photos = [] } = useEventPhotos(eventTypeId);
+  const updateProfile = useUpdateEventProfile();
+  const uploadPhoto = useUploadEventPhoto();
+  const deletePhoto = useDeleteEventPhoto();
+  const setHero = useSetHeroPhoto();
+  const updatePhotoMeta = useUpdateEventPhoto();
+  const reorderPhotos = useReorderEventPhotos();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const [headline, setHeadline] = useState('');
+  const [descShort, setDescShort] = useState('');
+  const [descLong, setDescLong] = useState('');
+  const [ctaText, setCtaText] = useState('');
+  const [isActive, setIsActive] = useState(true);
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [testimonialText, setTestimonialText] = useState('');
+  const [testimonialAuthor, setTestimonialAuthor] = useState('');
+  const [testimonialEvent, setTestimonialEvent] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      setHeadline(profile.headline ?? '');
+      setDescShort(profile.description_short ?? '');
+      setDescLong(profile.description_long ?? '');
+      setCtaText(profile.cta_text ?? '');
+      setIsActive(profile.is_active ?? true);
+      setFeatures(Array.isArray(profile.features) ? (profile.features as unknown as Feature[]) : []);
+      setTestimonialText(profile.testimonial_text ?? '');
+      setTestimonialAuthor(profile.testimonial_author ?? '');
+      setTestimonialEvent(profile.testimonial_event ?? '');
+    }
+  }, [profile]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const opt = EVENT_TYPE_OPTIONS.find((o) => o.value === eventTypeId);
+
+  const handleSave = useCallback(() => {
+    if (!eventTypeId) return;
+    updateProfile.mutate({
+      id: eventTypeId,
+      updates: {
+        headline,
+        description_short: descShort,
+        description_long: descLong || null,
+        cta_text: ctaText || null,
+        is_active: isActive,
+        features: features as unknown as Tables<'event_type_profiles'>['features'],
+        testimonial_text: testimonialText || null,
+        testimonial_author: testimonialAuthor || null,
+        testimonial_event: testimonialEvent || null,
+      },
+    });
+  }, [eventTypeId, headline, descShort, descLong, ctaText, isActive, features, testimonialText, testimonialAuthor, testimonialEvent, updateProfile]);
+
+  const handleFileUpload = useCallback(
+    async (files: FileList | null) => {
+      if (!files || !eventTypeId) return;
+      for (const file of Array.from(files)) {
+        await uploadPhoto.mutateAsync({ eventTypeId, file });
+      }
+    },
+    [eventTypeId, uploadPhoto],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      handleFileUpload(e.dataTransfer.files);
+    },
+    [handleFileUpload],
+  );
+
+  const handlePhotoDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id || !eventTypeId) return;
+      const oldIndex = photos.findIndex((p) => p.id === active.id);
+      const newIndex = photos.findIndex((p) => p.id === over.id);
+      const reordered = arrayMove(photos, oldIndex, newIndex);
+      reorderPhotos.mutate({
+        eventTypeId,
+        photos: reordered.map((p, i) => ({ id: p.id, sort_order: i })),
+      });
+    },
+    [photos, eventTypeId, reorderPhotos],
+  );
+
+  const handleFeatureChange = (i: number, f: Feature) => {
+    setFeatures((prev) => prev.map((old, idx) => (idx === i ? f : old)));
+  };
+  const handleFeatureRemove = (i: number) => setFeatures((prev) => prev.filter((_, idx) => idx !== i));
+  const handleFeatureAdd = () => {
+    if (features.length >= 4) return;
+    setFeatures((prev) => [...prev, { icon: '✨', title: '', text: '' }]);
+  };
+
+  const handleFeatureDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = features.findIndex((_, i) => `feature-${i}` === active.id);
+    const newIdx = features.findIndex((_, i) => `feature-${i}` === over.id);
+    setFeatures(arrayMove(features, oldIdx, newIdx));
+  };
+
+  if (isLoading) return <LoadingSpinner />;
+  if (!profile) return <div className="p-8 text-muted-foreground">Profil nie znaleziony.</div>;
+
+  const heroPhoto = photos.find((p) => p.is_hero);
+
+  return (
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between sticky top-0 bg-background z-10 py-3 border-b">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/admin/settings/event-profiles')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-xl font-bold">{opt?.emoji} {opt?.label ?? eventTypeId}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            <Eye className="h-4 w-4 mr-1" /> Podgląd
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={updateProfile.isPending}>
+            {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Zapisz
+          </Button>
+        </div>
+      </div>
+
+      {/* Section 1 — Tekst */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Tekst</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Nagłówek (headline)</Label>
+            <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="Catering na Komunię Świętą" />
+          </div>
+          <div>
+            <Label>Opis krótki (max 200 znaków)</Label>
+            <Textarea value={descShort} onChange={(e) => setDescShort(e.target.value.slice(0, 200))} maxLength={200} rows={2} />
+            <p className="text-xs text-muted-foreground mt-1">{descShort.length}/200</p>
+          </div>
+          <div>
+            <Label>Opis długi (marketing)</Label>
+            <Textarea value={descLong} onChange={(e) => setDescLong(e.target.value)} rows={4} />
+          </div>
+          <div>
+            <Label>Tekst CTA</Label>
+            <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)} placeholder="Zaplanuj idealny catering na Komunię" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
+            <Label>Aktywny</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 2 — Wyróżniki */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            Wyróżniki ({features.length}/4)
+            <Button type="button" variant="outline" size="sm" onClick={handleFeatureAdd} disabled={features.length >= 4}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Dodaj
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {features.length === 0 && <p className="text-sm text-muted-foreground">Brak wyróżników. Kliknij "Dodaj" aby dodać.</p>}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFeatureDragEnd}>
+            <SortableContext items={features.map((_, i) => `feature-${i}`)} strategy={rectSortingStrategy}>
+              {features.map((f, i) => (
+                <SortableFeatureRow key={`feature-${i}`} feature={f} index={i} onChange={handleFeatureChange} onRemove={handleFeatureRemove} />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </CardContent>
+      </Card>
+
+      {/* Section 3 — Opinia */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Opinia klienta</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Tekst opinii</Label>
+            <Textarea value={testimonialText} onChange={(e) => setTestimonialText(e.target.value)} rows={3} placeholder="Catering był wspaniały..." />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Autor</Label>
+              <Input value={testimonialAuthor} onChange={(e) => setTestimonialAuthor(e.target.value)} placeholder="Katarzyna i Marek N." />
+            </div>
+            <div>
+              <Label>Wydarzenie</Label>
+              <Input value={testimonialEvent} onChange={(e) => setTestimonialEvent(e.target.value)} placeholder="Komunia, Katowice 2025" />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Jeśli puste, sekcja opinii nie wyświetli się na stronie klienta.</p>
+        </CardContent>
+      </Card>
+
+      {/* Section 4 — Galeria */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Galeria zdjęć atmosfery ({photos.length}/15)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          {/* Drop zone */}
+          <div
+            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploadPhoto.isPending ? (
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+            ) : (
+              <>
+                <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">Przeciągnij zdjęcia lub kliknij</p>
+                <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP — max 10MB</p>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFileUpload(e.target.files)}
+            />
+          </div>
+
+          {/* Photo grid */}
+          {photos.length > 0 && (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
+              <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="space-y-2">
+                  {photos.map((photo) => (
+                    <SortablePhotoCard
+                      key={photo.id}
+                      photo={photo}
+                      onDelete={() => deletePhoto.mutate({ photo })}
+                      onSetHero={() =>
+                        eventTypeId &&
+                        setHero.mutate({ photoId: photo.id, eventTypeId, photoUrl: photo.photo_url })
+                      }
+                      onUpdateMeta={(caption, altText) =>
+                        eventTypeId &&
+                        updatePhotoMeta.mutate({ id: photo.id, caption, altText, eventTypeId })
+                      }
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 5 — Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Podgląd profilu — {opt?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Hero */}
+            <div className="relative h-48 rounded-lg overflow-hidden bg-gradient-to-br from-primary/30 to-primary/5">
+              {heroPhoto ? (
+                <img src={heroPhoto.photo_url} alt={headline} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-5xl">{opt?.emoji}</div>
+              )}
+              <div className="absolute inset-0 bg-black/30 flex items-end p-6">
+                <h2 className="text-2xl font-bold text-white">{headline || 'Nagłówek...'}</h2>
+              </div>
+            </div>
+
+            {/* Description */}
+            {descLong && <p className="text-sm text-muted-foreground whitespace-pre-line">{descLong}</p>}
+
+            {/* Features */}
+            {features.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {features.map((f, i) => (
+                  <div key={i} className="border rounded-lg p-3">
+                    <div className="text-2xl mb-1">{f.icon}</div>
+                    <div className="font-semibold text-sm">{f.title}</div>
+                    <div className="text-xs text-muted-foreground">{f.text}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Testimonial */}
+            {testimonialText && (
+              <blockquote className="border-l-4 border-primary pl-4 italic text-sm text-muted-foreground">
+                <p>"{testimonialText}"</p>
+                {testimonialAuthor && (
+                  <footer className="mt-2 not-italic font-medium text-foreground">
+                    — {testimonialAuthor}
+                    {testimonialEvent && <span className="text-muted-foreground font-normal">, {testimonialEvent}</span>}
+                  </footer>
+                )}
+              </blockquote>
+            )}
+
+            {/* CTA */}
+            {ctaText && (
+              <div className="text-center">
+                <Button size="lg">{ctaText}</Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
