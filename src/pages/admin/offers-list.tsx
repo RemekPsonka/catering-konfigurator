@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,9 @@ import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { EmptyState } from '@/components/common/empty-state';
 import { useOffers, useDuplicateOffer } from '@/hooks/use-offers';
 import { useDebounce } from '@/hooks/use-debounce';
+import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
+import { UseTemplateDialog } from '@/components/features/offers/use-template-dialog';
+import type { TemplateData } from '@/hooks/use-offer-templates';
 import {
   OFFER_STATUS_LABELS, EVENT_TYPE_LABELS, ITEMS_PER_PAGE,
 } from '@/lib/constants';
@@ -51,6 +54,8 @@ export const OffersListPage = () => {
     status, eventType, search: debouncedSearch, page,
   });
   const duplicateMutation = useDuplicateOffer();
+  const [saveTemplateOffer, setSaveTemplateOffer] = useState<{ id: string; eventType: string; pricingMode: string } | null>(null);
+  const [useTemplateOpen, setUseTemplateOpen] = useState(false);
 
   const totalPages = Math.ceil((data?.total ?? 0) / ITEMS_PER_PAGE);
 
@@ -60,13 +65,23 @@ export const OffersListPage = () => {
     navigate(`/admin/offers/${newOffer.id}/edit`);
   };
 
+  const handleTemplateSelect = (templateData: TemplateData, eventType: string, pricingMode: string) => {
+    // Navigate to new offer with template data in state
+    navigate('/admin/offers/new', { state: { templateData, eventType, pricingMode } });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Oferty</h1>
-        <Button asChild>
-          <Link to="/admin/offers/new"><Plus className="mr-2 h-4 w-4" />Nowa oferta</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setUseTemplateOpen(true)}>
+            <FileText className="mr-2 h-4 w-4" />Z szablonu
+          </Button>
+          <Button asChild>
+            <Link to="/admin/offers/new"><Plus className="mr-2 h-4 w-4" />Nowa oferta</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Status tabs */}
@@ -169,6 +184,18 @@ export const OffersListPage = () => {
                           disabled={duplicateMutation.isPending}
                         >
                           <Copy className="mr-2 h-4 w-4" />Duplikuj
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSaveTemplateOffer({
+                              id: offer.id,
+                              eventType: offer.event_type,
+                              pricingMode: offer.pricing_mode,
+                            });
+                          }}
+                        >
+                          <BookTemplate className="mr-2 h-4 w-4" />Zapisz jako szablon
                         </DropdownMenuItem>
                         {offer.public_token && (
                           <DropdownMenuItem
