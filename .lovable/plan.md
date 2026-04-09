@@ -1,34 +1,34 @@
 
 
-# Naprawa: Kliknięcie szkicu otwiera nową ofertę zamiast edycji
+# Dodanie "Zapisz i pokaż link" w kroku Podgląd
 
-## Diagnoza
-W `use-offer-wizard.ts` linia 137 query używa:
-```
-.select('*, clients!client_id(name)')
-```
-Operator `!` wymusza **inner join** — jeśli `client_id` jest NULL (szkic bez przypisanego klienta), Supabase nie zwraca żadnego wiersza. `.single()` rzuca błąd, `offerQuery` kończy się errorem, wizard nie ładuje danych i renderuje pusty formularz jak nową ofertę.
+## Zakres
+Nowy przycisk "Zapisz i pokaż link" w akcjach kroku 7 — ustawia status na `ready`, wyświetla dialog z linkiem publicznym do skopiowania. Bez wysyłki emaila.
 
-Ten sam problem może być w `use-offers.ts` (lista ofert) — ale tam `.select('*, clients!client_id(name)')` też użyje inner join, więc szkice bez klienta mogą nie pojawiać się na liście.
+## Plik do zmodyfikowania: `src/components/features/offers/steps/step-preview.tsx`
 
-## Rozwiązanie
-Zamiana `clients!client_id(name)` na `clients(name)` (left join — domyślne zachowanie bez `!`) w obu plikach. Przy NULL client_id zwróci `clients: null` zamiast pomijać wiersz.
+### 1. Nowy stan
+- `linkDialogOpen` + `publicLink` — do wyświetlenia dialogu z linkiem
 
-## Pliki do zmodyfikowania
+### 2. Nowa funkcja `handleSaveAndShowLink`
+- Wywołuje `statusMutation.mutate({ status: 'ready' })`
+- W `onSuccess`: buduje URL `${window.location.origin}/offer/${offer?.public_token}`, ustawia `publicLink` i otwiera dialog
+- Nie nawiguje do listy ofert — zostaje na podglądzie
 
-### 1. `src/hooks/use-offer-wizard.ts` (linia ~137)
-```
-// PRZED:
-.select('*, clients!client_id(name)')
-// PO:
-.select('*, clients(name)')
-```
+### 3. Dialog z linkiem
+- Prosty `Dialog` z:
+  - Tekst: "Oferta gotowa! Skopiuj link i wyślij klientowi:"
+  - Input readonly z pełnym URL
+  - Przycisk "Kopiuj link" → `navigator.clipboard.writeText(link)` + toast "Link skopiowany"
+  - Przycisk "Otwórz w nowej karcie" → `window.open(link, '_blank')`
 
-### 2. `src/hooks/use-offers.ts` (linia ~27 i ~52)
-Zamienić `clients!client_id(name)` na `clients(name)` w obu zapytaniach (głównym i fallback).
+### 4. Nowy przycisk w sekcji Actions (linia ~358)
+- Między "Oznacz jako gotowa" a "Wyślij do klienta"
+- Ikona: `Link2` z lucide-react
+- Label: "Zapisz i pokaż link"
 
-### 3. `src/components/features/offers/offer-wizard.tsx` (linia ~31)
-Dodać obsługę błędu query — jeśli `offerQuery.isError`, pokazać komunikat "Nie udało się załadować oferty" z przyciskiem powrotu do listy.
+### 5. Fix inner join w offerQuery (linia 45)
+- Zmiana `clients!client_id(name, email)` → `clients(name, email)` — ten sam bug co wcześniej (left join zamiast inner)
 
 ## Brak zmian w bazie danych
 
