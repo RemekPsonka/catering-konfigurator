@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AnimatedPrice } from './animated-price';
 import { formatCurrency } from '@/lib/calculations';
 import { useSubmitProposal, usePublicOfferProposals, useSaveDraftProposal } from '@/hooks/use-public-offer';
+import { fireNotification } from '@/hooks/use-notifications';
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { DishModification } from './dish-edit-panel';
 import { staggerContainer, fadeInUp } from '@/lib/animations';
@@ -91,6 +92,15 @@ export const ChangesPanel = ({
         onSuccess: () => {
           setShowSuccess(true);
           toast.success('Propozycja wysłana! Manager przejrzy ją i wróci z odpowiedzią.');
+          // Fire-and-forget notification
+          const clientName = offer.clients?.name ?? 'Klient';
+          fireNotification({
+            offerId: offer.id,
+            eventType: 'proposal_submitted',
+            title: `🔄 Propozycja zmian — ${offer.offer_number ?? ''}`,
+            body: `${clientName} proponuje zmiany (${modifications.size} pozycji). Sprawdź i zdecyduj.`,
+            link: `/admin/offers/${offer.id}/edit`,
+          });
           setTimeout(() => {
             setShowSuccess(false);
             onClearModifications();

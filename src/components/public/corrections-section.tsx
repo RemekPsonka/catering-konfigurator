@@ -4,13 +4,16 @@ import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { useSubmitCorrection } from '@/hooks/use-public-offer';
+import { fireNotification } from '@/hooks/use-notifications';
 import { fadeInUp } from '@/lib/animations';
 
 interface CorrectionsSectionProps {
   offerId: string;
+  offerNumber?: string | null;
+  clientName?: string;
 }
 
-export const CorrectionsSection = ({ offerId }: CorrectionsSectionProps) => {
+export const CorrectionsSection = ({ offerId, offerNumber, clientName }: CorrectionsSectionProps) => {
   const [message, setMessage] = useState('');
   const submitCorrection = useSubmitCorrection();
 
@@ -26,6 +29,13 @@ export const CorrectionsSection = ({ offerId }: CorrectionsSectionProps) => {
         onSuccess: () => {
           toast.success('Uwaga wysłana! Dziękujemy za informację.');
           setMessage('');
+          fireNotification({
+            offerId,
+            eventType: 'correction_submitted',
+            title: `📝 Korekta — ${offerNumber ?? ''}`,
+            body: `${clientName ?? 'Klient'}: "${message.trim().substring(0, 100)}"`,
+            link: `/admin/offers/${offerId}/edit`,
+          });
         },
         onError: () => {
           toast.error('Nie udało się wysłać uwagi. Spróbuj ponownie.');

@@ -2,7 +2,9 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/use-auth';
 import { DEV_MODE } from '@/lib/constants';
-import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench } from 'lucide-react';
+import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench, Bell } from 'lucide-react';
+import { NotificationBell } from '@/components/features/notifications/notification-bell';
+import { PushPermissionBanner } from '@/components/features/notifications/push-permission-banner';
 import { Button } from '@/components/ui/button';
 import {
   SidebarProvider,
@@ -25,6 +27,7 @@ const NAV_ITEMS = [
   { title: 'Usługi', url: '/admin/services', icon: Wrench },
   { title: 'Klienci', url: '/admin/clients', icon: Users },
   { title: 'Leady', url: '/admin/leads', icon: Target },
+  { title: 'Powiadomienia', url: '/admin/notifications', icon: Bell },
   { title: 'Ustawienia', url: '/admin/settings', icon: Settings },
 ];
 
@@ -87,9 +90,11 @@ export const AdminLayout = () => {
               ⚠️ TRYB DEWELOPERSKI — logowanie wyłączone
             </div>
           )}
+          <PushPermissionBanner />
           <header className="h-14 flex items-center justify-between border-b px-4">
             <SidebarTrigger className="ml-0" />
             <div className="flex items-center gap-3">
+              <NotificationBell />
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {user?.email}
               </span>

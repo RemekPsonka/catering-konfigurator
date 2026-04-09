@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
+import { fireNotification } from '@/hooks/use-notifications';
 import { usePublicEventProfile, usePublicEventPhotos } from '@/hooks/use-public-event-profile';
 import { EVENT_TYPE_OPTIONS, DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -162,10 +163,20 @@ export const PublicOfferPage = () => {
     };
   }, [offer?.offer_themes]);
 
-  // Mark as viewed on first open
+  // Mark as viewed on first open + fire notification
   useEffect(() => {
     if (offer && !offer.viewed_at && offer.status === 'sent') {
       markViewed.mutate(offer.id);
+      // Fire-and-forget notification
+      const clientName = offer.clients?.name ?? 'Klient';
+      const eventTypeLabel = eventTypeInfo?.label ?? offer.event_type;
+      fireNotification({
+        offerId: offer.id,
+        eventType: 'offer_viewed',
+        title: `👁️ Klient otworzył ofertę ${offer.offer_number ?? ''}`,
+        body: `${clientName} otworzył(a) ofertę. Typ: ${eventTypeLabel}, ${offer.people_count ?? '?'} osób.`,
+        link: `/admin/offers/${offer.id}/edit`,
+      });
     }
   }, [offer?.id, offer?.viewed_at, offer?.status]);
 
@@ -549,7 +560,7 @@ export const PublicOfferPage = () => {
       <TermsSection />
 
       {/* 13. KOREKTY */}
-      <CorrectionsSection offerId={offer.id} />
+      <CorrectionsSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
 
       {/* 14. AKCEPTACJA OFERTY */}
       {!offerAccepted && (
