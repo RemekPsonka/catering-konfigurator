@@ -50,7 +50,7 @@ export const StepCalculation = ({
       if (!offerId) return null;
       const { data, error } = await supabase
         .from('offers')
-        .select('discount_percent, discount_value, delivery_cost, greeting_text, notes_client, notes_internal')
+        .select('discount_percent, discount_value, delivery_cost, greeting_text, ai_summary, notes_client, notes_internal')
         .eq('id', offerId)
         .single();
       if (error) throw error;
