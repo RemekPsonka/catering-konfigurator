@@ -6,6 +6,7 @@ import { StepEventData } from './steps/step-event-data';
 import { StepMenu } from './steps/step-menu';
 import { StepServices } from './steps/step-services';
 import { StepSettings } from './steps/step-settings';
+import { StepCalculation } from './steps/step-calculation';
 import { StepPlaceholder } from './steps/step-placeholder';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
