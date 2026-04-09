@@ -14,15 +14,18 @@ import {
   type OfferServiceWithService,
 } from '@/hooks/use-offer-services';
 import { SERVICE_TYPE_LABELS, PRICE_TYPE_LABELS } from '@/lib/service-constants';
+import { RequirementHints } from '../requirement-hints';
+import type { ClientRequirement } from '../requirements-sidebar';
 import type { Tables } from '@/integrations/supabase/types';
 
 interface StepServicesProps {
   offerId: string | null;
+  requirements?: ClientRequirement[];
 }
 
 const SERVICE_GROUPS = ['STAFF', 'EQUIPMENT', 'LOGISTICS'] as const;
 
-export const StepServices = ({ offerId }: StepServicesProps) => {
+export const StepServices = ({ offerId, requirements = [] }: StepServicesProps) => {
   const { data: allServices, isLoading: loadingServices } = useServices();
   const { data: offerServices, isLoading: loadingOfferServices } = useOfferServices(offerId);
   const addService = useAddOfferService();
@@ -91,6 +94,9 @@ export const StepServices = ({ offerId }: StepServicesProps) => {
 
   return (
     <div className="space-y-6">
+      {requirements.length > 0 && (
+        <RequirementHints requirements={requirements} category="service" />
+      )}
       {SERVICE_GROUPS.map((type) => {
         const services = grouped[type];
         if (!services || services.length === 0) return null;

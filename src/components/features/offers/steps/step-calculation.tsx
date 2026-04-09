@@ -12,6 +12,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Truck, Receipt, MessageSquare, FileText, Lock, Loader2 } from 'lucide-react';
+import { RequirementHints } from '../requirement-hints';
+import type { ClientRequirement } from '../requirements-sidebar';
 import { useOfferVariants, getItemPrice } from '@/hooks/use-offer-variants';
 import { useOfferServices } from '@/hooks/use-offer-services';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -27,6 +29,7 @@ interface StepCalculationProps {
   eventType?: string;
   eventDate?: string | null;
   clientName?: string;
+  requirements?: ClientRequirement[];
 }
 
 type DiscountType = 'percent' | 'value';
@@ -39,6 +42,7 @@ export const StepCalculation = ({
   eventType,
   eventDate,
   clientName,
+  requirements = [],
 }: StepCalculationProps) => {
   const queryClient = useQueryClient();
   const { data: variants = [] } = useOfferVariants(offerId);
@@ -253,6 +257,13 @@ export const StepCalculation = ({
 
   return (
     <div className="space-y-6">
+      {requirements.length > 0 && (
+        <RequirementHints
+          requirements={requirements}
+          category="budget"
+          currentPricePerPerson={totals.pricePerPerson}
+        />
+      )}
       {/* Sekcja 1 — Warianty */}
       <Card>
         <CardHeader>

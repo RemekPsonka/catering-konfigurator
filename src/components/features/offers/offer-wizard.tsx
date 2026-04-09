@@ -11,6 +11,7 @@ import { StepTheme } from './steps/step-theme';
 import { StepPreview } from './steps/step-preview';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
+import { RequirementsSidebar, type ClientRequirement } from './requirements-sidebar';
 import type { TemplateData } from '@/hooks/use-offer-templates';
 
 interface OfferWizardProps {
@@ -64,6 +65,16 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     });
   };
 
+  const requirements = Array.isArray(state.stepData.eventData.client_requirements)
+    ? (state.stepData.eventData.client_requirements as ClientRequirement[])
+    : [];
+
+  const handleRequirementsUpdate = (reqs: ClientRequirement[]) => {
+    dispatch({ type: 'SET_REQUIREMENTS', requirements: reqs });
+  };
+
+  const showSidebar = state.currentStep >= 2 && requirements.length > 0;
+
   const renderStep = () => {
     switch (state.currentStep) {
       case 1:
@@ -74,10 +85,11 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
             offerId={state.offerId}
             pricingMode={state.stepData.eventData.pricing_mode}
             peopleCount={state.stepData.eventData.people_count}
+            requirements={requirements}
           />
         );
       case 3:
-        return <StepServices offerId={state.offerId} />;
+        return <StepServices offerId={state.offerId} requirements={requirements} />;
       case 4:
         return (
           <StepSettings
@@ -95,6 +107,7 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
             eventType={state.stepData.eventData.event_type}
             eventDate={state.stepData.eventData.event_date}
             clientName={state.stepData.eventData.client_name}
+            requirements={requirements}
           />
         );
       case 6:
@@ -128,7 +141,17 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
         onStepClick={goToStep}
       />
 
-      {renderStep()}
+      <div className={showSidebar ? 'flex gap-6 items-start' : ''}>
+        <div className={showSidebar ? 'flex-1 min-w-0' : ''}>
+          {renderStep()}
+        </div>
+        {showSidebar && (
+          <RequirementsSidebar
+            requirements={requirements}
+            onUpdate={handleRequirementsUpdate}
+          />
+        )}
+      </div>
 
       {/* Navigation — hidden on step 7 (has its own actions) */}
       {state.currentStep < 7 && (
