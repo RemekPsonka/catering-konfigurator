@@ -1,3 +1,219 @@
-import { PlaceholderPage } from '@/components/common/placeholder-page';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink } from 'lucide-react';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { StatusBadge } from '@/components/common/status-badge';
+import { LoadingSpinner } from '@/components/common/loading-spinner';
+import { EmptyState } from '@/components/common/empty-state';
+import { useOffers, useDuplicateOffer } from '@/hooks/use-offers';
+import { useDebounce } from '@/hooks/use-debounce';
+import {
+  OFFER_STATUS_LABELS, EVENT_TYPE_LABELS, ITEMS_PER_PAGE,
+} from '@/lib/constants';
+import type { OfferStatus, EventType } from '@/types';
 
-export const OffersListPage = () => <PlaceholderPage title="Lista ofert" />;
+const STATUS_TABS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'Wszystkie' },
+  ...Object.entries(OFFER_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+];
+
+const formatCurrency = (value: number | null) => {
+  if (value == null) return '—';
+  return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(value);
+};
+
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '—';
+  try { return format(new Date(dateStr), 'dd.MM.yyyy'); } catch { return '—'; }
+};
+
+export const OffersListPage = () => {
+  const navigate = useNavigate();
+  const [status, setStatus] = useState('all');
+  const [eventType, setEventType] = useState('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  const debouncedSearch = useDebounce(search, 300);
+  const { data, isLoading } = useOffers({
+    status, eventType, search: debouncedSearch, page,
+  });
+  const duplicateMutation = useDuplicateOffer();
+
+  const totalPages = Math.ceil((data?.total ?? 0) / ITEMS_PER_PAGE);
+
+  const handleDuplicate = async (e: React.MouseEvent, offerId: string) => {
+    e.stopPropagation();
+    const newOffer = await duplicateMutation.mutateAsync(offerId);
+    navigate(`/admin/offers/${newOffer.id}/edit`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Oferty</h1>
+        <Button asChild>
+          <Link to="/admin/offers/new"><Plus className="mr-2 h-4 w-4" />Nowa oferta</Link>
+        </Button>
+      </div>
+
+      {/* Status tabs */}
+      <Tabs value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+        <TabsList className="flex-wrap h-auto">
+          {STATUS_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="text-xs">
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {/* Search + event type filter */}
+      <div className="flex gap-4">
+        <Input
+          placeholder="Szukaj po numerze oferty lub kliencie..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          className="max-w-sm"
+        />
+        <Select value={eventType} onValueChange={(v) => { setEventType(v); setPage(1); }}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Typ eventu" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Wszystkie typy</SelectItem>
+            {Object.entries(EVENT_TYPE_LABELS).map(([code, label]) => (
+              <SelectItem key={code} value={code}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : !data?.offers?.length ? (
+        <EmptyState
+          title="Brak ofert"
+          description="Nie znaleziono ofert spełniających kryteria."
+        />
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Numer</TableHead>
+                <TableHead>Klient</TableHead>
+                <TableHead>Typ eventu</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-right">Wartość</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Utworzono</TableHead>
+                <TableHead className="w-[50px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.offers.map((offer) => (
+                <TableRow
+                  key={offer.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/admin/offers/${offer.id}/edit`)}
+                >
+                  <TableCell className="font-mono text-sm">
+                    {offer.offer_number ?? '—'}
+                  </TableCell>
+                  <TableCell>{offer.clients?.name ?? '—'}</TableCell>
+                  <TableCell>
+                    {EVENT_TYPE_LABELS[offer.event_type as EventType] ?? offer.event_type}
+                  </TableCell>
+                  <TableCell>{formatDate(offer.event_date)}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(offer.total_value)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={offer.status as OfferStatus} type="offer" />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatDate(offer.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/offers/${offer.id}/edit`);
+                          }}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />Edytuj
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => handleDuplicate(e, offer.id)}
+                          disabled={duplicateMutation.isPending}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />Duplikuj
+                        </DropdownMenuItem>
+                        {offer.public_token && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/offer/${offer.public_token}`, '_blank');
+                            }}
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />Podgląd klienta
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Poprzednia
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Następna
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
