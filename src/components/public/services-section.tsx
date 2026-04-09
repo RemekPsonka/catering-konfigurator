@@ -19,8 +19,9 @@ const SERVICE_GROUPS: Record<string, { label: string; Icon: React.ElementType }>
 export const ServicesSection = ({ services, priceDisplayMode }: ServicesSectionProps) => {
   if (!services.length) return null;
 
-  const grouped = new Map<string, typeof services>();
-  for (const s of services) {
+  const validServices = services.filter((s) => s.services != null);
+  const grouped = new Map<string, typeof validServices>();
+  for (const s of validServices) {
     const type = s.services.type;
     const arr = grouped.get(type) ?? [];
     arr.push(s);

@@ -77,6 +77,10 @@ export const calculateOfferTotals = (
   const dishesAfterDiscount = maxDishesTotal - discountAmount;
 
   const servicesTotalCalc = services.reduce((sum, os) => {
+    if (!os.services) {
+      const fallback = os.custom_price != null ? Number(os.custom_price) : 0;
+      return sum + fallback * (os.quantity ?? 1);
+    }
     const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
     return sum + price * (os.quantity ?? 1);
   }, 0);

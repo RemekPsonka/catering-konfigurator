@@ -215,7 +215,7 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
                   Usługi dodatkowe
                 </h3>
                 <div className="space-y-2">
-                  {services.map((os) => {
+                {services.filter((os) => os.services != null).map((os) => {
                     const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
                     const qty = os.quantity ?? 1;
                     return (
