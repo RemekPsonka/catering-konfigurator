@@ -86,6 +86,10 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
             offerId={state.offerId}
             pricingMode={state.stepData.eventData.pricing_mode}
             peopleCount={state.stepData.eventData.people_count}
+            inquiryText={state.stepData.eventData.inquiry_text}
+            eventType={state.stepData.eventData.event_type}
+            eventDate={state.stepData.eventData.event_date}
+            clientName={state.stepData.eventData.client_name}
           />
         );
       default:
