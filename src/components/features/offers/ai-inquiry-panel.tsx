@@ -61,7 +61,7 @@ interface AiInquiryPanelProps {
   form: UseFormReturn<Record<string, unknown>>;
   requirements: ClientRequirement[];
   onRequirementsChange: (reqs: ClientRequirement[]) => void;
-  onCreateClient: (data: AiParsedData['client']) => void;
+  onCreateClient: (data: AiParsedData['client']) => Promise<void>;
   onUseExistingClient: (clientId: string, clientName: string) => void;
 }
 
@@ -137,13 +137,11 @@ export const AiInquiryPanel = ({
     if (hasAnyClientData) {
       try {
         if (existingClient) {
-          // Found existing client — assign
           onUseExistingClient(existingClient.id, existingClient.name);
           toast.success(`Dane eventu zastosowane. Znaleziono klienta: ${existingClient.name} — przypisano do oferty`);
         } else {
-          // Create new client
-          onCreateClient(c);
-          toast.success(`Dane eventu zastosowane. Tworzenie nowego klienta: ${c.name ?? 'Nowy klient'}`);
+          await onCreateClient(c);
+          toast.success(`Dane eventu zastosowane. Utworzono klienta: ${c.name ?? 'Nowy klient'} i przypisano do oferty`);
         }
       } catch {
         toast.info('Dane eventu zastosowane! Nie udało się przetworzyć klienta — uzupełnij ręcznie.');
@@ -270,7 +268,7 @@ export const AiInquiryPanel = ({
             icon={<Clock className="h-4 w-4" />}
             label="Godziny"
             value={parsedData.event.time_from || parsedData.event.time_to
-              ? `${parsedData.event.time_from ?? '?'} – ${parsedData.event.time_to ?? '?'}`
+              ? `${parsedData.event.time_from ?? '—'} – ${parsedData.event.time_to ?? '—'}`
               : null}
             onApply={parsedData.event.time_from ? () => {
               if (parsedData.event.time_from) applyField('event_time_from', parsedData.event.time_from);
