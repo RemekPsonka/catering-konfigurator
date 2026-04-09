@@ -48,9 +48,19 @@ const loadGoogleFont = (fontFamily: string | null) => {
   document.head.appendChild(link);
 };
 
+const isValidToken = (token: string | undefined): boolean => {
+  if (!token || token.length === 0) return false;
+  // Old format: 64-char hex
+  if (/^[a-f0-9]{64}$/.test(token)) return true;
+  // New format: 12-char alphanumeric (safe chars, no 0/O/1/l/I)
+  if (/^[A-HJ-NP-Za-hj-km-np-z2-9]{12}$/.test(token)) return true;
+  return false;
+};
+
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
-  const { data: offer, isLoading, error } = usePublicOffer(publicToken);
+  const tokenValid = isValidToken(publicToken);
+  const { data: offer, isLoading, error } = usePublicOffer(tokenValid ? publicToken : undefined);
   const markViewed = useMarkOfferViewed();
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
@@ -189,6 +199,22 @@ export const PublicOfferPage = () => {
     if (!offer?.valid_until) return false;
     return new Date() > new Date(offer.valid_until);
   }, [offer?.valid_until]);
+
+  // Invalid token format
+  if (!tokenValid) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
+          <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
+          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Nieprawidłowy link do oferty</h1>
+          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Sprawdź poprawność linku lub skontaktuj się z nami.</p>
+          <a href="/offer/find" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-charcoal px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all hover:bg-charcoal/90">
+            <Search className="h-4 w-4" /> Znajdź ofertę
+          </a>
+        </motion.div>
+      </div>
+    );
+  }
 
   // Loading
   if (isLoading) {

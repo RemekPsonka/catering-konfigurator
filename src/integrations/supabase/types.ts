@@ -1226,6 +1226,7 @@ export type Database = {
           status: Database["public"]["Enums"]["offer_status"]
         }[]
       }
+      generate_short_token: { Args: { length?: number }; Returns: string }
       get_setting: { Args: { p_key: string }; Returns: string }
       get_unread_notification_count: { Args: never; Returns: number }
       insert_notification: {
