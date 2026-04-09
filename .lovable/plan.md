@@ -1,50 +1,68 @@
 
 
-# Krok 3 (Usługi dodatkowe) + Krok 4 (Ustawienia klienta)
+# Krok 5 wizarda — Kalkulacja i podsumowanie
 
 ## Zakres
-Implementacja kroków 3 i 4 wizarda oferty. Krok 3: wybór usług z checkboxami, grupowanie per typ, ilość/cena/notatki. Krok 4: tryb wyświetlania cen, cena minimalna, edytowalność liczby osób.
+Implementacja kroku 5: read-only podsumowanie finansowe oferty z edytowalnymi polami rabatu, dostawy i tekstów. Zapisuje `discount_percent`, `discount_value`, `delivery_cost`, `greeting_text`, `notes_client`, `ai_summary` do tabeli `offers`.
 
-## Pliki do utworzenia
+## Plik do utworzenia
 
-### 1. `src/hooks/use-offer-services.ts`
-Hook React Query do CRUD `offer_services`:
-- `useOfferServices(offerId)` — query `offer_services` z joinem na `services` (name, type, price, price_type), filtr po `offer_id`
-- `useAddOfferService()` — INSERT (offer_id, service_id, quantity=1)
-- `useUpdateOfferService()` — UPDATE quantity, custom_price, notes
-- `useRemoveOfferService()` — DELETE
+### `src/components/features/offers/steps/step-calculation.tsx`
 
-### 2. `src/components/features/offers/steps/step-services.tsx`
-Krok 3 — Usługi dodatkowe:
-- Pobiera aktywne usługi z `useServices()` (is_active=true) i zaznaczone z `useOfferServices(offerId)`
-- Grupowanie w sekcje (Card per typ): Obsługa | Sprzęt | Logistyka (używa `SERVICE_TYPE_LABELS`)
-- Per usługa: Checkbox + nazwa + cena bazowa + typ ceny (badge)
-- Zaznaczenie → INSERT do `offer_services`; odznaczenie → DELETE
-- Per zaznaczona: inline inputs dla ilości (number, min 1), custom_price (opcjonalne, placeholder = cena bazowa), notatki (text)
-- Podsumowanie na dole: "Usługi łącznie: X zł" (Σ `custom_price ?? base_price` × quantity)
-- Props: `offerId: string | null`
+Komponent z 7 sekcjami w Card-ach:
 
-### 3. `src/components/features/offers/steps/step-settings.tsx`
-Krok 4 — Ustawienia klienta:
-- Pobiera aktualne dane oferty z `useQuery(['offer', offerId])` lub z wizard state
-- Zapisuje bezpośrednio do `offers` via mutation (UPDATE `price_display_mode`, `min_offer_price`, `is_people_count_editable`)
-- **Tryb wyświetlania cen**: RadioGroup z 5 opcji (DETAILED / PER_PERSON_AND_TOTAL / TOTAL_ONLY / PER_PERSON_ONLY / HIDDEN), każda z opisem
-- **Cena minimalna**: Input number, opcjonalny, z tooltipem
-- **Edytowalność liczby osób**: Switch z wyjaśnieniem zależnym od pricing_mode
-- Podgląd na dole: "Klient zobaczy ceny w trybie: [wybrana opcja]"
-- Props: `offerId: string | null`, `pricingMode: string`
+**Sekcja 1 — Kalkulacja per wariant** (Accordion/Tabs):
+- Reuse `useOfferVariants(offerId)` + `getItemPrice()` z `use-offer-variants.ts`
+- Per wariant: tabela read-only (Danie | Ilość | Cena jedn. | Suma)
+- Podsumowanie zależne od `pricingMode`:
+  - PER_PERSON: `[kwota]/os × [people_count] os = [total] zł`
+  - FIXED_QUANTITY: `[total] zł`
 
-## Pliki do zmodyfikowania
+**Sekcja 2 — Usługi** (read-only):
+- Reuse `useOfferServices(offerId)`
+- Tabela: Usługa | Ilość | Cena | Suma
+- "Usługi łącznie: X zł"
 
-### 4. `src/components/features/offers/offer-wizard.tsx`
-- Import `StepServices` i `StepSettings`
-- `case 3`: render `<StepServices offerId={state.offerId} />`
-- `case 4`: render `<StepSettings offerId={state.offerId} pricingMode={state.stepData.eventData.pricing_mode} />`
+**Sekcja 3 — Rabat** (edytowalne):
+- RadioGroup: "Rabat procentowy" / "Rabat kwotowy"
+- Input % → auto-wylicz kwotę: "Rabat X% = Y zł"
+- Lub input PLN
+- Rabat TYLKO od dań (nie usług/dostawy)
+- "Dania po rabacie: X zł"
+
+**Sekcja 4 — Dostawa** (edytowalne):
+- Input number: kwota dostawy
+
+**Sekcja 5 — Podsumowanie końcowe** (read-only kalkulacja):
+- Dania (najdroższy wariant): X zł
+- Rabat: -Y zł
+- Usługi: Z zł
+- Dostawa: W zł
+- **ŁĄCZNIE: TOTAL zł**
+- Cena/os: TOTAL / people_count
+
+**Sekcja 6 — Tekst powitalny** (edytowalne):
+- Textarea z pre-filled `greeting_text` z kroku 1
+- Przycisk "Wygeneruj z AI" (na przyszłość — disabled z tooltipem "Wkrótce")
+
+**Sekcja 7 — Notatki**:
+- Textarea "Notatki dla klienta" (`notes_client`)
+- Textarea "Notatki wewnętrzne" (`notes_internal`) — widoczne tylko w admin
+
+### Auto-save:
+- Mutation UPDATE `offers` z `discount_percent`, `discount_value`, `delivery_cost`, `greeting_text`, `notes_client`, `notes_internal` na blur/change (debounced)
+- Przelicz `total_dishes_value`, `total_services_value`, `total_value`, `price_per_person` i zapisz do `offers`
+
+## Plik do zmodyfikowania
+
+### `src/components/features/offers/offer-wizard.tsx`
+- Import `StepCalculation`, render w `case 5`
+- Props: `offerId`, `pricingMode`, `peopleCount`
 
 ## Szczegóły techniczne
-- Usługi query: `supabase.from('offer_services').select('*, services(*)').eq('offer_id', id)`
-- Dostępne usługi: reuse `useServices()` z istniejącego hooka (bez filterType = wszystkie aktywne)
-- Krok 3 wymaga offerId — wizard już wymusza zapis szkicu przed krokiem 2+
-- Krok 4 UPDATE: `supabase.from('offers').update({ price_display_mode, min_offer_price, is_people_count_editable }).eq('id', offerId)`
-- Brak zmian w bazie danych — tabele `offer_services` i `offers` już istnieją z wymaganymi kolumnami
+- Najdroższy wariant do podsumowania: `Math.max(...variants.map(v => calculateVariantTotal(v)))`
+- Formuła: `total = (dishes_total - discount) + services_total + delivery_cost`
+- Rabat XOR: jeśli `discount_percent > 0` → `discount_value = 0` i odwrotnie
+- `formatCurrency()` z `src/lib/calculations.ts` do wyświetlania kwot
+- Brak zmian w bazie danych
 
