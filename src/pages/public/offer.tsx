@@ -232,7 +232,7 @@ export const PublicOfferPage = () => {
               Szukaj oferty
             </a>
             <a
-              href="mailto:kontakt@cateringsl.pl"
+              href="mailto:zamowienia@cateringslaski.pl"
               className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal"
             >
               <Mail className="h-4 w-4" />
@@ -279,7 +279,7 @@ export const PublicOfferPage = () => {
               Szukaj oferty
             </a>
             <a
-              href="mailto:kontakt@cateringsl.pl"
+              href="mailto:zamowienia@cateringslaski.pl"
               className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal"
             >
               <Mail className="h-4 w-4" />
