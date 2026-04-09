@@ -1,3 +1,3 @@
-import { PlaceholderPage } from '@/components/common/placeholder-page';
+import { OfferWizard } from '@/components/features/offers/offer-wizard';
 
-export const OfferNewPage = () => <PlaceholderPage title="Nowa oferta" />;
+export const OfferNewPage = () => <OfferWizard />;
