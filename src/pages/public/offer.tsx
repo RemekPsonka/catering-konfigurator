@@ -467,7 +467,28 @@ export const PublicOfferPage = () => {
       {/* 7. KALKULACJA */}
       <CalculationSection offer={offer} modifications={modifications} />
 
-      {/* 8-11: Placeholder — warunki, zmiany, akceptacja, kontakt — P-3.4 – P-3.5 */}
+      {/* 8. WARUNKI OFERTY */}
+      <TermsSection />
+
+      {/* 9. UWAGI I KOREKTY */}
+      <CorrectionsSection offerId={offer.id} />
+
+      {/* 10. AKCEPTACJA OFERTY */}
+      {!offerAccepted && (
+        <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} />
+      )}
+
+      {/* 11. KONTAKT */}
+      <ContactSection />
+
+      {/* Floating changes panel */}
+      <ChangesPanel
+        modifications={modifications}
+        offer={offer}
+        onClearModifications={handleClearModifications}
+        originalTotal={originalTotal}
+        proposedTotal={proposedTotal}
+      />
 
       {/* 12. FOOTER */}
       <motion.footer
