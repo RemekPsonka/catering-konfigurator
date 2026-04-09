@@ -378,8 +378,28 @@ export const PublicOfferPage = () => {
 
   const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : 'Catering Śląski');
 
+  const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
+  const editableCount = useMemo(() => {
+    if (!offer) return 0;
+    return offer.offer_variants.reduce((acc, v) => acc + v.variant_items.filter((item) => {
+      const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
+      return item.is_client_editable && mods && typeof mods === 'object';
+    }).length, 0);
+  }, [offer]);
+
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
+      {/* Onboarding overlay */}
+      {showOnboarding && (
+        <OnboardingOverlay
+          variantCount={offer.offer_variants.length}
+          editableCount={editableCount}
+          onDismiss={() => setOnboardingDismissed(true)}
+        />
+      )}
+
+      {/* Editable tooltip */}
+      <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
       {/* 1. HERO */}
       <section className="relative min-h-[50vh] overflow-hidden md:min-h-[60vh]">
         <motion.div
@@ -586,6 +606,17 @@ export const PublicOfferPage = () => {
       {/* 10. KALKULACJA */}
       <CalculationSection offer={offer} modifications={modifications} />
 
+      {/* 10.5. PORÓWNANIE WARIANTÓW */}
+      {offer.offer_variants.length >= 2 && (
+        <VariantComparisonSection
+          variants={offer.offer_variants}
+          pricingMode={offer.pricing_mode}
+          peopleCount={offer.people_count}
+          priceDisplayMode={offer.price_display_mode}
+          onSelectVariant={setPreSelectedVariantId}
+        />
+      )}
+
       {/* 11. OPINIA KLIENTA */}
       {eventProfile?.testimonial_text && (
         <TestimonialSection
@@ -603,7 +634,9 @@ export const PublicOfferPage = () => {
 
       {/* 14. AKCEPTACJA OFERTY */}
       {!offerAccepted && (
-        <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} />
+        <div id="acceptance-section">
+          <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} />
+        </div>
       )}
 
       {/* 15. KONTAKT */}
