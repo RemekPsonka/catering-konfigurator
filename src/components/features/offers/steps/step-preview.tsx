@@ -322,6 +322,12 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3 justify-end pt-4 border-t">
+        {offerId && (
+          <Button variant="ghost" onClick={() => setTemplateDialogOpen(true)}>
+            <BookTemplate className="mr-2 h-4 w-4" />
+            Zapisz jako szablon
+          </Button>
+        )}
         <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           Zapisz szkic
@@ -335,6 +341,16 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount }: StepPreviewPr
           Wyślij do klienta
         </Button>
       </div>
+
+      {offerId && (
+        <SaveTemplateDialog
+          offerId={offerId}
+          eventType={offer?.event_type ?? ''}
+          pricingMode={pricingMode}
+          open={templateDialogOpen}
+          onOpenChange={setTemplateDialogOpen}
+        />
+      )}
     </div>
   );
 };
