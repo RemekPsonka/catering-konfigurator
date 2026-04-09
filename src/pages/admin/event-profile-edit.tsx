@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -11,7 +11,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   useEventProfile,
   useUpdateEventProfile,
@@ -21,9 +23,10 @@ import {
   useSetHeroPhoto,
   useUpdateEventPhoto,
   useReorderEventPhotos,
+  useUpdateEventPhotoTags,
 } from '@/hooks/use-event-profiles';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
-import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 interface Feature {
@@ -32,20 +35,74 @@ interface Feature {
   text: string;
 }
 
+const PREDEFINED_TAGS = [
+  { emoji: '🎨', label: 'dekoracje' },
+  { emoji: '🍽️', label: 'stoły' },
+  { emoji: '🥗', label: 'bufet' },
+  { emoji: '🎂', label: 'tort' },
+  { emoji: '🏛️', label: 'sala' },
+  { emoji: '🌳', label: 'plener' },
+  { emoji: '👥', label: 'goście' },
+  { emoji: '🔧', label: 'setup' },
+  { emoji: '✨', label: 'detale' },
+  { emoji: '👨‍🍳', label: 'kuchnia' },
+  { emoji: '🍸', label: 'napoje' },
+  { emoji: '🎭', label: 'tematyczne' },
+];
+
+const TAG_COLORS: Record<string, string> = {
+  dekoracje: 'bg-pink-100 text-pink-800',
+  stoły: 'bg-blue-100 text-blue-800',
+  bufet: 'bg-green-100 text-green-800',
+  tort: 'bg-yellow-100 text-yellow-800',
+  sala: 'bg-purple-100 text-purple-800',
+  plener: 'bg-emerald-100 text-emerald-800',
+  goście: 'bg-orange-100 text-orange-800',
+  setup: 'bg-slate-100 text-slate-800',
+  detale: 'bg-amber-100 text-amber-800',
+  kuchnia: 'bg-red-100 text-red-800',
+  napoje: 'bg-cyan-100 text-cyan-800',
+  tematyczne: 'bg-indigo-100 text-indigo-800',
+};
+
+const getTagColor = (tag: string) => TAG_COLORS[tag] ?? 'bg-muted text-muted-foreground';
+
 // --- Sortable Photo Card ---
 const SortablePhotoCard = ({
   photo,
   onDelete,
   onSetHero,
   onUpdateMeta,
+  onUpdateTags,
 }: {
   photo: Tables<'event_type_photos'>;
   onDelete: () => void;
   onSetHero: () => void;
   onUpdateMeta: (caption: string | null, altText: string | null) => void;
+  onUpdateTags: (tags: string[]) => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: photo.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
+  const [customTag, setCustomTag] = useState('');
+  const tags = photo.tags ?? [];
+
+  const addTag = (tag: string) => {
+    const t = tag.trim().toLowerCase();
+    if (!t || tags.includes(t)) return;
+    onUpdateTags([...tags, t]);
+  };
+
+  const removeTag = (tag: string) => {
+    onUpdateTags(tags.filter((t) => t !== tag));
+  };
+
+  const handleCustomTagSubmit = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag(customTag);
+      setCustomTag('');
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style} className="border rounded-lg p-2 bg-background space-y-2">
@@ -86,7 +143,53 @@ const SortablePhotoCard = ({
           </Button>
         </div>
       </div>
-      {photo.is_hero && <Badge variant="secondary" className="text-xs">⭐ Hero</Badge>}
+
+      {/* Tags row */}
+      <div className="flex items-center gap-1 flex-wrap pl-6">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ${getTagColor(tag)}`}
+            onClick={() => removeTag(tag)}
+            title="Kliknij aby usunąć"
+          >
+            {PREDEFINED_TAGS.find((p) => p.label === tag)?.emoji ?? '🏷️'} {tag}
+            <X className="h-3 w-3 ml-0.5" />
+          </span>
+        ))}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs">
+              <Tag className="h-3 w-3 mr-1" /> +Tag
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="space-y-1">
+              {PREDEFINED_TAGS.filter((pt) => !tags.includes(pt.label)).map((pt) => (
+                <button
+                  key={pt.label}
+                  type="button"
+                  className="w-full text-left px-2 py-1 text-xs rounded hover:bg-muted transition-colors"
+                  onClick={() => addTag(pt.label)}
+                >
+                  {pt.emoji} {pt.label}
+                </button>
+              ))}
+              <div className="border-t pt-1 mt-1">
+                <Input
+                  placeholder="Własny tag + Enter"
+                  value={customTag}
+                  onChange={(e) => setCustomTag(e.target.value)}
+                  onKeyDown={handleCustomTagSubmit}
+                  className="h-7 text-xs"
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {photo.is_hero && <Badge variant="secondary" className="text-xs ml-6">⭐ Hero</Badge>}
     </div>
   );
 };
@@ -151,9 +254,12 @@ export const EventProfileEditPage = () => {
   const deletePhoto = useDeleteEventPhoto();
   const setHero = useSetHeroPhoto();
   const updatePhotoMeta = useUpdateEventPhoto();
+  const updatePhotoTags = useUpdateEventPhotoTags();
   const reorderPhotos = useReorderEventPhotos();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Tables<'event_type_photos'> | null>(null);
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
 
   const [headline, setHeadline] = useState('');
   const [descShort, setDescShort] = useState('');
@@ -181,6 +287,21 @@ export const EventProfileEditPage = () => {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const opt = EVENT_TYPE_OPTIONS.find((o) => o.value === eventTypeId);
+
+  // Collect all unique tags from photos
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    photos.forEach((p) => (p.tags ?? []).forEach((t) => tagSet.add(t)));
+    return Array.from(tagSet).sort();
+  }, [photos]);
+
+  // Filter photos by active tag
+  const filteredPhotos = useMemo(() => {
+    if (!activeTagFilter) return photos;
+    return photos.filter((p) => (p.tags ?? []).includes(activeTagFilter));
+  }, [photos, activeTagFilter]);
+
+  const testimonialMissingAuthor = !!testimonialText && !testimonialAuthor.trim();
 
   const handleSave = useCallback(() => {
     if (!eventTypeId) return;
@@ -292,14 +413,19 @@ export const EventProfileEditPage = () => {
           <div>
             <Label>Opis długi (marketing)</Label>
             <Textarea value={descLong} onChange={(e) => setDescLong(e.target.value)} rows={4} />
+            <p className="text-xs text-muted-foreground mt-1">Ten tekst pojawia się na stronie klienta w sekcji &quot;O naszym cateringu&quot;</p>
           </div>
           <div>
             <Label>Tekst CTA</Label>
             <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)} placeholder="Zaplanuj idealny catering na Komunię" />
+            <p className="text-xs text-muted-foreground mt-1">Przycisk akcji na dole strony klienta</p>
           </div>
           <div className="flex items-center gap-2">
             <Switch checked={isActive} onCheckedChange={setIsActive} />
-            <Label>Aktywny</Label>
+            <div>
+              <Label>Aktywny</Label>
+              <p className="text-xs text-muted-foreground">Wyłączenie ukrywa profil na stronie klienta</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -315,7 +441,7 @@ export const EventProfileEditPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {features.length === 0 && <p className="text-sm text-muted-foreground">Brak wyróżników. Kliknij "Dodaj" aby dodać.</p>}
+          {features.length === 0 && <p className="text-sm text-muted-foreground">Brak wyróżników. Kliknij &quot;Dodaj&quot; aby dodać.</p>}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFeatureDragEnd}>
             <SortableContext items={features.map((_, i) => `feature-${i}`)} strategy={rectSortingStrategy}>
               {features.map((f, i) => (
@@ -337,7 +463,15 @@ export const EventProfileEditPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Autor</Label>
-              <Input value={testimonialAuthor} onChange={(e) => setTestimonialAuthor(e.target.value)} placeholder="Katarzyna i Marek N." />
+              <Input
+                value={testimonialAuthor}
+                onChange={(e) => setTestimonialAuthor(e.target.value)}
+                placeholder="Katarzyna i Marek N."
+                className={testimonialMissingAuthor ? 'border-destructive' : ''}
+              />
+              {testimonialMissingAuthor && (
+                <p className="text-xs text-destructive mt-1">Autor jest wymagany gdy tekst opinii jest wypełniony</p>
+              )}
             </div>
             <div>
               <Label>Wydarzenie</Label>
@@ -378,16 +512,43 @@ export const EventProfileEditPage = () => {
             />
           </div>
 
+          {/* Tag filters */}
+          {allTags.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                type="button"
+                variant={activeTagFilter === null ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setActiveTagFilter(null)}
+              >
+                Wszystkie
+              </Button>
+              {allTags.map((tag) => (
+                <Button
+                  key={tag}
+                  type="button"
+                  variant={activeTagFilter === tag ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
+                >
+                  {PREDEFINED_TAGS.find((p) => p.label === tag)?.emoji ?? '🏷️'} {tag}
+                </Button>
+              ))}
+            </div>
+          )}
+
           {/* Photo grid */}
-          {photos.length > 0 && (
+          {filteredPhotos.length > 0 && (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
-              <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
+              <SortableContext items={filteredPhotos.map((p) => p.id)} strategy={rectSortingStrategy}>
                 <div className="space-y-2">
-                  {photos.map((photo) => (
+                  {filteredPhotos.map((photo) => (
                     <SortablePhotoCard
                       key={photo.id}
                       photo={photo}
-                      onDelete={() => deletePhoto.mutate({ photo })}
+                      onDelete={() => setDeleteTarget(photo)}
                       onSetHero={() =>
                         eventTypeId &&
                         setHero.mutate({ photoId: photo.id, eventTypeId, photoUrl: photo.photo_url })
@@ -395,6 +556,10 @@ export const EventProfileEditPage = () => {
                       onUpdateMeta={(caption, altText) =>
                         eventTypeId &&
                         updatePhotoMeta.mutate({ id: photo.id, caption, altText, eventTypeId })
+                      }
+                      onUpdateTags={(tags) =>
+                        eventTypeId &&
+                        updatePhotoTags.mutate({ id: photo.id, tags, eventTypeId })
                       }
                     />
                   ))}
@@ -404,6 +569,21 @@ export const EventProfileEditPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirm delete dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Usuń zdjęcie"
+        description="Czy na pewno usunąć to zdjęcie? Nie można cofnąć."
+        confirmLabel="Usuń"
+        onConfirm={() => {
+          if (deleteTarget) {
+            deletePhoto.mutate({ photo: deleteTarget });
+            setDeleteTarget(null);
+          }
+        }}
+      />
 
       {/* Section 5 — Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
@@ -443,7 +623,7 @@ export const EventProfileEditPage = () => {
             {/* Testimonial */}
             {testimonialText && (
               <blockquote className="border-l-4 border-primary pl-4 italic text-sm text-muted-foreground">
-                <p>"{testimonialText}"</p>
+                <p>&quot;{testimonialText}&quot;</p>
                 {testimonialAuthor && (
                   <footer className="mt-2 not-italic font-medium text-foreground">
                     — {testimonialAuthor}
