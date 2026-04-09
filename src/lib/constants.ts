@@ -1,5 +1,7 @@
 import type { OfferStatus, LeadStatus, EventType, DishCategory } from '@/types';
 
+export const DEV_MODE = true; // ← ZMIEŃ NA false PRZED DEPLOYEM
+
 export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   draft: 'Szkic',
   ready: 'Gotowa',

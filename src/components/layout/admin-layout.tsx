@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/use-auth';
+import { DEV_MODE } from '@/lib/constants';
 import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -81,6 +82,11 @@ export const AdminLayout = () => {
       <div className="min-h-screen flex w-full">
         <SidebarNav />
         <div className="flex-1 flex flex-col">
+          {DEV_MODE && (
+            <div className="bg-destructive text-destructive-foreground text-center text-sm font-medium py-1.5">
+              ⚠️ TRYB DEWELOPERSKI — logowanie wyłączone
+            </div>
+          )}
           <header className="h-14 flex items-center justify-between border-b px-4">
             <SidebarTrigger className="ml-0" />
             <div className="flex items-center gap-3">
