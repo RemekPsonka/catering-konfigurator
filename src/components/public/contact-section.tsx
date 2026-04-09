@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Phone, Mail, Instagram } from 'lucide-react';
+import { Phone, Mail, Instagram, FileDown } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 
 const CONTACTS = [
@@ -25,9 +25,10 @@ const CONTACTS = [
 
 interface ContactSectionProps {
   ctaText?: string | null;
+  onPrint?: () => void;
 }
 
-export const ContactSection = ({ ctaText }: ContactSectionProps) => {
+export const ContactSection = ({ ctaText, onPrint }: ContactSectionProps) => {
   return (
     <motion.section
       variants={staggerContainer}
@@ -55,6 +56,22 @@ export const ContactSection = ({ ctaText }: ContactSectionProps) => {
               <Phone className="h-5 w-5" />
               {ctaText}
             </a>
+          </motion.div>
+        )}
+
+        {onPrint && (
+          <motion.div variants={fadeInUp} className="mb-8 flex justify-center no-print">
+            <button
+              onClick={onPrint}
+              className="inline-flex items-center gap-2 rounded-xl border-2 px-6 py-3 font-body font-semibold tracking-wide transition-all hover:opacity-80"
+              style={{
+                borderColor: 'var(--theme-primary, #1A1A1A)',
+                color: 'var(--theme-primary, #1A1A1A)',
+              }}
+            >
+              <FileDown className="h-5 w-5" />
+              Pobierz ofertę PDF
+            </button>
           </motion.div>
         )}
 
