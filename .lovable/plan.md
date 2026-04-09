@@ -1,30 +1,83 @@
 
 
-# Naprawa: link oferty ze statusem "ready" nie działa
+# Dezaktywacja "Wyślij do klienta" + przycisk "Wygeneruj treść emaila"
 
-## Diagnoza
-Oferta ma status `ready` (ustawiony przez "Zapisz i pokaż link"), ale:
-1. **RLS policy `public_offer_read`** pozwala tylko na `sent, viewed, revision, accepted` — brak `ready`
-2. **Hook `usePublicOffer`** filtruje `.in('status', ['sent', 'viewed', 'revision', 'accepted', 'won'])` — brak `ready`
-3. **RLS na powiązanych tabelach** (`offer_variants`, `variant_items`, `offer_services`) — też brak `ready`
+## Zakres
+1. Dezaktywacja przycisku "Wyślij do klienta" (disabled + tooltip z info)
+2. Nowy przycisk "Wygeneruj treść emaila" — generuje gotowy tekst emaila z podsumowaniem oferty, linkiem publicznym i onboardingiem (informacja że klient może dopasować ofertę po kliknięciu)
+3. Dialog z wygenerowanym tekstem do skopiowania
 
-## Rozwiązanie
-Dodać `ready` do wszystkich miejsc kontrolujących dostęp publiczny.
+## Plik do zmodyfikowania: `src/components/features/offers/steps/step-preview.tsx`
 
-## Zmiany
+### 1. Nowy stan
+- `emailDialogOpen: boolean` — dialog z treścią emaila
+- `emailText: string` — wygenerowana treść
 
-### 1. Migracja — aktualizacja 5 RLS policies
-- `public_offer_read` na `offers` — dodać `ready`
-- `public_offer_accept` na `offers` — dodać `ready` do USING
-- `public_variants_read` na `offer_variants` — dodać `ready`
-- `public_items_read` na `variant_items` — dodać `ready`
-- `public_services_read` na `offer_services` — dodać `ready`
+### 2. Funkcja `handleGenerateEmail`
+- Zapisz ofertę jako `ready` (jak "Zapisz i pokaż link")
+- Zbuduj treść emaila z danymi oferty:
+  - Powitanie klienta
+  - Numer oferty, typ wydarzenia, data, liczba osób
+  - Podsumowanie wariantów (nazwy + liczba dań)
+  - Usługi dodatkowe
+  - Łączna kwota
+  - Link publiczny do oferty
+  - **Onboarding**: informacja że po kliknięciu w link klient może przeglądać menu, proponować zmiany w daniach, zaakceptować ofertę
+  - Dane kontaktowe
+- Otwórz dialog z treścią
 
-### 2. `src/hooks/use-public-offer.ts`
-- Linia z `.in('status', [...])` — dodać `'ready'` do tablicy
+### 3. Nowy szablon w `src/lib/email-templates.ts`
+- `OFFER_EMAIL_RICH_TEMPLATE` — rozbudowany szablon z placeholderami na podsumowanie oferty i sekcję onboardingową
+- `buildRichOfferEmail(params)` — funkcja budująca treść
 
-### 3. `src/pages/public/offer-find.tsx`
-- Sprawdzić czy `ACCESSIBLE_STATUSES` zawiera `ready` — jeśli nie, dodać
+### 4. Dialog z treścią emaila
+- Textarea (read-only) z wygenerowaną treścią
+- Przycisk "Kopiuj do schowka"
+- Przycisk "Otwórz w kliencie email" → `mailto:{clientEmail}?subject=...&body=...`
 
-## Brak zmian strukturalnych w bazie danych — tylko aktualizacja policies.
+### 5. Przycisk "Wyślij do klienta"
+- `disabled` na stałe
+- Tooltip: "Funkcja w przygotowaniu"
+
+### 6. Nowy przycisk w akcjach
+- Ikona: `Mail` z lucide-react
+- Label: "Wygeneruj treść emaila"
+- Pozycja: przed disabled "Wyślij do klienta"
+
+## Treść emaila (szablon)
+```
+Szanowna/y {clientName},
+
+Przygotowaliśmy dla Państwa ofertę cateringową nr {offerNumber}.
+
+📋 Szczegóły:
+- Typ wydarzenia: {eventType}
+- Data: {eventDate}
+- Liczba osób: {peopleCount}
+
+🍽️ Menu:
+{variantsSummary}
+
+{servicesSummary}
+
+💰 Wartość oferty: {totalValue}
+
+👉 Kliknij aby zobaczyć pełną ofertę:
+{offerLink}
+
+✨ Po otwarciu linku możesz:
+- Przeglądać szczegółowe menu z opisami dań
+- Proponować zmiany — zamienić dania na alternatywne
+- Zaakceptować ofertę online jednym kliknięciem
+
+Jeśli link nie działa, wejdź na {findLink} i wpisz swój email oraz numer oferty.
+
+Oferta ważna do: {validUntil}
+
+Pozdrawiamy,
+Catering Śląski
+tel. +48 123 456 789 | zamowienia@cateringslaski.pl
+```
+
+## Brak zmian w bazie danych
 
