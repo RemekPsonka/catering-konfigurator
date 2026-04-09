@@ -1,67 +1,108 @@
 
 
-# Krok 6 (Motyw graficzny) + Krok 7 (Podgląd i wysyłka)
+# System szablonów ofert
 
 ## Zakres
-Implementacja ostatnich dwóch kroków wizarda oferty: wybór motywu graficznego z podglądem kolorów/fontów oraz uproszczony podgląd oferty z akcjami zapisu/wysyłki.
+Trzy funkcjonalności: zapisywanie oferty jako szablon, tworzenie nowej oferty z szablonu, zarządzanie szablonami w ustawieniach.
 
 ## Pliki do utworzenia
 
-### 1. `src/components/features/offers/steps/step-theme.tsx`
-Krok 6 — Motyw graficzny:
-- Pobiera `offer_themes` z Supabase (12 motywów) via `useQuery`
-- Pobiera aktualny `theme_id` oferty via `useQuery(['offer-theme', offerId])`
-- Auto-wybór: domyślny `theme_id` = `event_type` (ustawiony przez trigger `set_default_theme`)
-- Siatka 3-4 kolumny z kartami motywów: miniaturka kolorów (primary, secondary, accent jako kółka/kwadraty), nazwa, nastrój (mood badge)
-- Zaznaczony motyw z obramowaniem primary + check icon
-- Na klik: `UPDATE offers SET theme_id = X WHERE id = offerId`
-- Pod siatką: podgląd wybranego motywu — ramka z przykładowym nagłówkiem oferty:
-  - Tło: `background_color`, tekst: `text_color`
-  - Nagłówek w `header_font` (lub `font_family`) z kolorem `primary_color`
-  - Przykładowy tekst w `font_family`
-  - Pasek akcentowy w `accent_color`
-- Props: `offerId: string | null`, `eventType: string`
+### 1. `src/hooks/use-offer-templates.ts`
+Hook React Query do CRUD `offer_templates`:
+- `useOfferTemplates(filterEventType?)` — lista szablonów z opcjonalnym filtrem
+- `useSaveAsTemplate()` — mutation: pobiera pełne dane oferty (variants + items + services + settings), buduje `template_data` JSONB, INSERT do `offer_templates`
+- `useCreateFromTemplate()` — mutation: pobiera szablon, tworzy nową ofertę draft z `template_data` (warianty, dania, usługi, ustawienia), klient/daty/osoby puste
+- `useUpdateTemplate()` — mutation: update nazwy/opisu
+- `useToggleTemplate()` — mutation: toggle `is_active`
 
-### 2. `src/components/features/offers/steps/step-preview.tsx`
-Krok 7 — Podgląd i wysyłka:
-- Pobiera pełne dane oferty: `offers` + `clients` + `offer_variants` z `variant_items.dishes` + `offer_services.services` + `offer_themes` + `offer_terms`
-- Renderuje uproszczony podgląd oferty inline (MVP — nie pixel-perfect):
-  - Header z logo/nazwą firmy w kolorach motywu
-  - Tekst powitalny (`greeting_text`)
-  - Per wariant: nazwa + lista dań z cenami (wg `price_display_mode`)
-  - Edytowalne pozycje oznaczone ikoną 🔄
-  - Kalkulacja wg `price_display_mode` (DETAILED/PER_PERSON_AND_TOTAL/TOTAL_ONLY/PER_PERSON_ONLY/HIDDEN)
-  - Usługi (jeśli `price_display_mode` != HIDDEN)
-  - Warunki z tabeli `offer_terms` (is_active=true)
-  - Notatki dla klienta
-  - Footer z ważnością oferty (`valid_until`)
-- Trzy przyciski akcji:
-  1. **"Zapisz szkic"** → status: draft, toast, redirect `/admin/offers`
-  2. **"Oznacz jako gotowa"** → status: ready, toast, redirect
-  3. **"Wyślij do klienta"** → walidacja email klienta → status: sent, `sent_at = now()` → `console.log('Email wysłany do:', clientEmail, 'Link:', publicUrl)` (faktyczna wysyłka w Fazie 3) → redirect z toast "Oferta wysłana!"
-- Props: `offerId: string | null`, `pricingMode: string`, `peopleCount: number`
+### 2. `src/components/features/offers/save-template-dialog.tsx`
+Modal "Zapisz jako szablon":
+- Pola: nazwa (required), opis (optional), event_type (pre-filled, readonly), pricing_mode (pre-filled, readonly)
+- Przycisk "Zapisz" → `useSaveAsTemplate().mutate({ offerId, name, description })`
+- Props: `offerId: string; eventType: string; pricingMode: string; open: boolean; onOpenChange`
+
+### 3. `src/components/features/offers/use-template-dialog.tsx`
+Modal "Użyj szablonu":
+- Lista szablonów (`is_active = true`) z filtrami per event_type
+- Per szablon: nazwa, opis, event_type label, pricing_mode label, liczba wariantów (z `template_data`)
+- Klik → `useCreateFromTemplate().mutate(templateId)` → navigate do `/admin/offers/{newOfferId}/edit`
+- Props: `open: boolean; onOpenChange`
+
+### 4. `src/components/features/settings/templates-page.tsx`
+Tab "Szablony" w ustawieniach:
+- Tabela: Nazwa | Typ eventu | Pricing mode | Warianty | Aktywny (Switch) | Akcje (edycja nazwy/opisu)
+- Inline edit dialog dla nazwy/opisu
+- Toggle `is_active` via Switch
 
 ## Pliki do zmodyfikowania
 
-### 3. `src/components/features/offers/offer-wizard.tsx`
-- Import `StepTheme` i `StepPreview`
-- `case 6`: render `<StepTheme offerId={state.offerId} eventType={state.stepData.eventData.event_type} />`
-- `case 7`: render `<StepPreview offerId={state.offerId} pricingMode={state.stepData.eventData.pricing_mode} peopleCount={state.stepData.eventData.people_count} />`
-- Na kroku 7: zamień dolny przycisk "Dalej" na trzy przyciski z komponentu `StepPreview` (lub ukryj dolną nawigację i obsłuż w samym komponencie)
+### 5. `src/pages/admin/offers-list.tsx`
+- Import `SaveTemplateDialog` i `UseTemplateDialog`
+- Dodaj do dropdown menu per wiersz: "Zapisz jako szablon" → otwiera `SaveTemplateDialog`
+- Dodaj przycisk "Z szablonu" obok "Nowa oferta" → otwiera `UseTemplateDialog`
 
-### 4. `src/hooks/use-offer-wizard.ts`
-- Dodaj mutation `updateStatus` do zmiany statusu oferty (draft/ready/sent) z odpowiednimi polami (`sent_at`)
-- Eksportuj z hooka, użyj w `StepPreview`
+### 6. `src/components/features/offers/steps/step-preview.tsx`
+- Dodaj przycisk "Zapisz jako szablon" (BookTemplate icon) obok przycisków akcji
+- Otwiera `SaveTemplateDialog` z danymi oferty
 
-## Szczegoly techniczne
-- Motywy: `supabase.from('offer_themes').select('*')` — 12 rekordow seed data z kolumnami `primary_color, secondary_color, accent_color, background_color, text_color, font_family, header_font, mood, hero_pattern`
-- Podglad motywu: inline `style` z CSS custom properties z tabeli
-- `price_display_mode` steruje widocznoscią cen w podglądzie:
-  - `DETAILED`: pełna tabela cen per danie + usługi + rabat + delivery + total
-  - `PER_PERSON_AND_TOTAL`: cena/os per wariant + łączna kwota
-  - `TOTAL_ONLY`: tylko łączna kwota
-  - `PER_PERSON_ONLY`: tylko cena/os per wariant
-  - `HIDDEN`: "Cena do ustalenia indywidualnie"
-- Link publiczny: `/offer/${public_token}` (token auto-generowany przez trigger)
-- Brak zmian w bazie danych — tabele `offer_themes`, `offers`, `offer_terms` już istnieją
+### 7. `src/components/features/offers/steps/step-event-data.tsx`
+- Dodaj przycisk "Użyj szablonu" na górze formularza
+- Otwiera `UseTemplateDialog`
+
+### 8. `src/pages/admin/settings.tsx`
+- Dodaj tab "Szablony" z komponentem `TemplatesPage`
+
+## Template data JSONB structure
+```typescript
+interface TemplateData {
+  variants: Array<{
+    name: string;
+    description: string | null;
+    is_recommended: boolean;
+    sort_order: number;
+    items: Array<{
+      dish_id: string;
+      quantity: number;
+      custom_price: number | null;
+      custom_name: string | null;
+      sort_order: number;
+      is_client_editable: boolean;
+      allowed_modifications: unknown;
+      selected_variant_option: string | null;
+    }>;
+  }>;
+  services: Array<{
+    service_id: string;
+    quantity: number;
+    custom_price: number | null;
+    notes: string | null;
+  }>;
+  settings: {
+    price_display_mode: string;
+    is_people_count_editable: boolean;
+    min_offer_price: number | null;
+    theme_id: string | null;
+    greeting_text: string | null;
+    notes_client: string | null;
+    discount_percent: number;
+    discount_value: number;
+    delivery_cost: number;
+  };
+  pricing_mode: string;
+}
+```
+
+## Logika `useCreateFromTemplate`
+1. Pobierz szablon z `offer_templates`
+2. INSERT `offers` z `template_data.settings` + `pricing_mode` + `event_type` ze szablonu, `client_id` = placeholder (wymaga uzupełnienia w kroku 1), `status = 'draft'`
+3. Per wariant z `template_data.variants`: INSERT `offer_variants`, potem bulk INSERT `variant_items`
+4. Bulk INSERT `offer_services` z `template_data.services`
+5. Navigate do `/admin/offers/{newId}/edit`
+
+## Szczegóły techniczne
+- Tabela `offer_templates` już istnieje z kolumnami: `id, name, description, event_type, pricing_mode, template_data (JSONB), is_active, created_by, created_at, updated_at`
+- `created_by` = `auth.uid()` z hooka `useAuth`
+- Brak zmian w bazie danych
+- Reuse `useDuplicateOffer` pattern dla tworzenia z szablonu (INSERT offer → INSERT variants → INSERT items → INSERT services)
+- Filtrowanie szablonów: `is_active = true` w dialogu użycia, wszystkie w ustawieniach
 
