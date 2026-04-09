@@ -427,6 +427,22 @@ export const DishForm = ({ dish, mode }: DishFormProps) => {
           </CardContent>
         </Card>
 
+        {/* Section 3.5 — Zdjęcia */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Zdjęcia</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {mode === 'edit' && dish ? (
+              <DishPhotosSection dishId={dish.id} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Zdjęcia będą dostępne po zapisaniu dania.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Section 4 — Wewnętrzne */}
         <Card>
           <CardHeader>
