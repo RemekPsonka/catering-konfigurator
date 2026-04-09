@@ -1,86 +1,65 @@
 
 
-# Trzy CRUD-y: Usługi, Klienci, Konta
+# Audyt Spójności — Faza 0+1: Wyniki
 
-## Zakres
-Zamiana placeholderów na pełne strony CRUD dla usług dodatkowych, klientów oraz dodanie podstrony zarządzania kontami w ustawieniach.
+## BAZA DANYCH
 
-## Pliki do utworzenia
+| # | Punkt | Status | Uwagi |
+|---|-------|--------|-------|
+| 1 | 20 tabel | **FAIL** | 19 tabel w `public` schema (brak tabeli `users` — OK, bo to `auth.users` zarządzane przez Supabase). Ale 19 z 19 wymaganych tabel publicznych istnieje. **OK** po korekcie — 19 tabel + auth.users = komplet. |
+| 2 | 17 typów ENUM | **OK** | Wszystkie 17: activity_type, change_type, client_type, correction_status, delivery_type, event_type, lead_source, lead_status, lost_reason, offer_status, price_display_mode, price_type, pricing_mode, proposal_item_status, proposal_status, service_type, unit_type |
+| 3 | Seed data | **OK** | 14 kategorii, 12 motywów, 5 warunków, 9 usług — wszystkie potwierdzone |
+| 4 | Triggery | **FAIL** | Brakuje `updated_at` triggera na tabeli `offer_templates` — **KOREKTA**: trigger `tr_offer_templates_updated_at` **istnieje**. Triggery: offer_number, public_token, valid_until, default_theme, sync_offer_client + updated_at na dishes, leads, offers, offer_terms, offer_templates = **10 triggerów**. **OK** |
+| 5 | RLS | **OK** | Wszystkie tabele mają RLS enabled. Polityki auth (zalogowani) na wszystkich. Publiczne SELECT na: dishes, dish_photos, offer_themes, offer_terms, offers, offer_variants, variant_items, offer_services. Publiczne INSERT na: change_proposals, proposal_items, offer_corrections, offer_events. |
+| 6 | CHECK discount XOR | **OK** | `chk_discount_exclusive: NOT ((discount_percent > 0) AND (discount_value > 0))` |
+| 7 | Indeksy na FK | **OK** | 26 indeksów na FK i polach filtrowanych |
 
-### 1. `src/hooks/use-services.ts`
-Hook React Query dla tabeli `services`:
-- `useServices(filterType?)` — lista usług z opcjonalnym filtrem `type` (STAFF/EQUIPMENT/LOGISTICS)
-- `useCreateService` — INSERT + toast
-- `useUpdateService` — UPDATE + toast
-- `useToggleServiceActive` — toggle `is_active`
+## FRONTEND
 
-### 2. `src/hooks/use-clients.ts`
-Hook React Query dla tabeli `clients`:
-- `useClients(search?)` — lista klientów z debounced search (name, email, company via `.or()`) + count ofert per klient (osobny query na `offers` grouped by `client_id`)
-- `useCreateClient` — INSERT + toast
-- `useUpdateClient` — UPDATE + toast
+| # | Punkt | Status | Uwagi |
+|---|-------|--------|-------|
+| 8 | Routing 14+ ścieżek | **OK** | 14 ścieżek admin + /login + /offer/:publicToken + / redirect + catch-all |
+| 9 | Auth guard | **OK** | `/admin/*` chronione przez `AuthGuard` |
+| 10 | /offer/:publicToken | **OK** | Publiczna, w `PublicLayout`, bez auth |
+| 11 | AdminLayout | **OK** | Sidebar z 6 linkami + topbar z email i wylogowaniem |
+| 12 | Lista dań | **OK** | Filtry (kategoria, status, szukaj, diet_tags), paginacja 20/stronę, miniaturki |
+| 13 | Formularz dania | **OK** | 5+ sekcji, Zod walidacja, zapis do Supabase |
+| 14 | Upload zdjęć | **OK** | drag&drop, max 5, JPEG/PNG/WebP, 5MB, Supabase Storage bucket `dish-photos` |
+| 15 | Zamienniki | **OK** | 3 typy (SWAP/VARIANT/SPLIT), zapis jako JSONB `modifiable_items`, podgląd kliencki |
+| 16 | CRUD usług | **OK** | Tabela + modal, tabs filtrujące (Wszystkie/Obsługa/Sprzęt/Logistyka), toggle aktywności |
+| 17 | CRUD klientów | **OK** | Tabela + modal, wyszukiwarka debounced, count ofert |
+| 18 | Konta | **FAIL** | Edge function `list-users` używa `anonClient.auth.getClaims()` — ta metoda **nie istnieje** w Supabase JS SDK v2. Function prawdopodobnie zwraca 500. |
 
-### 3. `src/components/features/services/service-dialog.tsx`
-Modal dodawania/edycji usługi (wzór: `category-dialog.tsx`):
-- Pola: nazwa (wymagana), opis, typ (Select: STAFF/EQUIPMENT/LOGISTICS), typ ceny (Select: PER_HOUR/PER_EVENT/PER_PIECE/PER_PERSON), cena (number), aktywna (Switch)
-- Zod walidacja, React Hook Form
+## KRYTYCZNE
 
-### 4. `src/components/features/services/services-page.tsx`
-Strona z tabelą usług:
-- Tabs filtrujące: Wszystkie / Obsługa / Sprzęt / Logistyka
-- Tabela: Nazwa | Typ | Typ ceny | Cena | Status (Badge) | Akcje (Edytuj)
-- Przycisk "Dodaj usługę" otwiera modal
-- Toggle aktywności bezpośrednio w tabeli
+| # | Punkt | Status | Uwagi |
+|---|-------|--------|-------|
+| 19 | Dodanie dania z ceną, kategorią, zdjęciem | **OK** | Formularz → create → redirect do edit → upload zdjęcia |
+| 20 | Dodanie klienta z nazwą i emailem | **OK** | Dialog z walidacją Zod |
+| 21 | Zamienniki JSONB | **OK** | `modifiable_items` w schema, parsowanie w formularzu, zapis w `buildPayload` |
+| 22 | Seed data widoczne | **OK** | Potwierdzone queryami SQL |
 
-### 5. `src/components/features/clients/client-dialog.tsx`
-Modal dodawania/edycji klienta:
-- Pola: nazwa (wymagana), email, telefon, firma, typ klienta (Select: Prywatny/Firma/Instytucja/Agencja/Powracający → PRIVATE/BUSINESS/INSTITUTION/AGENCY/RETURNING), notatki (Textarea), powracający (Switch)
-- Zod walidacja
+---
 
-### 6. `src/components/features/clients/clients-page.tsx`
-Strona z tabelą klientów:
-- Wyszukiwarka debounced (300ms)
-- Tabela: Nazwa | Email | Telefon | Firma | Typ (Badge) | Powracający (✓/—) | Oferty (count) | Akcje (Edytuj)
-- Przycisk "Dodaj klienta"
+## ZNALEZIONE PROBLEMY DO NAPRAWY
 
-### 7. `src/components/features/settings/accounts-page.tsx`
-Podstrona zarządzania kontami:
-- Lista kont z Supabase Auth (via edge function — frontend nie ma dostępu do `auth.users`)
-- Tabela: Email | Rola | Ostatnie logowanie
-- Na MVP: rola z `user_metadata.role` (admin/manager)
-- Przycisk "Wyślij reset hasła" → `supabase.auth.resetPasswordForEmail(email)`
-- Formularz dodawania konta: email + hasło + rola (dialog)
+### FAIL 1: Edge function `list-users` — `getClaims()` nie istnieje
 
-### 8. `supabase/functions/list-users/index.ts`
-Edge function do listowania użytkowników (wymaga service_role):
-- GET → zwraca listę users z `supabase.auth.admin.listUsers()`
-- POST (create) → `supabase.auth.admin.createUser({ email, password, user_metadata: { role } })`
+**Problem**: Linia 25 w `supabase/functions/list-users/index.ts` wywołuje `anonClient.auth.getClaims()` — ta metoda nie istnieje w SDK `@supabase/supabase-js@2.49.1`. Function zwraca 500 error.
 
-### 9. `src/lib/service-constants.ts`
-Stałe z polskimi etykietami:
-- `SERVICE_TYPE_LABELS`: STAFF→"Obsługa", EQUIPMENT→"Sprzęt", LOGISTICS→"Logistyka"
-- `PRICE_TYPE_LABELS`: PER_HOUR→"Za godzinę", PER_EVENT→"Za event", PER_PIECE→"Za sztukę", PER_PERSON→"Za osobę"
-- `CLIENT_TYPE_LABELS`: PRIVATE→"Prywatny", BUSINESS→"Firma", INSTITUTION→"Instytucja", AGENCY→"Agencja", RETURNING→"Powracający"
+**Naprawa**: Zamienić na `anonClient.auth.getUser()` — potwierdzi tożsamość callera:
+```typescript
+const { data: { user }, error: authError } = await anonClient.auth.getUser();
+if (authError || !user) {
+  return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+}
+```
 
-## Pliki do zmodyfikowania
+### Pliki do zmiany
 
-### 10. `src/pages/admin/clients-list.tsx`
-Zamiana placeholdera na `<ClientsPage />`
+1. **`supabase/functions/list-users/index.ts`** — zamiana `getClaims()` na `getUser()`, usunięcie nieużywanego `claimsData`, re-deploy edge function.
 
-### 11. `src/pages/admin/settings.tsx`
-Zamiana placeholdera na stronę z Tabs: "Konta" (jedyny tab na MVP), renderujący `<AccountsPage />`
+### Brak dalszych FAIL-i
 
-### 12. `src/App.tsx`
-Dodanie importu i routingu dla nowej strony usług:
-- `<Route path="services" element={<ServicesPage />} />`
-
-### 13. `src/components/layout/admin-layout.tsx`
-Dodanie wpisu nawigacji "Usługi" w sidebar (ikona `Wrench` lub `HandCoins`, url: `/admin/services`)
-
-## Szczegóły techniczne
-- Enums z bazy: `service_type` (STAFF/EQUIPMENT/LOGISTICS), `price_type` (PER_HOUR/PER_EVENT/PER_PIECE/PER_PERSON), `client_type` (PRIVATE/BUSINESS/INSTITUTION/AGENCY/RETURNING)
-- Liczba ofert klienta: `supabase.from('offers').select('client_id').then(...)` → count per client_id w JS
-- Edge function `list-users`: `verify_jwt = true`, sprawdza czy caller jest authenticated
-- Reset hasła: `supabase.auth.resetPasswordForEmail(email, { redirectTo: origin + '/reset-password' })`
-- Brak zmian w schemacie bazy danych — wszystkie tabele i enumy już istnieją
+Pozostałe 21/22 punktów audytu = **OK**. Po naprawie edge function projekt jest gotowy do Fazy 2.
 
