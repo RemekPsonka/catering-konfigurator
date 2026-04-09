@@ -22,6 +22,8 @@ import { ClientsListPage } from "@/pages/admin/clients-list";
 import { LeadsListPage } from "@/pages/admin/leads-list";
 import { LeadDetailPage } from "@/pages/admin/lead-detail";
 import { SettingsPage } from "@/pages/admin/settings";
+import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
+import { EventProfileEditPage } from "@/pages/admin/event-profile-edit";
 import { PublicOfferPage } from "@/pages/public/offer";
 import NotFound from "./pages/NotFound";
 
@@ -67,6 +69,8 @@ const App = () => (
                 <Route path="leads" element={<LeadsListPage />} />
                 <Route path="leads/:id" element={<LeadDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings/event-profiles" element={<EventProfilesListPage />} />
+                <Route path="settings/event-profiles/:eventTypeId" element={<EventProfileEditPage />} />
               </Route>
 
               {/* Root redirect */}
