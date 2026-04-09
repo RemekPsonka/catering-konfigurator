@@ -381,6 +381,10 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           <Save className="mr-2 h-4 w-4" />
           Zapisz szkic
         </Button>
+        <Button variant="secondary" onClick={handleSaveAndShowLink} disabled={statusMutation.isPending}>
+          <Link2 className="mr-2 h-4 w-4" />
+          Zapisz i pokaż link
+        </Button>
         <Button variant="secondary" onClick={handleMarkReady} disabled={statusMutation.isPending}>
           <CheckCircle className="mr-2 h-4 w-4" />
           Oznacz jako gotowa
@@ -400,6 +404,34 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           onOpenChange={setTemplateDialogOpen}
         />
       )}
+
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Oferta gotowa!</DialogTitle>
+            <DialogDescription>Skopiuj link i wyślij klientowi:</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input readOnly value={publicLink} className="font-mono text-sm" />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(publicLink);
+                  toast.success('Link skopiowany do schowka');
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Kopiuj link
+              </Button>
+              <Button onClick={() => window.open(publicLink, '_blank')}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Otwórz w nowej karcie
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
