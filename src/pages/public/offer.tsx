@@ -49,6 +49,8 @@ export const PublicOfferPage = () => {
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
 
   const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
+  const [offerAccepted, setOfferAccepted] = useState(false);
+
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
       const next = new Map(prev);
@@ -60,6 +62,43 @@ export const PublicOfferPage = () => {
       return next;
     });
   }, []);
+
+  const handleClearModifications = useCallback(() => {
+    setModifications(new Map());
+  }, []);
+
+  // Calculate totals for changes panel
+  const { originalTotal, proposedTotal } = useMemo(() => {
+    if (!offer) return { originalTotal: 0, proposedTotal: 0 };
+    const variants = offer.offer_variants as unknown as VariantWithItems[];
+    const services = offer.offer_services as unknown as OfferServiceWithService[];
+    const origTotals = calculateOfferTotals(
+      offer.pricing_mode, offer.people_count, variants, services,
+      offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
+    );
+
+    // Apply modifications
+    const adjustedVariants = variants.map((v) => ({
+      ...v,
+      variant_items: v.variant_items.map((item) => {
+        const mod = modifications.get(item.id);
+        if (!mod) return item;
+        let priceAdj = 0;
+        if (mod.type === 'swap' && mod.swapPriceDiff != null) priceAdj = mod.swapPriceDiff;
+        if (mod.type === 'variant' && mod.variantPriceModifier != null) priceAdj = mod.variantPriceModifier;
+        if (priceAdj === 0) return item;
+        const basePrice = item.custom_price != null ? Number(item.custom_price) : getItemPrice(item as never);
+        return { ...item, custom_price: basePrice + priceAdj };
+      }),
+    })) as unknown as VariantWithItems[];
+
+    const propTotals = calculateOfferTotals(
+      offer.pricing_mode, offer.people_count, adjustedVariants, services,
+      offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
+    );
+
+    return { originalTotal: origTotals.grandTotal, proposedTotal: propTotals.grandTotal };
+  }, [offer, modifications]);
 
   // Set CSS custom properties from theme
   useEffect(() => {
