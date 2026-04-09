@@ -61,7 +61,8 @@ type WizardAction =
   | { type: 'SET_EVENT_DATA'; data: StepEventData }
   | { type: 'COMPLETE_STEP'; step: number }
   | { type: 'SET_OFFER_ID'; offerId: string }
-  | { type: 'LOAD_OFFER'; offer: Tables<'offers'>; clientName: string };
+  | { type: 'LOAD_OFFER'; offer: Tables<'offers'>; clientName: string }
+  | { type: 'SET_REQUIREMENTS'; requirements: unknown };
 
 const wizardReducer = (state: WizardState, action: WizardAction): WizardState => {
   switch (action.type) {
@@ -98,6 +99,18 @@ const wizardReducer = (state: WizardState, action: WizardAction): WizardState =>
             client_name: action.clientName,
             inquiry_text: action.offer.inquiry_text ?? '',
             greeting_text: action.offer.greeting_text ?? '',
+            client_requirements: action.offer.client_requirements ?? undefined,
+          },
+        },
+      };
+    case 'SET_REQUIREMENTS':
+      return {
+        ...state,
+        stepData: {
+          ...state.stepData,
+          eventData: {
+            ...state.stepData.eventData,
+            client_requirements: action.requirements,
           },
         },
       };
