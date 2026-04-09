@@ -3,8 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   EVENT_TYPE_OPTIONS,
   DELIVERY_TYPE_OPTIONS,
@@ -27,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientAutocomplete } from '@/components/features/offers/client-autocomplete';
 import { ClientDialog } from '@/components/features/clients/client-dialog';
 import { useCreateClient } from '@/hooks/use-clients';
+import { AiInquiryPanel, type AiParsedData, type ClientRequirement } from '@/components/features/offers/ai-inquiry-panel';
 
 const stepSchema = z.object({
   event_type: z.string().min(1, 'Wybierz rodzaj imprezy'),
@@ -47,12 +50,17 @@ type FormValues = z.infer<typeof stepSchema>;
 
 interface StepEventDataProps {
   data: StepEventDataType;
-  onSubmit: (data: StepEventDataType) => void;
+  onSubmit: (data: StepEventDataType & { ai_parsed_data?: unknown; client_requirements?: unknown }) => void;
 }
 
 export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
   const createClient = useCreateClient();
+
+  // AI state
+  const [aiResult, setAiResult] = useState<AiParsedData | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [requirements, setRequirements] = useState<ClientRequirement[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(stepSchema),
@@ -60,6 +68,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
   });
 
   const watchEventType = form.watch('event_type');
+  const watchInquiryText = form.watch('inquiry_text');
 
   // Auto-fill greeting on event_type change
   useEffect(() => {
@@ -88,8 +97,70 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
   };
 
   const handleFormSubmit = (values: FormValues) => {
-    onSubmit(values as StepEventDataType);
+    onSubmit({
+      ...(values as StepEventDataType),
+      ai_parsed_data: aiResult ?? undefined,
+      client_requirements: requirements.length > 0 ? requirements : undefined,
+    });
   };
+
+  // AI analysis
+  const handleAnalyze = async () => {
+    const text = form.getValues('inquiry_text');
+    if (!text || text.trim().length < 20) return;
+
+    setIsAnalyzing(true);
+    try {
+      const { data: fnData, error } = await supabase.functions.invoke('parse-inquiry', {
+        body: { inquiry_text: text },
+      });
+
+      if (error) throw error;
+      if (fnData?.error) {
+        toast.error(fnData.error);
+        return;
+      }
+
+      const parsed = fnData.result as AiParsedData;
+      setAiResult(parsed);
+      setRequirements(
+        (parsed.requirements ?? []).map((r) => ({
+          ...r,
+          is_met: null,
+        }))
+      );
+      toast.success('Zapytanie przeanalizowane!');
+    } catch {
+      toast.error('Nie udało się przeanalizować zapytania. Wypełnij pola ręcznie.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // AI client creation
+  const handleAiCreateClient = async (clientData: AiParsedData['client']) => {
+    try {
+      const result = await createClient.mutateAsync({
+        name: clientData.name ?? 'Nowy klient',
+        email: clientData.email ?? undefined,
+        phone: clientData.phone ?? undefined,
+        company: clientData.company ?? undefined,
+      } as Parameters<typeof createClient.mutateAsync>[0]);
+      form.setValue('client_id', result.id, { shouldValidate: true });
+      form.setValue('client_name', result.name);
+      toast.success(`Klient "${result.name}" utworzony i przypisany`);
+    } catch {
+      // error handled in hook
+    }
+  };
+
+  const handleUseExistingClient = (clientId: string, clientName: string) => {
+    form.setValue('client_id', clientId, { shouldValidate: true });
+    form.setValue('client_name', clientName);
+    toast.success(`Klient "${clientName}" przypisany`);
+  };
+
+  const canAnalyze = (watchInquiryText?.trim().length ?? 0) >= 20;
 
   return (
     <>
@@ -266,12 +337,40 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
 
               <FormField control={form.control} name="inquiry_text" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Treść zapytania klienta</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Treść zapytania klienta</FormLabel>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!canAnalyze || isAnalyzing}
+                      onClick={handleAnalyze}
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Bot className="mr-2 h-4 w-4" />
+                      )}
+                      {isAnalyzing ? 'Analizuję...' : 'Analizuj zapytanie'}
+                    </Button>
+                  </div>
                   <FormDescription>Opcjonalnie — wklej oryginalną wiadomość od klienta</FormDescription>
                   <FormControl><Textarea rows={4} placeholder="Treść maila klienta..." {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
+
+              {/* AI Results Panel */}
+              {aiResult && (
+                <AiInquiryPanel
+                  parsedData={aiResult}
+                  form={form as unknown as Parameters<typeof AiInquiryPanel>[0]['form']}
+                  requirements={requirements}
+                  onRequirementsChange={setRequirements}
+                  onCreateClient={handleAiCreateClient}
+                  onUseExistingClient={handleUseExistingClient}
+                />
+              )}
 
               <FormField control={form.control} name="greeting_text" render={({ field }) => (
                 <FormItem>
