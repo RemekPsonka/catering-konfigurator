@@ -534,6 +534,42 @@ export const StepCalculation = ({
         </CardContent>
       </Card>
 
+      {/* Sekcja 6b — Podsumowanie AI */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4" />
+            Podsumowanie oferty (AI)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea
+            value={aiSummary}
+            onChange={(e) => setAiSummary(e.target.value)}
+            placeholder="Podsumowanie oferty widoczne dla klienta..."
+            rows={4}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateSummary}
+            disabled={isGeneratingSummary}
+          >
+            {isGeneratingSummary ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {isGeneratingSummary ? 'Generowanie...' : '🤖 Generuj podsumowanie AI'}
+          </Button>
+          {!inquiryText && (
+            <p className="text-xs text-muted-foreground">
+              Podpowiedź: uzupełnij „Treść zapytania" w kroku 1, aby podsumowanie było bardziej trafne.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Sekcja 7 — Notatki */}
       <Card>
         <CardHeader>
