@@ -1,6 +1,6 @@
+import type { EventType } from '@/types/database';
 import type { Enums } from '@/integrations/supabase/types';
 
-type EventType = Enums<'event_type'>;
 type DeliveryType = Enums<'delivery_type'>;
 type PricingMode = Enums<'pricing_mode'>;
 
