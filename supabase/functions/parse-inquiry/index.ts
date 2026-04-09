@@ -32,8 +32,14 @@ Zasady:
 - Jeśli nie możesz wyodrębnić informacji — ustaw null
 - type_confidence: "high" gdy klient wprost mówi (komunia, wesele), "medium" gdy wynika z kontekstu, "low" gdy domyślasz się
 - requirements: wylistuj WSZYSTKO czego klient oczekuje lub wspomina — to będzie checklistka do weryfikacji
-- Budżet: szukaj kwot, "do X zł", "w granicach", "max"
-- Nie wymyślaj danych — tylko to co wynika z tekstu
+- BUDŻET — KRYTYCZNE ZASADY:
+  * Wpisz kwotę TYLKO jeśli klient DOSŁOWNIE podaje liczbę z kontekstem pieniężnym (np. "budżet 5000 zł", "do 100 zł/os", "max 8000", "w granicach 150 zł na osobę")
+  * Jeśli klient podaje kwotę jako SZACUNEK WŁASNY lub PYTANIE ("czy 32 zł/os to realna cena?", "orientacyjnie 50 zł") — wpisz kwotę ale dodaj w notes: "Kwota podana jako pytanie/szacunek, nie jako twardy budżet"
+  * Jeśli klient NIE podaje ŻADNEJ kwoty — budget.per_person = null, budget.total = null. NIE LICZ, NIE SZACUJ, NIE WYMYŚLAJ.
+  * NIGDY nie obliczaj budżetu per_person z total÷osoby ani total z per_person×osoby. Tylko dosłowne wartości z tekstu.
+  * Jeśli klient pisze "chciałbym poznać cenę" lub "proszę o wycenę" — to NIE jest budżet. Ustaw null.
+- Nie wymyślaj danych — ABSOLUTNIE nic co nie jest dosłownie w tekście. Lepiej null niż zgadywanie.
+- Nie wyliczaj wartości z innych pól (np. nie mnóż ceny × osoby, nie dziel łącznej kwoty przez osoby)
 - Kody typów wydarzeń: KOM=Komunia, WES=Wesele, FIR=Firmowy, KON=Konferencja, PRY=Przyjęcie prywatne, GAL=Gala, STY=Stypa, GRI=Grill, B2B=Spotkanie B2B, BOX=Catering pudełkowy, KAW=Przerwa kawowa, SPE=Specjalny`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -120,8 +126,8 @@ Zasady:
                   budget: {
                     type: "object",
                     properties: {
-                      per_person: { type: "number", description: "Budżet na osobę lub null" },
-                      total: { type: "number", description: "Budżet łączny lub null" },
+                      per_person: { type: "number", description: "Budżet na osobę TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — null. NIGDY nie obliczaj z total÷osoby." },
+                      total: { type: "number", description: "Budżet łączny TYLKO jeśli klient dosłownie podał kwotę. Jeśli nie podał — null. NIGDY nie obliczaj z per_person×osoby." },
                       currency: { type: "string", description: "Waluta, domyślnie PLN" },
                     },
                     required: ["per_person", "total", "currency"],
