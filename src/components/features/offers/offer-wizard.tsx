@@ -35,16 +35,20 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
   const goToStep = (step: number) => {
     // For step 2+, ensure offer is saved first
     if (step >= 2 && !state.offerId) {
-      saveDraftMutation.mutate(state.stepData.eventData, {
-        onSuccess: (offer) => {
-          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id, offerNumber: offer.offer_number });
+      saveDraftMutation.mutate({ eventData: state.stepData.eventData }, {
+        onSuccess: ({ data }) => {
+          dispatch({ type: 'SET_OFFER_ID', offerId: data.id, offerNumber: data.offer_number });
           if (!offerId) {
-            navigate(`/admin/offers/${offer.id}/edit`, { replace: true });
+            navigate(`/admin/offers/${data.id}/edit`, { replace: true });
           }
           dispatch({ type: 'SET_STEP', step });
         },
       });
       return;
+    }
+    // Auto-save when navigating between steps 2+ if offer exists
+    if (state.offerId && state.stepData.eventData.event_type) {
+      saveDraftMutation.mutate({ eventData: state.stepData.eventData, silent: true });
     }
     dispatch({ type: 'SET_STEP', step });
   };
@@ -66,11 +70,11 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
   };
 
   const handleSaveDraft = () => {
-    saveDraftMutation.mutate(state.stepData.eventData, {
-      onSuccess: (offer) => {
+    saveDraftMutation.mutate({ eventData: state.stepData.eventData }, {
+      onSuccess: ({ data }) => {
         if (!state.offerId) {
-          dispatch({ type: 'SET_OFFER_ID', offerId: offer.id, offerNumber: offer.offer_number });
-          navigate(`/admin/offers/${offer.id}/edit`, { replace: true });
+          dispatch({ type: 'SET_OFFER_ID', offerId: data.id, offerNumber: data.offer_number });
+          navigate(`/admin/offers/${data.id}/edit`, { replace: true });
         }
       },
     });
