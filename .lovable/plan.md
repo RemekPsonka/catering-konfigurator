@@ -1,37 +1,39 @@
 
 
-# Auto-obliczanie marży na podstawie ceny sprzedaży i kosztu wytworzenia
+# Poprawa promptu AI do generowania podsumowania oferty
 
-## Zakres
-Zmiana pola "Marża (%)" z edytowalnego inputa na automatycznie obliczaną wartość wyświetlaną jako read-only. Formuła: `margin = ((price - cost) / cost) * 100`.
+## Problem
+Prompt wysyła zbyt mało danych o ofercie — tylko nazwy wariantów z liczbą dań, nazwy usług, łączną kwotę i zapytanie klienta. AI wymyśla szczegóły (np. "wahania rynkowe 2027", "serwis kawowy z ciastem") zamiast opisywać faktyczną zawartość oferty.
 
-## Plik do zmodyfikowania: `src/components/features/dishes/dish-form.tsx`
+## Rozwiązanie
+Przekazać do edge function **pełne dane oferty** (listę dań per wariant z cenami, usługi z cenami, rabat, koszty dostawy, liczbę osób, datę, lokalizację) i poprawić system prompt żeby AI opisywał **tylko to co faktycznie jest w ofercie**.
 
-### 1. Dodanie watcha na pole `price`
-Linia ~125: dodać `const price = form.watch('price');`
+## Zmiany
 
-### 2. Zmiana obliczenia marży (linia ~132-135)
-Zamiast `catalogPrice` z kosztu × marża, obliczać marżę automatycznie:
+### 1. `src/components/features/offers/steps/step-calculation.tsx` (~linia 214-228)
+Rozbudować dane wysyłane do edge function:
+- `variants_summary`: per wariant — nazwa + lista dań z cenami (np. "Classic: Rosół z makaronem (12 zł), Schabowy (25 zł)")
+- `services_summary`: nazwa + cena × ilość
+- Nowe pola: `people_count`, `event_date`, `event_location` (z offerData), `client_name`, `discount_info` (rabat %), `delivery_cost`, `pricing_mode_label`
+
+### 2. `supabase/functions/generate-summary/index.ts`
+- Przyjąć nowe pola w body
+- Dodać je do kontekstu promptu
+- **Zmienić system prompt** na:
+
 ```
-const autoMargin = price > 0 && costPerUnit && costPerUnit > 0
-  ? Math.round(((price - costPerUnit) / costPerUnit) * 100 * 10) / 10
-  : null;
+Jesteś ekspertem od ofert cateringowych firmy "Catering Śląski". 
+Napisz krótkie podsumowanie oferty (3-5 zdań) na podstawie WYŁĄCZNIE podanych danych.
+
+ZASADY:
+- Opisuj TYLKO to co faktycznie jest w danych — nie wymyślaj dań, usług ani szczegółów
+- Jeśli brakuje wariantów lub dań — napisz że oferta jest w przygotowaniu
+- Nie wspominaj o cenach konkretnych dań — podaj tylko łączną wartość
+- Wspomnij liczbę wariantów, kluczowe dania, usługi dodatkowe
+- Ton: profesjonalny, ciepły, po polsku
+- Nie używaj markdown
+- Zwracaj sam tekst
 ```
-
-### 3. useEffect do auto-ustawiania pola `margin_percent`
-Gdy `price` lub `costPerUnit` się zmieni → `form.setValue('margin_percent', autoMargin)`.
-
-### 4. Zamiana inputa marży na read-only display (linie 485-503)
-Zamiast edytowalnego `<Input type="number">` dla marży — wyświetlić obliczoną wartość jako tekst (analogicznie do obecnego `catalogPrice`). Pole staje się informacyjne.
-
-### 5. Usunięcie/zmiana sekcji `catalogPrice` (linie 505-510)
-`catalogPrice` traci sens (marża jest pochodną ceny, nie odwrotnie). Zamienić na wyświetlanie marży %.
-
-## Wynikowy layout sekcji "Wewnętrzne"
-- Kolumna 1: **Koszt wytworzenia (zł)** — edytowalny input (jak teraz)
-- Kolumna 2: **Marża (%)** — read-only, auto-obliczona, szary tekst. Jeśli brak kosztu lub ceny → "—"
-- Usunąć "Cena katalogowa" — redundantna (cena sprzedaży jest w sekcji wyżej)
 
 ## Brak zmian w bazie danych
-Pole `margin_percent` dalej zapisywane do DB — ale wartość pochodzi z obliczeń, nie z inputa.
 
