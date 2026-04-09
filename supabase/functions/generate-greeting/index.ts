@@ -42,7 +42,7 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "Jesteś copywriterem firmy cateringowej „Catering Śląski". Napisz elegancki, profesjonalny tekst powitalny do oferty cateringowej. Max 3-4 zdania. Język polski. Nie używaj markdown. Zwracaj sam tekst.",
+              'Jestes copywriterem firmy cateringowej "Catering Slaski". Napisz elegancki, profesjonalny tekst powitalny do oferty cateringowej. Max 3-4 zdania. Jezyk polski. Nie uzywaj markdown. Zwracaj sam tekst.',
           },
           { role: "user", content: userPrompt },
         ],
