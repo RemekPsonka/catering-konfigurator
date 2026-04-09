@@ -57,6 +57,19 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        cream: '#FAF7F2',
+        ivory: '#FFFFF0',
+        charcoal: '#1A1A1A',
+        warmGray: '#F5F0EB',
+      },
+      fontFamily: {
+        display: ['var(--theme-header-font)', 'Playfair Display', 'serif'],
+        body: ['var(--theme-font)', 'Inter', 'sans-serif'],
+      },
+      boxShadow: {
+        premium: '0 20px 60px rgba(0,0,0,0.08)',
+        'premium-hover': '0 30px 80px rgba(0,0,0,0.12)',
+        glow: '0 0 40px rgba(var(--theme-primary-rgb), 0.15)',
       },
       borderRadius: {
         lg: "var(--radius)",

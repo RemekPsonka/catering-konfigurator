@@ -103,3 +103,22 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Premium smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Reduced motion: wyłącz animacje dla osób z preferencją */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Custom selection color */
+::selection {
+  background-color: var(--theme-primary);
+  color: white;
+}
