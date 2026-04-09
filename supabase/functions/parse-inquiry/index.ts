@@ -32,7 +32,10 @@ Zasady:
 - Jeśli nie możesz wyodrębnić informacji — ustaw null
 - type_confidence: "high" gdy klient wprost mówi (komunia, wesele), "medium" gdy wynika z kontekstu, "low" gdy domyślasz się
 - requirements: wylistuj WSZYSTKO czego klient oczekuje lub wspomina — to będzie checklistka do weryfikacji
-- Typ imprezy: instytucja/firma/urząd/organizacja zamawiająca catering = NIGDY nie klasyfikuj jako PRY (impreza prywatna). PRY to wyłącznie prywatne spotkania domowe/rodzinne.
+- Typ imprezy: ZAWSZE zwracaj KOD (np. KOM, WES, FIR), nigdy pełną nazwę. Dopasuj do 14 dostępnych kodów.
+- Instytucja/urząd/fundacja/organizacja/stowarzyszenie/dom kultury zamawiające catering = B2B lub KAW, NIGDY PRY
+- Jeśli klient wspomina szkolenie/warsztaty/kurs → SZK
+- Jeśli kontekst świąteczny (wigilia, Mikołajki, Boże Narodzenie, Sylwester) → SWI
 - BUDŻET — KRYTYCZNE ZASADY:
   * Wpisz kwotę TYLKO jeśli klient DOSŁOWNIE podaje liczbę z kontekstem pieniężnym (np. "budżet 5000 zł", "do 100 zł/os", "max 8000", "w granicach 150 zł na osobę")
   * Jeśli klient podaje kwotę jako SZACUNEK WŁASNY lub PYTANIE ("czy 32 zł/os to realna cena?", "orientacyjnie 50 zł") — wpisz kwotę ale dodaj w notes: "Kwota podana jako pytanie/szacunek, nie jako twardy budżet"
@@ -40,31 +43,36 @@ Zasady:
   * NIGDY nie obliczaj budżetu per_person z total÷osoby ani total z per_person×osoby. Tylko dosłowne wartości z tekstu.
   * Jeśli klient pisze "chciałbym poznać cenę" lub "proszę o wycenę" — to NIE jest budżet. Ustaw null.
 - Nie wymyślaj danych — ABSOLUTNIE nic co nie jest dosłownie w tekście. Lepiej null niż zgadywanie.
-- Nie wyliczaj wartości z innych pól (np. nie mnóż ceny × osoby, nie dziel łącznej kwoty przez osoby)
-- Kody typów wydarzeń: KOM=Komunia, WES=Wesele, FIR=Firmowy, KON=Konferencja, PRY=Przyjęcie prywatne, GAL=Gala, STY=Stypa, GRI=Grill, B2B=Spotkanie B2B, BOX=Catering pudełkowy, KAW=Przerwa kawowa, SPE=Specjalny`;
+- Nie wyliczaj wartości z innych pól (np. nie mnóż ceny × osoby, nie dziel łącznej kwoty przez osoby)`;
 
-    const eventTypeDescription = `Kod typu imprezy. Wybierz NAJLEPIEJ pasujący z listy:
-KOM = Komunia (dziecko, kościół, rodzina)
-WES = Wesele (ślub, wesele)
-FIR = Impreza firmowa (integracja, event firmowy, firma zamawia)
-KON = Konferencja (konferencja, szkolenie, seminarium)
-PRY = Impreza prywatna DOMOWA (urodziny w domu, imieniny, spotkanie rodzinne w domu)
-GAL = Gala / bankiet (elegancki event, bal)
-STY = Stypa (pogrzeb, stypa, wspomnienie)
-GRI = Grill / piknik (plener, grill, piknik)
-B2B = Catering biznesowy (zamówienie od firmy/instytucji, regularny catering, catering biurowy)
-BOX = Box cateringowy (lunch box, dostawa pudełek)
-KAW = Serwis kawowy (kawa, ciasto, przerwa kawowa, drobny poczęstunek)
-SPE = Specjalne / inne (nie pasuje do żadnego powyższego)
+    const eventTypeDescription = `Kod typu imprezy — MUSISZ wybrać DOKŁADNIE jeden z poniższych kodów (lub null):
 
-WSKAZÓWKI WYBORU:
-- Jeśli zamawiający to instytucja/firma/urząd/fundacja/stowarzyszenie → rozważ B2B, FIR lub KAW (NIE PRY!)
-- Jeśli zamówienie to głównie kawa+ciasto+lekki posiłek → KAW
-- Jeśli zamówienie to pełny obiad/kolacja dla instytucji → B2B
-- PRY używaj TYLKO gdy kontekst jasno wskazuje prywatne spotkanie rodzinne/domowe
-- Jeśli nie jesteś pewien między dwoma typami → wybierz bardziej specyficzny i ustaw confidence na medium
+KOM = Komunia — Pierwsza Komunia Święta, przyjęcie komunijne
+WES = Wesele — wesele, ślub, przyjęcie weselne
+FIR = Event firmowy — impreza firmowa, integracja firmowa, jubileusz firmy, event korporacyjny
+KON = Konferencja — konferencja, seminarium, kongres, panel dyskusyjny
+SZK = Szkolenie — szkolenie, warsztaty, kurs, trening, spotkanie edukacyjne
+PRY = Impreza prywatna — urodziny, imieniny, rocznica, garden party, spotkanie domowe, przyjęcie prywatne (TYLKO prywatne/domowe/rodzinne!)
+GAL = Gala / Bankiet — gala, bankiet, bal, uroczysta kolacja, ceremonia
+STY = Stypa — stypa, konsolacja, spotkanie po pogrzebie
+GRI = Grill / Plener — grill, piknik, plener, outdoor, spotkanie na powietrzu
+B2B = Stała współpraca — regularny catering, codzienne lunche, stały klient biznesowy, catering dla instytucji/urzędu/fundacji/organizacji
+BOX = Boxy — lunch box, box cateringowy, catering pudełkowy, dostawa posiłków
+KAW = Przerwa kawowa — przerwa kawowa, kawa i ciasto, serwis kawowy, drobny poczęstunek
+SWI = Spotkanie świąteczne — wigilia firmowa, opłatek, Mikołajki, Boże Narodzenie, Sylwester, Nowy Rok, spotkanie świąteczne
+SPE = Specjalne — food truck, catering tematyczny, event nietypowy, plan filmowy, nic z powyższych
 
-lub null jeśli kompletnie nie da się określić`;
+ZASADY DOPASOWANIA:
+1. Instytucja/urząd/fundacja/dom kultury/centrum zamawiające catering → B2B (NIE PRY!)
+2. Firma zamawiająca jednorazowy event → FIR
+3. Firma zamawiająca regularny catering → B2B
+4. Kawa + ciasto + ewentualnie lekki posiłek → KAW
+5. Jeśli pasują dwa typy (np. szkolenie + przerwa kawowa) → wybierz GŁÓWNY cel eventu
+6. PRY = WYŁĄCZNIE prywatne spotkania osób prywatnych w kontekście domowym/rodzinnym
+7. Jeśli nie pasuje żaden → SPE
+8. Zwracaj TYLKO kod (np. B2B), nie pełną nazwę
+
+lub null jeśli kompletnie nie da się określić typu`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -102,7 +110,7 @@ lub null jeśli kompletnie nie da się określić`;
                     properties: {
                       type: {
                         type: "string",
-                        enum: ["KOM", "WES", "FIR", "KON", "PRY", "GAL", "STY", "GRI", "B2B", "BOX", "KAW", "SPE"],
+                        enum: ["KOM", "WES", "FIR", "KON", "SZK", "PRY", "GAL", "STY", "GRI", "B2B", "BOX", "KAW", "SWI", "SPE"],
                         description: eventTypeDescription,
                       },
                       type_confidence: {
