@@ -1,4 +1,4 @@
-import { PUBLIC_BASE_URL } from '@/lib/constants';
+import { PUBLIC_BASE_URL, buildPublicOfferUrl } from '@/lib/constants';
 
 export const OFFER_EMAIL_TEMPLATE = `Szanowna/y {clientName},
 
@@ -31,7 +31,7 @@ export const buildOfferEmailText = (params: {
   return OFFER_EMAIL_TEMPLATE
     .replace(/{clientName}/g, params.clientName)
     .replace(/{offerNumber}/g, params.offerNumber)
-    .replace(/{offerLink}/g, `${base}/offer/${params.publicToken}`)
+    .replace(/{offerLink}/g, buildPublicOfferUrl(params.publicToken))
     .replace(/{findLink}/g, `${base}/offer/find`)
     .replace(/{clientEmail}/g, params.clientEmail)
     .replace(/{validUntil}/g, params.validUntil);
@@ -87,7 +87,7 @@ export const buildRichOfferEmail = (params: {
   return OFFER_EMAIL_RICH_TEMPLATE
     .replace(/{clientName}/g, params.clientName)
     .replace(/{offerNumber}/g, params.offerNumber)
-    .replace(/{offerLink}/g, `${base}/offer/${params.publicToken}`)
+    .replace(/{offerLink}/g, buildPublicOfferUrl(params.publicToken))
     .replace(/{findLink}/g, `${base}/offer/find`)
     .replace(/{clientEmail}/g, params.clientEmail)
     .replace(/{validUntil}/g, params.validUntil)
