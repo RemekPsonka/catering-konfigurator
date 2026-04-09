@@ -1,34 +1,24 @@
 
 
-# Dodanie "Zapisz i pokaż link" w kroku Podgląd
+# Odblokowanie nawigacji po krokach wizarda dla istniejących ofert
 
-## Zakres
-Nowy przycisk "Zapisz i pokaż link" w akcjach kroku 7 — ustawia status na `ready`, wyświetla dialog z linkiem publicznym do skopiowania. Bez wysyłki emaila.
+## Problem
+Przy edycji istniejącej oferty `LOAD_OFFER` ustawia `completedSteps: [1]` — wszystkie kroki 2-7 są zablokowane. Stepper wymaga `isCompleted || isActive` żeby krok był klikalny.
 
-## Plik do zmodyfikowania: `src/components/features/offers/steps/step-preview.tsx`
+## Rozwiązanie
+Przy ładowaniu istniejącej oferty (edycja) — oznaczyć kroki 1-6 jako completed, żeby użytkownik mógł przejść do dowolnego etapu. Krok 7 (podgląd) też powinien być dostępny.
 
-### 1. Nowy stan
-- `linkDialogOpen` + `publicLink` — do wyświetlenia dialogu z linkiem
+## Zmiany
 
-### 2. Nowa funkcja `handleSaveAndShowLink`
-- Wywołuje `statusMutation.mutate({ status: 'ready' })`
-- W `onSuccess`: buduje URL `${window.location.origin}/offer/${offer?.public_token}`, ustawia `publicLink` i otwiera dialog
-- Nie nawiguje do listy ofert — zostaje na podglądzie
+### 1. `src/hooks/use-offer-wizard.ts` (reducer, case `LOAD_OFFER`)
+- Zmienić `completedSteps: [1]` → `completedSteps: [1, 2, 3, 4, 5, 6, 7]`
 
-### 3. Dialog z linkiem
-- Prosty `Dialog` z:
-  - Tekst: "Oferta gotowa! Skopiuj link i wyślij klientowi:"
-  - Input readonly z pełnym URL
-  - Przycisk "Kopiuj link" → `navigator.clipboard.writeText(link)` + toast "Link skopiowany"
-  - Przycisk "Otwórz w nowej karcie" → `window.open(link, '_blank')`
+### 2. `src/components/features/offers/wizard-stepper.tsx`
+- Zmienić `isClickable` z `isCompleted || isActive` na `isCompleted || isActive` — bez zmian w stepper, bo po zmianie reducera wszystkie kroki będą completed
 
-### 4. Nowy przycisk w sekcji Actions (linia ~358)
-- Między "Oznacz jako gotowa" a "Wyślij do klienta"
-- Ikona: `Link2` z lucide-react
-- Label: "Zapisz i pokaż link"
-
-### 5. Fix inner join w offerQuery (linia 45)
-- Zmiana `clients!client_id(name, email)` → `clients(name, email)` — ten sam bug co wcześniej (left join zamiast inner)
+### 3. `src/components/features/offers/offer-wizard.tsx` (funkcja `goToStep`)
+- Upewnić się że `goToStep` dla kroku 2+ nie blokuje gdy `offerId` już istnieje (to już działa)
+- Dodać auto-complete kroku przy przejściu dalej: w `goToStep` dodać `dispatch({ type: 'COMPLETE_STEP', step: state.currentStep })` przed zmianą kroku — żeby nowa oferta też odblokowywała kolejne kroki po przejściu
 
 ## Brak zmian w bazie danych
 
