@@ -44,7 +44,7 @@ export const usePublicOffer = (publicToken: string | undefined) => {
           )
         `)
         .eq('public_token', publicToken)
-        .in('status', ['sent', 'viewed', 'revision', 'accepted', 'won'])
+        .in('status', ['ready', 'sent', 'viewed', 'revision', 'accepted', 'won'])
         .maybeSingle();
 
       if (error) throw error;

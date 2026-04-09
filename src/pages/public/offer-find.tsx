@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Search, AlertCircle } from 'lucide-react';
 
-const ACCESSIBLE_STATUSES = ['sent', 'viewed', 'revision', 'accepted', 'won'];
+const ACCESSIBLE_STATUSES = ['ready', 'sent', 'viewed', 'revision', 'accepted', 'won'];
 const PREPARING_STATUSES = ['draft', 'ready'];
 
 const formatOfferNumber = (raw: string): string => {
