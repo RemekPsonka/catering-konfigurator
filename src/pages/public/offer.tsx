@@ -28,6 +28,7 @@ import { TermsSection } from '@/components/public/terms-section';
 import { CommunicationSection } from '@/components/public/communication-section';
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
+import { LogisticsSection } from '@/components/public/logistics-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
 import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
@@ -607,7 +608,10 @@ export const PublicOfferPage = () => {
       {/* 10. KALKULACJA */}
       <CalculationSection offer={offer} modifications={modifications} />
 
-      {/* 10.5. PORÓWNANIE WARIANTÓW */}
+      {/* 10.5. LOGISTYKA */}
+      <LogisticsSection offer={offer} />
+
+      {/* 10.6. PORÓWNANIE WARIANTÓW */}
       {offer.offer_variants.length >= 2 && (
         <VariantComparisonSection
           variants={offer.offer_variants}

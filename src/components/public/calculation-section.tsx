@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Minus, Plus, MessageCircle } from 'lucide-react';
+import { Minus, Plus, MessageCircle, Tag } from 'lucide-react';
 import { fadeInUp, fadeIn, staggerContainer } from '@/lib/animations';
 import { calculateOfferTotals, formatCurrency } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
@@ -16,12 +16,6 @@ interface CalculationSectionProps {
   offer: PublicOffer;
   modifications?: Map<string, DishModification>;
 }
-
-const SERVICE_TYPE_LABELS: Record<string, string> = {
-  STAFF: 'Obsługa',
-  EQUIPMENT: 'Sprzęt',
-  LOGISTICS: 'Logistyka',
-};
 
 export const CalculationSection = ({ offer, modifications }: CalculationSectionProps) => {
   const {
@@ -44,7 +38,6 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const variants = offer_variants as unknown as VariantWithItems[];
   const services = offer_services as unknown as OfferServiceWithService[];
 
-  // Apply modifications to variant items before calculation
   const adjustedVariants = useMemo(() => {
     if (!modifications || modifications.size === 0) return variants;
     return variants.map((v) => ({
@@ -76,7 +69,8 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
     [pricing_mode, debouncedCount, adjustedVariants, services, discount_percent, discount_value, delivery_cost],
   );
 
-  // Guardrail check
+  const hasDiscount = totals.discountAmount > 0;
+
   useEffect(() => {
     if (!min_offer_price || min_offer_price <= 0) return;
     if (debouncedCount === prevValidCount.current) return;
@@ -114,6 +108,10 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
       </motion.section>
     );
   }
+
+  const discountLabel = discount_percent
+    ? `Rabat ${discount_percent}%`
+    : 'Rabat';
 
   return (
     <motion.section
@@ -208,6 +206,42 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
               );
             })}
 
+            {/* Discount block in DETAILED mode */}
+            {hasDiscount && (
+              <div className="rounded-2xl border border-green-200 bg-green-50 p-6 shadow-premium">
+                <div className="flex items-center gap-2 mb-3">
+                  <Tag className="h-4 w-4 text-green-700" />
+                  <span className="text-sm font-semibold text-green-800">{discountLabel}</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-charcoal/50">Menu przed rabatem</span>
+                    <span className="text-charcoal/50 line-through">
+                      {formatCurrency(totals.maxDishesTotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700 font-medium">{discountLabel}</span>
+                    <span className="font-semibold text-green-700">
+                      -{formatCurrency(totals.discountAmount)}
+                    </span>
+                  </div>
+                  <div
+                    className="mt-2 h-px w-full"
+                    style={{ background: 'linear-gradient(to right, var(--theme-primary, #1A1A1A), transparent)' }}
+                  />
+                  <div className="flex justify-between pt-1">
+                    <span className="font-semibold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
+                      Menu po rabacie
+                    </span>
+                    <span className="font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
+                      {formatCurrency(totals.dishesAfterDiscount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Services */}
             {services.length > 0 && (
               <div className="rounded-2xl bg-ivory p-6 shadow-premium">
@@ -245,19 +279,26 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
           </motion.div>
         )}
 
-        {/* Discount — visible in ALL modes */}
-        {totals.discountAmount > 0 && price_display_mode !== 'DETAILED' && (
+        {/* Discount — visible in non-DETAILED modes */}
+        {hasDiscount && price_display_mode !== 'DETAILED' && (
           <motion.div variants={fadeInUp} className="mb-8">
-            <div className="flex justify-between rounded-2xl bg-ivory p-6 text-sm shadow-premium">
-              <span className="text-charcoal/70">
-                Rabat{discount_percent ? ` (${discount_percent}%)` : ''}
-              </span>
-              <span className="font-semibold text-green-700">-{formatCurrency(totals.discountAmount)}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-green-200 bg-green-50 p-6 text-sm shadow-premium">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-green-700" />
+                <span className="text-green-800 font-medium">
+                  {price_display_mode === 'TOTAL_ONLY'
+                    ? `Uwzględniono ${discount_percent ? `rabat ${discount_percent}%` : 'rabat'} na menu`
+                    : discountLabel}
+                </span>
+              </div>
+              {price_display_mode !== 'TOTAL_ONLY' && (
+                <span className="font-semibold text-green-700">-{formatCurrency(totals.discountAmount)}</span>
+              )}
             </div>
           </motion.div>
         )}
 
-        {/* Delivery — visible in ALL modes */}
+        {/* Delivery — visible in non-DETAILED modes */}
         {(delivery_cost ?? 0) > 0 && price_display_mode !== 'DETAILED' && (
           <motion.div variants={fadeInUp} className="mb-8">
             <div className="flex justify-between rounded-2xl bg-ivory p-6 text-sm shadow-premium">

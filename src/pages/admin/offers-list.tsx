@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -205,6 +206,17 @@ export const OffersListPage = () => {
                             }}
                           >
                             <ExternalLink className="mr-2 h-4 w-4" />Podgląd klienta
+                          </DropdownMenuItem>
+                        )}
+                        {offer.public_token && ['sent', 'viewed', 'revision', 'accepted'].includes(offer.status) && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(buildPublicOfferUrl(offer.public_token!));
+                              toast.success('Link skopiowany!');
+                            }}
+                          >
+                            <Link2 className="mr-2 h-4 w-4" />Kopiuj link
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
