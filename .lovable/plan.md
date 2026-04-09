@@ -1,35 +1,47 @@
 
 
-# Naprawa: Nie da się dodać klienta, usługi, sprzętu
+# Ulepszenie panelu profili eventów — tagi zdjęć, filtry, szczegóły UI
 
-## Diagnoza
-Potwierdzony problem: **DEV_MODE = true** w `src/lib/constants.ts` omija AuthGuard (UI), ale tworzy **fałszywy** obiekt `User` z `id: 'dev-user-id'` który **nie jest prawdziwą sesją Supabase**. Klient Supabase wysyła requesty z kluczem anon, ale bez JWT → `auth.uid()` jest NULL → RLS policy `auth.uid() IS NOT NULL` blokuje INSERT/UPDATE (401).
+## Co już istnieje
+Strona listy (`event-profiles-list.tsx`), edycji (`event-profile-edit.tsx`), hook (`use-event-profiles.ts`), routing w `App.tsx`, storage bucket `event-photos` — wszystko zbudowane i działające. Tabela `event_type_photos` już ma kolumnę `tags TEXT[]`.
 
-- GET (SELECT) zwraca 200 ale puste dane (bo policy sprawdza `auth.uid() IS NOT NULL` a to jest NULL)
-- POST (INSERT) zwraca **401** — widoczny toast "Nie udało się dodać klienta"
+## Co trzeba dodać/poprawić
 
-## Rozwiązanie
+### 1. Lista profili — drobne ulepszenia (`event-profiles-list.tsx`)
+- Dodać badge "Brak hero" gdy `hero_image_url` jest null
+- Dodać liczbę wyróżników (features count) obok photo count
+- Sortowanie po `headline` (zamiast `id`)
 
-Zmiana DEV_MODE na `false` i zapewnienie prawdziwego logowania. To wymaga:
+### 2. Edycja — hinty przy polach (`event-profile-edit.tsx`)
+- Hint pod "Opis długi": *"Ten tekst pojawia się na stronie klienta w sekcji 'O naszym cateringu'"*
+- Hint pod "Tekst CTA": *"Przycisk akcji na dole strony klienta"*
+- Hint pod toggle "Aktywny": *"Wyłączenie ukrywa profil na stronie klienta"*
+- Walidacja testimonial: jeśli `testimonialText` wypełniony → `testimonialAuthor` wymagany (visual warning)
 
-### 1. `src/lib/constants.ts`
-- Zmień `DEV_MODE = true` na `DEV_MODE = false`
+### 3. Tagi zdjęć — główna nowa funkcja (`event-profile-edit.tsx`)
+- Pod każdą miniaturką w `SortablePhotoCard`: wiersz badge'ów z tagami
+- Przycisk "+Tag" → Popover z listą predefiniowanych tagów (emoji + nazwa):
+  `dekoracje, stoły, bufet, tort, sala, plener, goście, setup, detale, kuchnia, napoje, tematyczne`
+- Input na custom tag (wpisz + Enter)
+- Klik na badge → usuwa tag
+- Nowy hook `useUpdateEventPhotoTags` w `use-event-profiles.ts`
 
-### 2. Konfiguracja Auth
-- Włączyć auto-confirm email (dla dev) za pomocą `cloud--configure_auth`
-- Utworzyć konto testowe (np. `admin@cateringsl.pl` / hasło) przez Supabase Auth
+### 4. Filtrowanie galerii po tagach (`event-profile-edit.tsx`)
+- Nad gridem zdjęć: wiersz przycisków filtrów: "Wszystkie" | tagi obecne w zdjęciach
+- Aktywny filtr podświetlony primary
+- Filtrowanie lokalne (client-side) — bez dodatkowego query
 
-### 3. Weryfikacja
-- Po zmianie DEV_MODE na false, app przekieruje na `/login`
-- Zalogowanie prawdziwym kontem → `auth.uid()` dostępny → RLS przepuszcza operacje
-- Dodawanie klientów, usług, sprzętu działa
+### 5. Confirm dialog na usuwanie zdjęć (`event-profile-edit.tsx`)
+- Przed `deletePhoto.mutate` → pokaż `ConfirmDialog` z "Czy na pewno usunąć to zdjęcie?"
 
-### Alternatywa (jeśli wolisz zostawić DEV_MODE):
-Nie zmieniać DEV_MODE, tylko w `use-auth.tsx` przy DEV_MODE automatycznie logować się do Supabase prawdziwym kontem (np. `supabase.auth.signInWithPassword`). To da prawdziwą sesję + wygodę dev mode.
+### 6. Hook — dodanie mutacji tagów (`use-event-profiles.ts`)
+- `useUpdateEventPhotoTags({ id, tags, eventTypeId })` — UPDATE `event_type_photos SET tags = $1 WHERE id = $2`
 
-## Rekomendacja
-Opcja z prawdziwym logowaniem (DEV_MODE = false) — bezpieczniejsza i bliższa produkcji. Strona logowania już istnieje (`/login`).
+## Pliki do zmodyfikowania
+1. `src/pages/admin/event-profiles-list.tsx` — badge "Brak hero", feature count, sort
+2. `src/pages/admin/event-profile-edit.tsx` — tagi, filtry, hinty, confirm dialog (główna praca)
+3. `src/hooks/use-event-profiles.ts` — `useUpdateEventPhotoTags`, feature count w list query
 
 ## Brak zmian w bazie danych
-Tabele i RLS policies są poprawne — problem jest wyłącznie po stronie braku autentykacji.
+Kolumna `tags TEXT[]` już istnieje w `event_type_photos`. Wszystkie potrzebne tabele i storage bucket są na miejscu.
 
