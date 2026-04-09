@@ -269,6 +269,22 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
           </motion.div>
         )}
 
+        {/* PER_PERSON variants */}
+        {(price_display_mode === 'PER_PERSON_ONLY' || price_display_mode === 'PER_PERSON_AND_TOTAL') && (
+          <motion.div variants={fadeInUp} className="mb-8 space-y-3">
+            {totals.variantTotals.map((vt) => (
+              <div key={vt.id} className="flex items-center justify-between rounded-2xl bg-ivory p-5 shadow-premium">
+                <span className="font-display font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                  {vt.name}
+                </span>
+                <span className="font-body text-lg font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
+                  {formatCurrency(vt.perPerson)}/os.
+                </span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
         {/* Grand total per variant */}
         <motion.div
           variants={fadeInUp}
