@@ -1,42 +1,50 @@
 
 
-# Proposal Diff Page — Premium z AnimatePresence
+# Premium Performance Audit — wyniki i plan napraw
 
-## Zakres
-Zastąpienie placeholder `ProposalDiffPage` pełną stroną porównania propozycji zmian klienta. Manager widzi diff tabeli (oryginał vs propozycja), akceptuje/odrzuca per wiersz z flash animacjami, podsumowuje i zapisuje decyzje.
+## Wyniki audytu
 
-## Pliki do utworzenia/zmodyfikowania
+### 1. prefers-reduced-motion
+- **CSS animations**: ✅ `index.css` wyłącza `animation-duration` i `transition-duration` via `!important`
+- **Framer Motion**: ❌ **FAIL** — brak `MotionConfig reducedMotion="user"` na poziomie app. Framer Motion ignoruje CSS `prefers-reduced-motion` — wymaga własnej konfiguracji. Wszystkie `motion.div`, `AnimatePresence`, `useScroll`, `useTransform` nadal animują na urządzeniach z włączoną preferencją.
 
-### 1. `src/hooks/use-proposal-diff.ts` (nowy)
-Hook do pobrania danych propozycji:
-- `useProposalDetail(proposalId)` — query `change_proposals` + `proposal_items(*, dishes!proposal_items_original_dish_id_fkey(*), proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(*))` + offer data
-- `useUpdateProposalItem()` — mutation: UPDATE `proposal_items` SET `status`, `manager_note`, `decided_at`, `decided_by`
-- `useResolveProposal()` — mutation: UPDATE `change_proposals` SET `status` (accepted/partially_accepted/rejected), `resolved_at`, `manager_notes`
+### 2. Lazy loading zdjęć
+- `dish-card.tsx`: ✅ ma `loading="lazy"` na `<motion.img>`
+- Lightbox: ✅ ładuje on-demand (otwierany kliknięciem)
+- Hero/offer page: ❌ brak lazy loading na zdjęciach w sekcji hero (jeśli są)
+- Dish edit panel (swap alternatives): ❌ brak `loading="lazy"` na miniaturkach alternatyw
 
-### 2. `src/pages/admin/proposal-diff.tsx` (zastąpienie placeholder)
-Pełna strona diff:
-- `useParams()` → `id` (offerId), `proposalId`
-- Nagłówek: nazwa klienta, data propozycji, status badge, wiadomość klienta
-- Tabela diff z kolumnami: Pozycja | Oryginał | Propozycja | Wpływ cenowy | Status | Akcje
-- Per wiersz: ikona change_type (🔄/🎨/✂️/👥), oryginalna nazwa+cena vs proponowana nazwa+cena
-- Przyciski: ✅ Akceptuj / ❌ Odrzuć per wiersz
-- Podsumowanie: łączny wpływ cenowy zaakceptowanych zmian
-- Przycisk "Zatwierdź decyzje" — resolve proposal
+### 3. Bundle size — framer-motion w admin
+- **Admin pages**: `proposal-diff.tsx` importuje `motion, AnimatePresence` z framer-motion
+- **Admin features**: ✅ żaden komponent w `src/components/features/` nie importuje framer-motion
+- **Wniosek**: framer-motion trafia do bundla admin przez `proposal-diff.tsx`. Vite code-splits po route, więc wpływ jest ograniczony do tego jednego route'a — ale lepiej zastąpić CSS transitions.
 
-### 3. Premium animacje w tabeli diff
-- **AnimatePresence**: każdy wiersz opakowany w `motion.tr` z `initial/animate/exit` (fadeInUp/fadeOut)
-- **Flash na akceptacji**: po kliknięciu ✅ → wiersz flashuje zielono (bg-green-100 → transparent, 200ms transition via `animate` z keyframes)
-- **Flash na odrzuceniu**: po kliknięciu ❌ → wiersz flashuje czerwono (bg-red-100 → transparent, 200ms)
-- Implementacja: `useState` per wiersz z `flashColor`, `useEffect` z 200ms timeout do reset
-- `motion.tr` z `layout` prop dla smooth reorder gdy wiersze zmieniają status
-- Badge statusu per wiersz: pending=gray, accepted=green (scaleIn), rejected=red (scaleIn)
+### 4. Lighthouse / Performance
+- Wymaga ręcznego testu w przeglądarce, ale znalezione problemy wpływające na wynik:
+  - Brak `MotionConfig` = zbędne animacje na słabych urządzeniach
+  - Framer-motion w admin bundle (minor)
 
-## Szczegóły techniczne
-- Typy z `Tables<'proposal_items'>` i `Tables<'change_proposals'>`
-- `proposal_item_status`: pending | accepted | rejected | invalidated
-- `proposal_status`: draft_client | pending | accepted | partially_accepted | rejected
-- Resolve logic: jeśli wszystkie items accepted → proposal status = accepted; jeśli mix → partially_accepted; jeśli wszystkie rejected → rejected
-- framer-motion `AnimatePresence` + `motion.tr` (wymaga `<tbody>` jako wrapper)
-- Flash: `animate={{ backgroundColor: ['rgba(34,197,94,0.2)', 'rgba(34,197,94,0)'] }}` z `transition={{ duration: 0.4 }}`
-- Brak zmian w bazie danych — tabele i policies już istnieją
+## Plan napraw
+
+### 1. `src/App.tsx` — dodaj MotionConfig
+Owij całą aplikację w `<MotionConfig reducedMotion="user">`. To sprawi, że framer-motion automatycznie wyłączy animacje gdy użytkownik ma `prefers-reduced-motion: reduce`.
+
+```tsx
+import { MotionConfig } from 'framer-motion';
+// W renderze:
+<MotionConfig reducedMotion="user">
+  {/* existing app tree */}
+</MotionConfig>
+```
+
+### 2. `src/pages/admin/proposal-diff.tsx` — usuń framer-motion
+Zastąp `motion.tr` zwykłym `<tr>` z CSS transition classes. Flash animację zrób via `className` toggle z `transition-colors duration-300`. Badge status: CSS `animate-scale-in`. To usunie import framer-motion z admin bundla.
+
+### 3. `src/components/public/dish-edit-panel.tsx` — lazy loading na miniaturkach swap
+Dodaj `loading="lazy"` do `<img>` w SwapPanel (miniaturki alternatywnych dań).
+
+### 4. `src/components/common/smooth-scroll.tsx` — respect reduced motion
+Dodaj check `window.matchMedia('(prefers-reduced-motion: reduce)').matches` — jeśli true, nie inicjalizuj Lenis.
+
+### Brak zmian w bazie danych
 
