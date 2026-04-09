@@ -1,6 +1,6 @@
-export type OfferStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
-export type EventType = 'wedding' | 'corporate' | 'birthday' | 'communion' | 'funeral' | 'other';
+export type OfferStatus = 'draft' | 'ready' | 'sent' | 'viewed' | 'revision' | 'accepted' | 'won' | 'lost';
+export type LeadStatus = 'new' | 'qualifying' | 'offer_sent' | 'follow_up' | 'negotiation' | 'won' | 'lost';
+export type EventType = 'KOM' | 'WES' | 'FIR' | 'KON' | 'PRY' | 'GAL' | 'STY' | 'GRI' | 'B2B' | 'BOX' | 'KAW' | 'SPE';
 export type DishCategory = 'appetizer' | 'soup' | 'main_course' | 'dessert' | 'salad' | 'drink' | 'bread' | 'addition';
 
 export interface Dish {

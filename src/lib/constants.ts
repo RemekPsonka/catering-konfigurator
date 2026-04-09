@@ -2,27 +2,31 @@ import type { OfferStatus, LeadStatus, EventType, DishCategory } from '@/types';
 
 export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   draft: 'Szkic',
+  ready: 'Gotowa',
   sent: 'Wysłana',
   viewed: 'Wyświetlona',
+  revision: 'Rewizja',
   accepted: 'Zaakceptowana',
-  rejected: 'Odrzucona',
-  expired: 'Wygasła',
+  won: 'Wygrana',
+  lost: 'Przegrana',
 };
 
 export const OFFER_STATUS_COLORS: Record<OfferStatus, string> = {
   draft: 'bg-muted text-muted-foreground',
-  sent: 'bg-blue-100 text-blue-800',
-  viewed: 'bg-yellow-100 text-yellow-800',
+  ready: 'bg-blue-100 text-blue-800',
+  sent: 'bg-indigo-100 text-indigo-800',
+  viewed: 'bg-purple-100 text-purple-800',
+  revision: 'bg-orange-100 text-orange-800',
   accepted: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  expired: 'bg-gray-100 text-gray-500',
+  won: 'bg-emerald-200 text-emerald-900 font-bold',
+  lost: 'bg-red-100 text-red-800',
 };
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   new: 'Nowy',
-  contacted: 'Skontaktowany',
-  qualified: 'Zakwalifikowany',
-  proposal: 'Propozycja',
+  qualifying: 'Kwalifikacja',
+  offer_sent: 'Oferta wysłana',
+  follow_up: 'Follow-up',
   negotiation: 'Negocjacje',
   won: 'Wygrany',
   lost: 'Przegrany',
@@ -30,21 +34,27 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 
 export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   new: 'bg-muted text-muted-foreground',
-  contacted: 'bg-blue-100 text-blue-800',
-  qualified: 'bg-indigo-100 text-indigo-800',
-  proposal: 'bg-yellow-100 text-yellow-800',
+  qualifying: 'bg-blue-100 text-blue-800',
+  offer_sent: 'bg-indigo-100 text-indigo-800',
+  follow_up: 'bg-yellow-100 text-yellow-800',
   negotiation: 'bg-orange-100 text-orange-800',
   won: 'bg-green-100 text-green-800',
   lost: 'bg-red-100 text-red-800',
 };
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  wedding: 'Wesele',
-  corporate: 'Firmowy',
-  birthday: 'Urodziny',
-  communion: 'Komunia',
-  funeral: 'Stypa',
-  other: 'Inny',
+  KOM: 'Komunia',
+  WES: 'Wesele',
+  FIR: 'Firmowy',
+  KON: 'Konferencja',
+  PRY: 'Przyjęcie prywatne',
+  GAL: 'Gala',
+  STY: 'Stypa',
+  GRI: 'Grill',
+  B2B: 'Spotkanie B2B',
+  BOX: 'Catering pudełkowy',
+  KAW: 'Przerwa kawowa',
+  SPE: 'Specjalny',
 };
 
 export const DISH_CATEGORY_LABELS: Record<DishCategory, string> = {
