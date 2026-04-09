@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -17,6 +19,7 @@ import { SaveTemplateDialog } from '@/components/features/offers/save-template-d
 import { OfferValidationPanel } from './offer-validation-panel';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { PUBLIC_BASE_URL } from '@/lib/constants';
+import { buildRichOfferEmail } from '@/lib/email-templates';
 import type { Tables } from '@/integrations/supabase/types';
 import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 
@@ -40,6 +43,8 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [publicLink, setPublicLink] = useState('');
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailText, setEmailText] = useState('');
 
   const offerQuery = useQuery({
     queryKey: ['offer-preview', offerId],
@@ -155,19 +160,44 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
     });
   };
 
-  const handleSend = () => {
+  const handleGenerateEmail = () => {
     const clientEmail = offer?.clients?.email;
+    const clientName = offer?.clients?.name ?? 'Kliencie';
     if (!clientEmail) {
       toast.error('Klient nie ma przypisanego adresu email. Uzupełnij dane klienta.');
       return;
     }
-    statusMutation.mutate({ status: 'sent', sentAt: new Date().toISOString() }, {
+
+    statusMutation.mutate({ status: 'ready' }, {
       onSuccess: () => {
-        const publicUrl = `${PUBLIC_BASE_URL}/offer/${offer?.public_token}`;
-        // eslint-disable-next-line no-console
-        console.log('Email wysłany do:', clientEmail, 'Link:', publicUrl);
-        toast.success('Oferta wysłana!');
-        navigate('/admin/offers');
+        const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === offer?.event_type)?.label ?? offer?.event_type ?? '—';
+        const variantLines = variants.map((v) => {
+          const items = (v as { variant_items: Array<{ custom_name: string | null; dishes: { display_name: string } }> }).variant_items ?? [];
+          const dishNames = items.map((i) => i.custom_name || i.dishes.display_name).join(', ');
+          return `- ${v.name} (${items.length} dań): ${dishNames}`;
+        }).join('\n');
+
+        const servicesText = services.length > 0
+          ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${(os as unknown as { services: { name: string } }).services.name} × ${os.quantity ?? 1}`).join('\n')}`
+          : '';
+
+        const text = buildRichOfferEmail({
+          clientName,
+          offerNumber: offer?.offer_number ?? '—',
+          publicToken: offer?.public_token ?? '',
+          clientEmail,
+          validUntil: offer?.valid_until ?? '—',
+          eventType: eventTypeLabel,
+          eventDate: offer?.event_date ?? '—',
+          peopleCount: peopleCount,
+          variantsSummary: variantLines || 'Menu w przygotowaniu',
+          servicesSummary: servicesText,
+          totalValue: formatCurrency(totals.grandTotal),
+        });
+
+        setEmailText(text);
+        setEmailDialogOpen(true);
+        toast.success('Treść emaila wygenerowana');
       },
     });
   };
@@ -390,10 +420,23 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           <CheckCircle className="mr-2 h-4 w-4" />
           Oznacz jako gotowa
         </Button>
-        <Button onClick={handleSend} disabled={statusMutation.isPending}>
-          <Send className="mr-2 h-4 w-4" />
-          Wyślij do klienta
+        <Button onClick={handleGenerateEmail} disabled={statusMutation.isPending}>
+          <Mail className="mr-2 h-4 w-4" />
+          Wygeneruj treść emaila
         </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button disabled className="opacity-50">
+                  <Send className="mr-2 h-4 w-4" />
+                  Wyślij do klienta
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Funkcja w przygotowaniu</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {offerId && (
@@ -428,6 +471,40 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
               <Button onClick={() => window.open(publicLink, '_blank')}>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Otwórz w nowej karcie
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Treść emaila do klienta</DialogTitle>
+            <DialogDescription>Skopiuj treść i wklej do swojego klienta email:</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea readOnly value={emailText} className="font-mono text-sm min-h-[400px]" />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(emailText);
+                  toast.success('Treść skopiowana do schowka');
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Kopiuj treść
+              </Button>
+              <Button
+                onClick={() => {
+                  const subject = encodeURIComponent(`Oferta cateringowa ${offer?.offer_number ?? ''}`);
+                  const body = encodeURIComponent(emailText);
+                  window.open(`mailto:${offer?.clients?.email ?? ''}?subject=${subject}&body=${body}`, '_blank');
+                }}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Otwórz w kliencie email
               </Button>
             </div>
           </div>
