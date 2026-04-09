@@ -242,67 +242,78 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
               </div>
             )}
 
-            {/* Discount */}
-            {totals.discountAmount > 0 && (
-              <div className="flex justify-between rounded-2xl bg-ivory p-6 text-sm shadow-premium">
-                <span className="text-charcoal/70">Rabat</span>
-                <span className="font-semibold text-green-700">-{formatCurrency(totals.discountAmount)}</span>
-              </div>
-            )}
-
-            {/* Delivery */}
-            {(delivery_cost ?? 0) > 0 && (
-              <div className="flex justify-between rounded-2xl bg-ivory p-6 text-sm shadow-premium">
-                <span className="text-charcoal/70">Dostawa</span>
-                <span className="font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                  {formatCurrency(delivery_cost ?? 0)}
-                </span>
-              </div>
-            )}
           </motion.div>
         )}
 
-        {/* PER_PERSON variants */}
-        {(price_display_mode === 'PER_PERSON_ONLY' || price_display_mode === 'PER_PERSON_AND_TOTAL') && (
-          <motion.div variants={fadeInUp} className="mb-8 space-y-3">
-            {totals.variantTotals.map((vt) => (
-              <div key={vt.id} className="flex items-center justify-between rounded-2xl bg-ivory p-5 shadow-premium">
-                <span className="font-display font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                  {vt.name}
-                </span>
-                <span className="font-body text-lg font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-                  {formatCurrency(vt.perPerson)}/os.
-                </span>
-              </div>
-            ))}
-          </motion.div>
-        )}
-
-        {/* Grand total summary */}
-        {(
-          <motion.div
-            variants={fadeInUp}
-            className="rounded-2xl p-8 md:p-10 text-center"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 7%, var(--theme-bg, #FAF7F2))' }}
-          >
-            <div
-              className="mx-auto mb-6 h-px w-24"
-              style={{ background: 'linear-gradient(to right, transparent, var(--theme-primary, #1A1A1A), transparent)' }}
-            />
-            <p className="text-xs font-medium uppercase tracking-wide text-charcoal/50">Łącznie</p>
-            <div className="mt-2">
-              <AnimatedPrice
-                value={totals.grandTotal}
-                className="font-display text-3xl font-bold md:text-5xl"
-              />
+        {/* Discount — visible in ALL modes */}
+        {totals.discountAmount > 0 && price_display_mode !== 'DETAILED' && (
+          <motion.div variants={fadeInUp} className="mb-8">
+            <div className="flex justify-between rounded-2xl bg-ivory p-6 text-sm shadow-premium">
+              <span className="text-charcoal/70">
+                Rabat{discount_percent ? ` (${discount_percent}%)` : ''}
+              </span>
+              <span className="font-semibold text-green-700">-{formatCurrency(totals.discountAmount)}</span>
             </div>
-            {debouncedCount > 0 && (
-              <p className="mt-3 font-body text-charcoal/50">
-                {formatCurrency(totals.pricePerPerson)} / osoba
-              </p>
-            )}
           </motion.div>
         )}
+
+        {/* Delivery — visible in ALL modes */}
+        {(delivery_cost ?? 0) > 0 && price_display_mode !== 'DETAILED' && (
+          <motion.div variants={fadeInUp} className="mb-8">
+            <div className="flex justify-between rounded-2xl bg-ivory p-6 text-sm shadow-premium">
+              <span className="text-charcoal/70">Dostawa</span>
+              <span className="font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                {formatCurrency(delivery_cost ?? 0)}
+              </span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Grand total per variant */}
+        <motion.div
+          variants={fadeInUp}
+          className="rounded-2xl p-8 md:p-10 text-center"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 7%, var(--theme-bg, #FAF7F2))' }}
+        >
+          <div
+            className="mx-auto mb-6 h-px w-24"
+            style={{ background: 'linear-gradient(to right, transparent, var(--theme-primary, #1A1A1A), transparent)' }}
+          />
+          <p className="text-xs font-medium uppercase tracking-wide text-charcoal/50">Łącznie</p>
+
+          {totals.variantTotals.length === 1 ? (
+            <>
+              <div className="mt-2">
+                <AnimatedPrice
+                  value={totals.variantTotals[0].grandTotal}
+                  className="font-display text-3xl font-bold md:text-5xl"
+                />
+              </div>
+              {debouncedCount > 0 && (
+                <p className="mt-3 font-body text-charcoal/50">
+                  {formatCurrency(totals.variantTotals[0].pricePerPerson)} / osoba
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="mt-6 space-y-6">
+              {totals.variantTotals.map((vt) => (
+                <div key={vt.id}>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-charcoal/40">{vt.name}</p>
+                  <AnimatedPrice
+                    value={vt.grandTotal}
+                    className="font-display text-2xl font-bold md:text-4xl"
+                  />
+                  {debouncedCount > 0 && (
+                    <p className="mt-1 font-body text-sm text-charcoal/50">
+                      {formatCurrency(vt.pricePerPerson)} / osoba
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
       </div>
     </motion.section>
   );
