@@ -1,51 +1,35 @@
 
-# Naprawa 4 problemów w AI parsowaniu i generowaniu tekstu powitalnego
 
-## Problem 1: Błędne rozpoznawanie typu eventu
-**Plik:** `supabase/functions/parse-inquiry/index.ts`
-- Zamiana opisu pola `event.type` w tool calling schema na rozbudowany z wskazówkami wyboru (instytucja→B2B/FIR/KAW, nie PRY)
-- Dodanie reguły w sekcji "Zasady:" o instytucjach/firmach → nigdy PRY
+# Naprawa: Nie da się dodać klienta, usługi, sprzętu
 
-## Problem 2: "Zastosuj wszystko" tworzy/przypisuje klienta
-**Plik:** `src/components/features/offers/ai-inquiry-panel.tsx`
-- Funkcja `handleApplyAll` już obsługuje klienta (linie 133-153) — wygląda poprawnie
-- Weryfikacja: `onCreateClient` i `onUseExistingClient` są wywoływane, ale `onCreateClient` jest async i może nie czekać na wynik. Poprawka: `await onCreateClient(c)` — ale `onCreateClient` w step-event-data to `handleAiCreateClient` który jest async. Problem: w `ai-inquiry-panel` `onCreateClient` jest typowany jako `(data) => void`, nie `Promise`. Zmiana typów + `await`.
+## Diagnoza
+Potwierdzony problem: **DEV_MODE = true** w `src/lib/constants.ts` omija AuthGuard (UI), ale tworzy **fałszywy** obiekt `User` z `id: 'dev-user-id'` który **nie jest prawdziwą sesją Supabase**. Klient Supabase wysyła requesty z kluczem anon, ale bez JWT → `auth.uid()` jest NULL → RLS policy `auth.uid() IS NOT NULL` blokuje INSERT/UPDATE (401).
 
-## Problem 3: Godziny "null – null"
-**Plik:** `src/components/features/offers/ai-inquiry-panel.tsx`
-- Linie 270-279: warunek `value` dla godzin już sprawdza `time_from || time_to`, ale wyświetla `null` gdy jedno jest null a drugie nie → zamiana `??` na `'—'` zamiast `'?'`
-- Gdy oba null → value = null → pole się ukrywa (OK)
+- GET (SELECT) zwraca 200 ale puste dane (bo policy sprawdza `auth.uid() IS NOT NULL` a to jest NULL)
+- POST (INSERT) zwraca **401** — widoczny toast "Nie udało się dodać klienta"
 
-## Problem 4: Tekst powitalny generyczny
-**Pliki:** `supabase/functions/generate-greeting/index.ts` + `src/components/features/offers/steps/step-event-data.tsx`
-- Rozbudowa Edge Function `generate-greeting`: przyjmuje dodatkowe pola z AI parsowania (requirements, location, company, notes) i generuje spersonalizowany tekst
-- W `step-event-data.tsx`: po `handleApplyAll` (lub po analizie AI) automatycznie generuj tekst powitalny wywołując edge function z danymi AI
-- Dodanie przycisku "🔄 Wygeneruj ponownie" obok pola tekstu powitalnego
+## Rozwiązanie
 
-## Pliki do zmodyfikowania
+Zmiana DEV_MODE na `false` i zapewnienie prawdziwego logowania. To wymaga:
 
-### 1. `supabase/functions/parse-inquiry/index.ts`
-- Rozbudowa opisu `event.type` w schema z wskazówkami klasyfikacji
-- Dodanie reguły w "Zasady:" o instytucjach
+### 1. `src/lib/constants.ts`
+- Zmień `DEV_MODE = true` na `DEV_MODE = false`
 
-### 2. `src/components/features/offers/ai-inquiry-panel.tsx`
-- Typ `onCreateClient`: zmiana na `(data) => Promise<void>` 
-- `handleApplyAll`: `await onCreateClient(c)` z try/catch
-- Godziny: zamiana `'?'` na `'—'` w linii 273
-- Usunięcie wyświetlania null wartości
+### 2. Konfiguracja Auth
+- Włączyć auto-confirm email (dla dev) za pomocą `cloud--configure_auth`
+- Utworzyć konto testowe (np. `admin@cateringsl.pl` / hasło) przez Supabase Auth
 
-### 3. `supabase/functions/generate-greeting/index.ts`
-- Rozbudowa system prompt: spersonalizowany tekst z nawiązaniem do zapytania klienta
-- Przyjmowanie dodatkowych pól: `requirements`, `location`, `company`, `notes`
-- Dłuższy prompt (3-5 zdań) gdy mamy dane AI
+### 3. Weryfikacja
+- Po zmianie DEV_MODE na false, app przekieruje na `/login`
+- Zalogowanie prawdziwym kontem → `auth.uid()` dostępny → RLS przepuszcza operacje
+- Dodawanie klientów, usług, sprzętu działa
 
-### 4. `src/components/features/offers/steps/step-event-data.tsx`
-- Nowa funkcja `generateGreeting()` wywołująca edge function z danymi AI
-- Automatyczne wywołanie po "Zastosuj wszystko" 
-- Przycisk "🔄 Wygeneruj ponownie" obok pola tekstu powitalnego
-- Stan `isGeneratingGreeting` na loading indicator
+### Alternatywa (jeśli wolisz zostawić DEV_MODE):
+Nie zmieniać DEV_MODE, tylko w `use-auth.tsx` przy DEV_MODE automatycznie logować się do Supabase prawdziwym kontem (np. `supabase.auth.signInWithPassword`). To da prawdziwą sesję + wygodę dev mode.
 
-## Deploy
-Edge Functions: `parse-inquiry`, `generate-greeting`
+## Rekomendacja
+Opcja z prawdziwym logowaniem (DEV_MODE = false) — bezpieczniejsza i bliższa produkcji. Strona logowania już istnieje (`/login`).
 
 ## Brak zmian w bazie danych
+Tabele i RLS policies są poprawne — problem jest wyłącznie po stronie braku autentykacji.
+
