@@ -213,6 +213,14 @@ export const PublicOfferPage = () => {
     return new Date() > new Date(offer.valid_until);
   }, [offer?.valid_until]);
 
+  const editableCount = useMemo(() => {
+    if (!offer) return 0;
+    return offer.offer_variants.reduce((acc, v) => acc + v.variant_items.filter((item) => {
+      const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
+      return item.is_client_editable && mods && typeof mods === 'object';
+    }).length, 0);
+  }, [offer]);
+
   // Invalid token format
   if (!tokenValid) {
     return (
@@ -379,13 +387,6 @@ export const PublicOfferPage = () => {
   const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : 'Catering Śląski');
 
   const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
-  const editableCount = useMemo(() => {
-    if (!offer) return 0;
-    return offer.offer_variants.reduce((acc, v) => acc + v.variant_items.filter((item) => {
-      const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
-      return item.is_client_editable && mods && typeof mods === 'object';
-    }).length, 0);
-  }, [offer]);
 
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
