@@ -122,3 +122,100 @@ html {
   background-color: var(--theme-primary);
   color: white;
 }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  /* Hide interactive / non-printable elements */
+  .no-print,
+  [data-no-print],
+  .onboarding-overlay,
+  .floating-changes-panel,
+  .comparison-sticky-bar,
+  .validity-bar,
+  .notification-bell {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset all animations */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    animation-duration: 0ms !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* A4 base */
+  body {
+    font-size: 11pt;
+    line-height: 1.4;
+    color: #1A1A1A !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page breaks */
+  section {
+    page-break-inside: avoid;
+  }
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  /* Hero: static, compact */
+  .hero-section {
+    min-height: auto !important;
+    height: auto !important;
+    position: relative !important;
+    padding: 40px 20px !important;
+  }
+  .hero-section img {
+    position: static !important;
+    max-height: 200px !important;
+    object-fit: cover !important;
+    width: 100% !important;
+  }
+  .hero-section .absolute {
+    position: relative !important;
+  }
+
+  /* Gallery: compact grid */
+  .masonry-gallery,
+  [data-masonry] {
+    columns: 3 !important;
+  }
+  .masonry-gallery img,
+  [data-masonry] img {
+    max-height: 150px !important;
+  }
+
+  /* Terms: force all open */
+  .terms-section [data-state="closed"] {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .terms-section [data-state="closed"] > * {
+    display: block !important;
+  }
+
+  /* Calculation tables full width */
+  .calculation-section table {
+    width: 100% !important;
+  }
+
+  /* Remove shadows and hover effects */
+  .shadow-premium,
+  .shadow-premium-hover {
+    box-shadow: none !important;
+    border: 1px solid #e5e5e5 !important;
+  }
+}

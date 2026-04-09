@@ -19,6 +19,7 @@ import {
   Phone,
   Mail,
   Search,
+  FileDown,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
@@ -389,19 +390,44 @@ export const PublicOfferPage = () => {
 
   const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
 
+  const handlePrint = useCallback(() => {
+    const originalTitle = document.title;
+    const safeName = (offer.offer_number ?? 'oferta').replace(/[^a-zA-Z0-9-]/g, '_');
+    document.title = `Oferta_${safeName}_Catering_Slaski`;
+    window.print();
+    document.title = originalTitle;
+  }, [offer.offer_number]);
+
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
+      {/* Print-only header */}
+      <div className="print-only hidden">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 0', borderBottom: '2px solid #1A1A1A', marginBottom: '20px' }}>
+          <div>
+            <h1 style={{ fontSize: '20pt', fontWeight: 'bold', margin: 0 }}>Catering Śląski</h1>
+            <p style={{ fontSize: '11pt', color: '#666', margin: '4px 0 0 0' }}>Oferta cateringowa</p>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '10pt', color: '#444' }}>
+            <p style={{ fontWeight: 'bold', margin: 0 }}>{offer.offer_number}</p>
+            <p style={{ margin: '2px 0 0 0' }}>Dla: {offer.clients?.name ?? '—'}</p>
+            <p style={{ margin: '2px 0 0 0' }}>Data: {formatDate(offer.created_at)}</p>
+            {offer.valid_until && <p style={{ margin: '2px 0 0 0' }}>Ważna do: {formatDate(offer.valid_until)}</p>}
+          </div>
+        </div>
+      </div>
       {/* Onboarding overlay */}
-      {showOnboarding && (
-        <OnboardingOverlay
-          variantCount={offer.offer_variants.length}
-          editableCount={editableCount}
-          onDismiss={() => setOnboardingDismissed(true)}
-        />
-      )}
+      <div className="no-print">
+        {showOnboarding && (
+          <OnboardingOverlay
+            variantCount={offer.offer_variants.length}
+            editableCount={editableCount}
+            onDismiss={() => setOnboardingDismissed(true)}
+          />
+        )}
 
-      {/* Editable tooltip */}
-      <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
+        {/* Editable tooltip */}
+        <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
+      </div>
       {/* 1. HERO */}
       <section className="relative min-h-[50vh] overflow-hidden md:min-h-[60vh]">
         <motion.div
@@ -453,6 +479,17 @@ export const PublicOfferPage = () => {
           >
             {offer.offer_number}
           </motion.p>
+
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+            onClick={handlePrint}
+            className="no-print mt-4 inline-flex items-center gap-2 rounded-xl bg-ivory/15 px-5 py-2.5 font-body text-sm font-medium text-ivory/90 backdrop-blur-md transition-all hover:bg-ivory/25"
+          >
+            <FileDown className="h-4 w-4" />
+            Pobierz ofertę PDF
+          </motion.button>
 
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -635,26 +672,32 @@ export const PublicOfferPage = () => {
       <TermsSection />
 
       {/* 13. PYTANIA I UWAGI + HISTORIA KOMUNIKACJI */}
-      <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
+      <div className="no-print">
+        <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
+      </div>
 
       {/* 14. AKCEPTACJA OFERTY */}
-      {!offerAccepted && (
-        <div id="acceptance-section">
-          <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} />
-        </div>
-      )}
+      <div className="no-print">
+        {!offerAccepted && (
+          <div id="acceptance-section">
+            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} />
+          </div>
+        )}
+      </div>
 
       {/* 15. KONTAKT */}
-      <ContactSection ctaText={eventProfile?.cta_text} />
+      <ContactSection ctaText={eventProfile?.cta_text} onPrint={handlePrint} />
 
       {/* Floating changes panel */}
-      <ChangesPanel
+      <div className="no-print">
+        <ChangesPanel
         modifications={modifications}
         offer={offer}
         onClearModifications={handleClearModifications}
-        originalTotal={originalTotal}
-        proposedTotal={proposedTotal}
-      />
+          originalTotal={originalTotal}
+          proposedTotal={proposedTotal}
+        />
+      </div>
 
       {/* 16. FOOTER */}
       <motion.footer
@@ -675,6 +718,11 @@ export const PublicOfferPage = () => {
           </p>
         </div>
       </motion.footer>
+
+      {/* Print-only footer */}
+      <div className="print-only hidden" style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #ccc', marginTop: '20px', fontSize: '9pt', color: '#666' }}>
+        Catering Śląski | zamowienia@cateringslaski.pl | Wygenerowano: {new Date().toLocaleDateString('pl-PL')}
+      </div>
     </div>
   );
 };
