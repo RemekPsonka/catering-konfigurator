@@ -29,6 +29,7 @@ import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
 import { EventProfileEditPage } from "@/pages/admin/event-profile-edit";
 import { PublicOfferPage } from "@/pages/public/offer";
 import { OfferFindPage } from "@/pages/public/offer-find";
+import { DashboardPage } from "@/pages/admin/dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,7 +62,8 @@ const App = () => (
                   </AuthGuard>
                 }
               >
-                <Route index element={<Navigate to="/admin/offers" replace />} />
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="offers" element={<OffersListPage />} />
                 <Route path="offers/new" element={<OfferNewPage />} />
                 <Route path="offers/:id/edit" element={<OfferEditPage />} />

@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/use-auth';
 import { DEV_MODE } from '@/lib/constants';
-import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench, Bell } from 'lucide-react';
+import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench, Bell, LayoutDashboard } from 'lucide-react';
 import { NotificationBell } from '@/components/features/notifications/notification-bell';
 import { PushPermissionBanner } from '@/components/features/notifications/push-permission-banner';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
+  { title: 'Dashboard', url: '/admin/dashboard', icon: LayoutDashboard },
   { title: 'Oferty', url: '/admin/offers', icon: FileText },
   { title: 'Baza potraw', url: '/admin/dishes', icon: UtensilsCrossed },
   { title: 'Usługi', url: '/admin/services', icon: Wrench },
