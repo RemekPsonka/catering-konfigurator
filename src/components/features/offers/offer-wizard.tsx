@@ -80,6 +80,14 @@ export const OfferWizard = ({ offerId }: OfferWizardProps) => {
             pricingMode={state.stepData.eventData.pricing_mode}
           />
         );
+      case 5:
+        return (
+          <StepCalculation
+            offerId={state.offerId}
+            pricingMode={state.stepData.eventData.pricing_mode}
+            peopleCount={state.stepData.eventData.people_count}
+          />
+        );
       default:
         return <StepPlaceholder title={STEP_TITLES[state.currentStep - 1]} />;
     }
