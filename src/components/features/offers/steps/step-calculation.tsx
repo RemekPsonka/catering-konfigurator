@@ -211,12 +211,34 @@ export const StepCalculation = ({
     setIsGeneratingSummary(true);
     try {
       const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === eventType)?.label ?? eventType;
+      const pricingModeLabel = pricingMode === 'PER_PERSON' ? 'per person' : 'ilości stałe';
+
       const variantsSummary = variants
-        .map((v) => `${v.name} (${v.variant_items.length} dań)`)
-        .join(', ');
+        .map((v) => {
+          const dishes = v.variant_items
+            .map((item) => {
+              const name = item.custom_name || item.dishes?.display_name || item.dishes?.name || '?';
+              const price = getItemPrice(item);
+              return `${name} (${price} zł)`;
+            })
+            .join(', ');
+          return `${v.name}: ${dishes || 'brak dań'}`;
+        })
+        .join(' | ');
+
       const servicesSummary = offerServices
-        .map((os) => os.services.name)
+        .map((os) => {
+          const price = os.custom_price ?? os.services.price;
+          const qty = os.quantity ?? 1;
+          return `${os.services.name} (${price} zł × ${qty})`;
+        })
         .join(', ');
+
+      const discountInfo = discountPercent > 0
+        ? `Rabat: ${discountPercent}%`
+        : discountValue > 0
+          ? `Rabat: ${discountValue} zł`
+          : null;
 
       const { data, error } = await supabase.functions.invoke('generate-summary', {
         body: {
@@ -225,6 +247,12 @@ export const StepCalculation = ({
           variants_summary: variantsSummary,
           total_value: totals.grandTotal,
           services_summary: servicesSummary,
+          people_count: peopleCount,
+          event_date: eventDate,
+          client_name: clientName,
+          discount_info: discountInfo,
+          delivery_cost: deliveryCost > 0 ? deliveryCost : null,
+          pricing_mode_label: pricingModeLabel,
         },
       });
 
