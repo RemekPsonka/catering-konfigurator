@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Search, AlertCircle } from 'lucide-react';
 
-const ACCESSIBLE_STATUSES = ['ready', 'sent', 'viewed', 'revision', 'accepted', 'won'];
-const PREPARING_STATUSES = ['draft', 'ready'];
+// All statuses with a public_token are now accessible
 
 const formatOfferNumber = (raw: string): string => {
   const cleaned = raw.trim().toUpperCase();
