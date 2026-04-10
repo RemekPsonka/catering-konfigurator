@@ -94,9 +94,9 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications }: 
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{item.custom_name ?? item.dishes.display_name}</span>
           {item.selected_variant_option && (
-            <span className="text-xs text-muted-foreground">
-              — {item.selected_variant_option}
-            </span>
+            <Badge className="text-xs bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100">
+              ✓ {item.selected_variant_option}
+            </Badge>
           )}
           {modType && item.is_client_editable && (
             <Badge variant="outline" className="text-xs">
@@ -104,7 +104,12 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications }: 
             </Badge>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">{UNIT_TYPE_LABELS[item.dishes.unit_type] ?? ''}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{UNIT_TYPE_LABELS[item.dishes.unit_type] ?? ''}</span>
+          {item.custom_name && item.custom_name !== item.dishes.display_name && (
+            <span className="text-xs text-blue-600">✓ zamiana z: {item.dishes.display_name}</span>
+          )}
+        </div>
       </TableCell>
       <TableCell>
         {editingPrice ? (
