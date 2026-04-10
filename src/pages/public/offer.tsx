@@ -299,7 +299,49 @@ export const PublicOfferPage = () => {
         </motion.div>
       </div>
     );
+
+  // Status flags for conditional rendering
+  const isDraft = offer?.status === 'draft';
+  const isLost = offer?.status === 'lost';
+  const isAccepted = offer?.status === 'accepted' || offer?.status === 'won';
+  const canInteract = !isDraft && !isLost && !isExpired;
+
+  // Draft — show "being prepared" page
+  if (isDraft) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
+          <Sparkles className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
+          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta jest przygotowywana</h1>
+          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
+            Pracujemy nad Twoją ofertą. Wróć tutaj za chwilę — ten link będzie aktywny, gdy oferta będzie gotowa.
+          </p>
+          <a href="mailto:zamowienia@cateringslaski.pl" className="mt-8 inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+            <Mail className="h-4 w-4" /> Skontaktuj się z nami
+          </a>
+        </motion.div>
+      </div>
+    );
   }
+
+  // Lost — show "offer closed" page
+  if (isLost) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
+          <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
+          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta zamknięta</h1>
+          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
+            Ta oferta została zamknięta. Skontaktuj się z nami, jeśli chcesz otrzymać nową propozycję.
+          </p>
+          <a href="mailto:zamowienia@cateringslaski.pl" className="mt-8 inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+            <Mail className="h-4 w-4" /> Skontaktuj się z nami
+          </a>
+        </motion.div>
+      </div>
+    );
+  }
+
 
   // Expired
   if (isExpired) {
