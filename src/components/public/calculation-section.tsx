@@ -6,6 +6,7 @@ import { fadeInUp, fadeIn, staggerContainer } from '@/lib/animations';
 import { calculateOfferTotals, formatCurrency } from '@/lib/calculations';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import { useDebounce } from '@/hooks/use-debounce';
+import { supabase } from '@/integrations/supabase/client';
 import { AnimatedPrice } from './animated-price';
 import type { DishModification } from './dish-edit-panel';
 import type { PublicOffer } from '@/hooks/use-public-offer';
@@ -67,7 +68,24 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const hasDiscount = totals.discountAmount > 0;
 
   useEffect(() => {
-    if (!min_offer_price || min_offer_price <= 0) return;
+    if (!is_people_count_editable || debouncedCount === people_count || debouncedCount < 1) return;
+
+    const persistCount = () => {
+      supabase
+        .from('offers')
+        .update({ people_count: debouncedCount })
+        .eq('id', offer.id)
+        .then(({ error }) => {
+          if (error) console.error('Failed to save people count:', error);
+        });
+    };
+
+    if (!min_offer_price || min_offer_price <= 0) {
+      prevValidCount.current = debouncedCount;
+      persistCount();
+      return;
+    }
+
     if (debouncedCount === prevValidCount.current) return;
 
     const checkTotals = calculateOfferTotals(
@@ -80,8 +98,9 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
       setLocalPeopleCount(prevValidCount.current ?? people_count ?? 1);
     } else {
       prevValidCount.current = debouncedCount;
+      persistCount();
     }
-  }, [debouncedCount, pricing_mode, adjustedVariants, services, discount_percent, discount_value, delivery_cost, min_offer_price]);
+  }, [debouncedCount, pricing_mode, adjustedVariants, services, discount_percent, discount_value, delivery_cost, min_offer_price, is_people_count_editable, people_count, offer.id]);
 
   const handleIncrement = useCallback(() => setLocalPeopleCount((c) => c + 1), []);
   const handleDecrement = useCallback(() => setLocalPeopleCount((c) => Math.max(1, c - 1)), []);
