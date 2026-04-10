@@ -408,6 +408,25 @@ export const PublicOfferPage = () => {
 
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
+      {/* Status banners */}
+      {isExpired && (
+        <div className="no-print sticky top-0 z-50 border-b px-4 py-3 text-center font-body text-sm" style={{ backgroundColor: '#fef3cd', borderColor: '#ffc107', color: '#856404' }}>
+          <Clock className="mr-2 inline h-4 w-4" />
+          Termin ważności oferty minął {offer.valid_until ? new Date(offer.valid_until).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}. Skontaktuj się z nami w celu przedłużenia.
+        </div>
+      )}
+      {isAccepted && (
+        <div className="no-print sticky top-0 z-50 border-b px-4 py-3 text-center font-body text-sm" style={{ backgroundColor: '#d4edda', borderColor: '#28a745', color: '#155724' }}>
+          <Check className="mr-2 inline h-4 w-4" />
+          Oferta zaakceptowana {offer.accepted_at ? new Date(offer.accepted_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+        </div>
+      )}
+      {isWon && (
+        <div className="no-print sticky top-0 z-50 border-b px-4 py-3 text-center font-body text-sm" style={{ backgroundColor: '#d4edda', borderColor: '#28a745', color: '#155724' }}>
+          <Check className="mr-2 inline h-4 w-4" />
+          Zamówienie potwierdzone
+        </div>
+      )}
       {/* Print-only header */}
       <div className="print-only hidden">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 0', borderBottom: '2px solid #1A1A1A', marginBottom: '20px' }}>
