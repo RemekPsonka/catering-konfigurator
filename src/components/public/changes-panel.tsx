@@ -267,7 +267,11 @@ export const ChangesPanel = ({
 
                 {/* Price impact */}
                 <div className="flex items-center justify-between rounded-xl p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, var(--theme-bg, #FAF7F2))' }}>
-                  <span className="font-body text-sm font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>Łączny wpływ:</span>
+                  <span className="font-body text-sm font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                    {isPP
+                      ? `Łączny wpływ na cenę (przy ${offer.people_count ?? '?'} os.):`
+                      : `Łączny wpływ na cenę:`}
+                  </span>
                   <AnimatedPrice
                     value={priceDiff}
                     className="font-display text-lg font-bold"
