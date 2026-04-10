@@ -271,10 +271,16 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
                     {variant.is_recommended && <Badge variant="secondary">Polecany</Badge>}
                   </div>
                   <div className="space-y-1">
-                    {(variant as { variant_items: Array<{ id: string; quantity: number | null; custom_name: string | null; dishes: { display_name: string; is_modifiable: boolean | null; unit_type: string }; }> }).variant_items?.map((item: { id: string; quantity: number | null; custom_name: string | null; dishes: { display_name: string; is_modifiable: boolean | null; unit_type: string } }) => (
+                    {(variant as { variant_items: Array<{ id: string; quantity: number | null; custom_name: string | null; selected_variant_option: string | null; dishes: { display_name: string; is_modifiable: boolean | null; unit_type: string }; }> }).variant_items?.map((item: { id: string; quantity: number | null; custom_name: string | null; selected_variant_option: string | null; dishes: { display_name: string; is_modifiable: boolean | null; unit_type: string } }) => (
                       <div key={item.id} className="flex items-center justify-between text-sm py-1">
                         <span>
                           {item.custom_name || item.dishes.display_name}
+                          {item.selected_variant_option && (
+                            <span className="text-xs text-emerald-600 ml-1">✓ {item.selected_variant_option}</span>
+                          )}
+                          {item.custom_name && item.custom_name !== item.dishes.display_name && (
+                            <span className="text-xs text-blue-600 ml-1">(zamiana)</span>
+                          )}
                           {item.dishes.is_modifiable && ' 🔄'}
                         </span>
                         {showDetailed && (

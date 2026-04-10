@@ -257,6 +257,9 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
               </CardContent>
             </Card>
           )}
+
+          {/* Proposal history */}
+          <ProposalHistoryPanel offerId={offerId} />
         </>
       )}
 
