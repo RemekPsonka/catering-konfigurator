@@ -21,6 +21,7 @@ import {
   type VariantWithItems,
 } from '@/hooks/use-offer-variants';
 import { VariantItemsTable } from './variant-items-table';
+import { ProposalHistoryPanel } from './proposal-history-panel';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { RequirementHints } from '../requirement-hints';
 import type { ClientRequirement } from '../requirements-sidebar';
@@ -256,6 +257,9 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
               </CardContent>
             </Card>
           )}
+
+          {/* Proposal history */}
+          <ProposalHistoryPanel offerId={offerId} />
         </>
       )}
 
