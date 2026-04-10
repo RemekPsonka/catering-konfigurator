@@ -33,6 +33,7 @@ import { fireNotification } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { buildPublicOfferUrl } from '@/lib/constants';
+import { formatCurrency } from '@/lib/calculations';
 
 // ── Timeline item types ──
 

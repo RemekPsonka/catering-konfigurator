@@ -10,6 +10,7 @@ import { useProposalDetail, useUpdateProposalItem, useResolveProposal } from '@/
 import type { ProposalItemWithDishes } from '@/hooks/use-proposal-diff';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/calculations';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
