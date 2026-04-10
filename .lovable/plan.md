@@ -1,102 +1,74 @@
 
-# Stały, niegasnący link publiczny oferty
 
-## Co teraz psuje link
-Znalazłem dwa źródła problemu:
+# Stałe linki publiczne — uzupełnienia i edge-case'y
 
-1. `use-offer-wizard.ts` przy zapisie istniejącej oferty ustawia zawsze `status: 'draft'`
-   - więc oferta, która działała wczoraj, po wejściu do konfiguratora i auto-zapisie może znów stać się szkicem
-2. Dostęp publiczny jest dziś uzależniony od statusu:
-   - frontend `usePublicOffer` filtruje tylko `ready/sent/viewed/revision/accepted/won`
-   - RLS `public_offer_read` też blokuje `draft` i `lost`
-   - `/offer/find` i adminowe akcje “kopiuj link” też mają własne listy statusów
+## Stan obecny po ostatniej zmianie
+- `use-offer-wizard.ts`: przy UPDATE pomija `status` — OK
+- `use-public-offer.ts`: brak filtra po statusie — OK
+- RLS `public_offer_read`: `public_token IS NOT NULL` — OK
+- `offer.tsx`: draft/lost mają osobne ekrany — ale brak pełnej obsługi wg wymagań
+- `step-preview.tsx`: przycisk "Zapisz szkic" nadal ustawia `status: 'draft'` — BUG, to resetuje status wysłanej oferty
+- `use-offers.ts` (duplikacja): ustawia `status: 'draft'` — OK, bo duplikat to nowa oferta
+- `find_offer_by_email_and_number` RPC: nie filtruje po statusie — OK, ale trzeba sprawdzić czy zwraca oferty bez tokena
+- `acceptance-section.tsx`: ukrywa się dla `ready` — powinno pokazywać akceptację tylko dla `sent/viewed/revision`
+- Token generuje się automatycznie przez trigger `generate_public_token` na INSERT — trzeba to zmienić
 
-Jeśli wymaganie brzmi: “jak raz wygenerujemy link, to zawsze ma działać”, to obecna architektura musi zostać zmieniona całościowo.
+## Zmiany do wdrożenia
 
-## Proponowana logika docelowa
-Po wygenerowaniu `public_token`:
-- link pozostaje ten sam na zawsze
-- oferta pod tym linkiem zawsze się otwiera
-- status wpływa tylko na to, co klient może zrobić, a nie czy w ogóle zobaczy stronę
+### 1. Trigger bazy danych — token NIE przy INSERT
+Obecnie trigger `generate_public_token` generuje token przy każdym INSERT. Wymaganie: token powstaje dopiero przy pierwszym wysłaniu.
+- Migracja: usuń trigger z INSERT, dodaj trigger na UPDATE, który generuje token gdy `status` zmienia się na `sent` i `public_token IS NULL`
+- Alternatywa: zostaw trigger INSERT ale ustaw `public_token = NULL` jawnie, a token generuj w logice wysyłania — prostsze: zmień trigger na BEFORE UPDATE
 
-Czyli:
-- odczyt publiczny: dozwolony dla każdej oferty z `public_token`
-- akcje publiczne nadal kontrolowane osobno:
-  - `viewed`
-  - `revision`
-  - `accepted`
-- dla `lost` / po terminie / szkicu:
-  - strona się otwiera
-  - ale pokazuje odpowiedni stan informacyjny i blokuje akcje, jeśli trzeba
+### 2. `step-preview.tsx` — "Zapisz szkic" NIE resetuje statusu
+- Linia 141: `statusMutation.mutate({ status: 'draft' })` — to jest jawny reset statusu
+- Zmiana: "Zapisz szkic" nie powinno zmieniać statusu jeśli oferta była już wysłana
+- Logika: jeśli `offer.status` jest w `['sent','viewed','revision','accepted','won']`, przycisk "Zapisz szkic" po prostu nawiguje bez zmiany statusu
+- "Zapisz i pokaż link" oraz "Gotowa" — ustawiają `ready`, OK
+- "Generuj email" — ustawia `ready` + wysyła, zmienić na `sent`
 
-## Zakres zmian
+### 3. `offer.tsx` — pełna obsługa statusów wg tabeli
+Zmienić logikę ekranów statusowych:
+- `draft`: "Oferta jest w trakcie aktualizacji. Wróć później." + telefon + email. BEZ dań/cen/wariantów
+- `ready`: pełna oferta, ale BEZ akceptacji (oferta jeszcze nie wysłana)
+- `sent/viewed`: pełna oferta + pełne akcje (zamiany, pytania, akceptacja)
+- `revision`: pełna oferta + poprawki widoczne + pytania
+- `accepted`: pełna oferta + baner "Oferta zaakceptowana [data]", bez akcji
+- `won`: pełna oferta + baner "Zamówienie potwierdzone", bez akcji
+- `lost`: "Oferta zamknięta. Skontaktuj się z nami." + dane kontaktowe. BEZ dań
+- Wygasła (`valid_until < now()`): pełna oferta widoczna + baner na górze "Termin ważności minął [data]. Skontaktuj się w celu przedłużenia." Akcje zablokowane
 
-### 1. Backend / RLS
-Przygotuję migrację, która:
-- zmieni `public_offer_read` na regułę opartą tylko o `public_token IS NOT NULL`
-- zaktualizuje polityki odczytu zależnych tabel publicznych, żeby nie były blokowane przez status oferty:
-  - `clients`
-  - `offer_variants`
-  - `variant_items`
-  - `offer_services`
-- zostawi kontrolę publicznych update’ów osobno, żeby klient nadal mógł zmieniać tylko dozwolone pola/statusy
+Obecnie `isExpired` blokuje całą stronę. Zmienić: pokazać pełną ofertę + baner + zablokować akcje.
 
-To jest kluczowe, bo samo zdjęcie filtra w React nie wystarczy.
+### 4. `acceptance-section.tsx` — dostosować widoczność
+- Obecnie: `['ready', 'sent', 'viewed', 'revision']`
+- Zmienić na: `['sent', 'viewed', 'revision']` — `ready` nie pokazuje akceptacji
+- Dodać warunek: `!isExpired` (przekazać jako prop)
 
-### 2. Frontend publiczny
-Zmienię `src/hooks/use-public-offer.ts`:
-- usunę `.in('status', ...)`
-- odczyt będzie po samym `public_token`
+### 5. `changes-panel.tsx` / `communication-section.tsx` — blokada dla expired/accepted/won
+- Dodać prop `actionsDisabled` do tych komponentów
+- Gdy `actionsDisabled = true`: ukryj formularze, pokaż tylko historię
 
-Zmienię `src/pages/public/offer.tsx`:
-- widok ma działać także dla szkicu i oferty zamkniętej
-- statusy będą sterować sekcjami akcji, nie samym dostępem
-- dodam czytelne stany:
-  - szkic / oferta jeszcze przygotowywana
-  - wygasła
-  - zamknięta / przegrana
-  - zaakceptowana
+### 6. `find_offer_by_email_and_number` RPC — filtruj po tokenie
+- Obecna funkcja nie sprawdza `public_token IS NOT NULL` — może zwrócić ofertę bez tokena
+- Migracja: dodać `AND o.public_token IS NOT NULL` do WHERE
 
-### 3. Naprawa resetowania statusu przy edycji
-Zmienię `src/hooks/use-offer-wizard.ts`, bo to jest główna przyczyna “link działał, a dziś nie działa”:
-- przy update istniejącej oferty nie będziemy bezwarunkowo ustawiać `status: 'draft'`
-- status ma zostać zachowany
-- tylko nowa oferta startuje jako `draft`
-
-Dodatkowo sprawdzę, czy w podglądzie / zapisie końcowym nie ma innych miejsc, które cofają status niepotrzebnie.
-
-### 4. Spójność w innych miejscach UI
-Zmienię też miejsca, które dziś ukrywają link zależnie od statusu:
-- `src/pages/public/offer-find.tsx`
-- `src/pages/admin/offers-list.tsx`
-
-Efekt:
-- jeśli oferta ma `public_token`, da się ją otworzyć i skopiować link
-- “Znajdź ofertę” nie będzie sztucznie blokować dostępu tylko dlatego, że status to `draft` albo inny nieobsłużony wariant
-
-## Ważna decyzja produktowa
-To oznacza realnie:
-- klient zobaczy ofertę także wtedy, gdy manager zedytuje ją ponownie i wróci do szkicu
-- jeśli nie chcesz pokazywać pełnego szkicu, mogę zrobić wariant bezpieczny:
-  - link zawsze działa
-  - ale dla `draft` pokazujemy stronę “Oferta jest aktualizowana, wróć później”, zamiast pełnej treści
-
-To moim zdaniem jest najlepszy kompromis:
-- link nigdy nie umiera
-- klient nie dostaje “nie znaleziono”
-- a jednocześnie nie ogląda przypadkowo roboczej wersji
+### 7. Admin UI — ukryj "Kopiuj link" gdy brak tokena
+- `offers-list.tsx` linia 201: `{offer.public_token && (...)}` — już OK
+- `step-preview.tsx`: przycisk "Zapisz i pokaż link" powinien być widoczny zawsze (generuje token przy ustawieniu ready/sent)
 
 ## Pliki do zmiany
-- `src/hooks/use-public-offer.ts`
-- `src/pages/public/offer.tsx`
-- `src/pages/public/offer-find.tsx`
-- `src/hooks/use-offer-wizard.ts`
-- `src/pages/admin/offers-list.tsx`
-- nowa migracja SQL zmieniająca polityki RLS dla publicznego odczytu ofert i powiązanych danych
+- Nowa migracja SQL: zmiana triggera `generate_public_token`, update RPC `find_offer_by_email_and_number`
+- `src/components/features/offers/steps/step-preview.tsx` — nie resetuj statusu przy "Zapisz szkic"
+- `src/pages/public/offer.tsx` — pełna obsługa statusów wg tabeli, expired jako baner zamiast blokady
+- `src/components/public/acceptance-section.tsx` — usunąć `ready` z widocznych statusów, dodać prop `isExpired`
+- `src/components/public/changes-panel.tsx` — dodać prop `actionsDisabled`
+- `src/components/public/communication-section.tsx` — dodać prop `actionsDisabled`
 
 ## Efekt końcowy
-Po wdrożeniu:
-- raz wygenerowany link będzie stały
-- oferta pod tym linkiem zawsze się otworzy
-- edycja w konfiguratorze nie zabije linku
-- status będzie kontrolował tylko dostępne akcje i komunikaty, a nie samą dostępność URL
+- Nowa oferta nie dostaje tokena dopóki nie zostanie wysłana
+- Edycja wysłanej oferty nie resetuje statusu
+- Link zawsze działa, ale klient widzi odpowiedni ekran zależnie od statusu
+- Expired oferty pokazują pełną treść + baner ostrzegawczy
+- Akcje klienta zablokowane w stanach: draft, accepted, won, lost, expired
+
