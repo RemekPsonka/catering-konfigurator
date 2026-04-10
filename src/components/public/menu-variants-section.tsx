@@ -221,7 +221,7 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
     const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
     return item.is_client_editable && mods && typeof mods === 'object';
   }).length;
-  const perPerson = calculateVariantDishesTotal(variant as unknown as VariantWithItems);
+  const perPerson = calculateVariantDishesTotal(variant as VariantWithItems);
 
   return (
     <motion.button

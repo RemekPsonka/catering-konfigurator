@@ -47,7 +47,7 @@ export const VariantComparisonSection = ({
 
   const renderCard = (v: Variant) => {
     const editableCount = getEditableCount(v);
-    const perPerson = calculateVariantDishesTotal(v as unknown as VariantWithItems);
+    const perPerson = calculateVariantDishesTotal(v as VariantWithItems);
 
     return (
       <motion.button

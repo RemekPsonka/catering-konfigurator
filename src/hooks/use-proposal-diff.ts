@@ -35,7 +35,7 @@ export const useProposalDetail = (proposalId: string | undefined) => {
         .single();
 
       if (error) throw error;
-      return data as unknown as ProposalDetail;
+      return data as ProposalDetail;
     },
     enabled: !!proposalId,
   });

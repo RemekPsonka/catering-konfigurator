@@ -41,6 +41,14 @@ export interface TemplateData {
   pricing_mode: string;
 }
 
+function isTemplateData(data: unknown): data is TemplateData {
+  return data !== null && typeof data === 'object' && 'variants' in data && 'services' in data && 'settings' in data;
+}
+
+function toJson(data: TemplateData): Json {
+  return JSON.parse(JSON.stringify(data)) as Json;
+}
+
 export const useOfferTemplates = (filterEventType?: string) => {
   return useQuery({
     queryKey: ['offer-templates', filterEventType],
@@ -98,7 +106,7 @@ export const useSaveAsTemplate = () => {
           description: v.description,
           is_recommended: v.is_recommended ?? false,
           sort_order: v.sort_order ?? 0,
-          items: ((v as unknown as { variant_items: Tables<'variant_items'>[] }).variant_items ?? []).map((item) => ({
+          items: ((v as { variant_items: Tables<'variant_items'>[] }).variant_items ?? []).map((item) => ({
             dish_id: item.dish_id,
             quantity: item.quantity ?? 1,
             custom_price: item.custom_price ? Number(item.custom_price) : null,
@@ -136,7 +144,7 @@ export const useSaveAsTemplate = () => {
           description: description || null,
           event_type: offer.event_type,
           pricing_mode: offer.pricing_mode,
-          template_data: templateData as unknown as Json,
+          template_data: toJson(templateData),
           created_by: user.id,
         })
         .select()
@@ -167,7 +175,8 @@ export const useCreateFromTemplate = () => {
         .single();
       if (tplErr) throw tplErr;
 
-      const td = template.template_data as unknown as TemplateData;
+      if (!isTemplateData(template.template_data)) throw new Error('Nieprawidłowy szablon');
+      const td = template.template_data;
 
       // We need a client_id — create a placeholder by picking first client
       // Actually, template creates offer without client — user must fill in step 1

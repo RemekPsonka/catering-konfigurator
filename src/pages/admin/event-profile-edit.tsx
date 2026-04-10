@@ -313,7 +313,7 @@ export const EventProfileEditPage = () => {
         description_long: descLong || null,
         cta_text: ctaText || null,
         is_active: isActive,
-        features: features as unknown as Tables<'event_type_profiles'>['features'],
+        features: JSON.parse(JSON.stringify(features)) as Tables<'event_type_profiles'>['features'],
         testimonial_text: testimonialText || null,
         testimonial_author: testimonialAuthor || null,
         testimonial_event: testimonialEvent || null,

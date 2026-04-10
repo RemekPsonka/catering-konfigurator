@@ -29,8 +29,8 @@ export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsD
   const selectedVariant = offer.offer_variants.find((v) => v.id === selectedVariantId);
 
   // Calculate prices dynamically to avoid 0 zł bug
-  const variants = offer.offer_variants as unknown as VariantWithItems[];
-  const services = offer.offer_services as unknown as OfferServiceWithService[];
+  const variants = offer.offer_variants as VariantWithItems[];
+  const services = offer.offer_services as OfferServiceWithService[];
   const peopleCount = offer.people_count ?? 1;
   const totals = calculateOfferTotals(
     offer.pricing_mode, peopleCount, variants, services,

@@ -63,7 +63,7 @@ export const useExpiringOffers = () =>
         .in('status', ['sent', 'viewed', 'revision'])
         .order('valid_until', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as unknown as ExpiringOffer[];
+      return (data ?? []) as ExpiringOffer[];
     },
   });
 

@@ -38,6 +38,16 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 
+type OfferServiceJoined = Tables<'offer_services'> & {
+  services: Tables<'services'>;
+};
+
+type VariantJoined = Tables<'offer_variants'> & {
+  variant_items: (Tables<'variant_items'> & {
+    dishes: { display_name: string; price_per_person: number | null; price_per_piece: number | null; price_per_kg: number | null; price_per_set: number | null; unit_type: string; is_modifiable: boolean | null };
+  })[];
+};
+
 export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep, isLocked = false }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -57,7 +67,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
         .eq('id', offerId)
         .single();
       if (error) throw error;
-      return data as unknown as FullOffer;
+      return data as FullOffer;
     },
     enabled: !!offerId,
   });
@@ -120,8 +130,8 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
 
   const offer = offerQuery.data;
   const theme = offer?.offer_themes;
-  const variants = variantsQuery.data ?? [];
-  const services = servicesQuery.data ?? [];
+  const variants = (variantsQuery.data ?? []) as VariantJoined[];
+  const services = (servicesQuery.data ?? []) as OfferServiceJoined[];
   const terms = termsQuery.data ?? [];
   const displayMode = offer?.price_display_mode ?? 'PER_PERSON_AND_TOTAL';
 
@@ -204,13 +214,13 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
       onSuccess: () => {
         const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === offer?.event_type)?.label ?? offer?.event_type ?? '—';
         const variantLines = variants.map((v) => {
-          const items = (v as { variant_items: Array<{ custom_name: string | null; dishes: { display_name: string } }> }).variant_items ?? [];
+          const items = v.variant_items ?? [];
           const dishNames = items.map((i) => i.custom_name || i.dishes.display_name).join(', ');
           return `- ${v.name} (${items.length} dań): ${dishNames}`;
         }).join('\n');
 
         const servicesText = services.length > 0
-          ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${(os as unknown as { services: { name: string } }).services.name} × ${os.quantity ?? 1}`).join('\n')}`
+          ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${os.services.name} × ${os.quantity ?? 1}`).join('\n')}`
           : '';
 
         const text = buildRichOfferEmail({
@@ -335,9 +345,9 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
                 <div className="space-y-1">
                   {services.map((os) => (
                     <div key={os.id} className="flex justify-between text-sm">
-                      <span>{(os as unknown as { services: { name: string } }).services.name} × {os.quantity ?? 1}</span>
+                      <span>{os.services.name} × {os.quantity ?? 1}</span>
                       {showDetailed && (
-                        <span>{formatCurrency((os.custom_price != null ? Number(os.custom_price) : (os as unknown as { services: { price: number } }).services.price) * (os.quantity ?? 1))}</span>
+                        <span>{formatCurrency((os.custom_price != null ? Number(os.custom_price) : os.services.price) * (os.quantity ?? 1))}</span>
                       )}
                     </div>
                   ))}
@@ -420,8 +430,8 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
           eventDate={offer?.event_date ?? null}
           peopleCount={peopleCount}
           pricingMode={pricingMode}
-          variantsSummary={variants.map((v) => `${v.name} (${(v as { variant_items: unknown[] }).variant_items?.length ?? 0} dań)`).join(', ')}
-          servicesSummary={services.map((os) => (os as unknown as { services: { name: string } }).services.name).join(', ') || 'Brak'}
+          variantsSummary={variants.map((v) => `${v.name} (${v.variant_items?.length ?? 0} dań)`).join(', ')}
+          servicesSummary={services.map((os) => os.services.name).join(', ') || 'Brak'}
           totalValue={totals.grandTotal}
           pricePerPerson={totals.pricePerPerson}
           discountInfo={

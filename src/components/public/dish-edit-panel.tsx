@@ -46,9 +46,9 @@ interface ParsedModifications {
 const parseModifications = (raw: Json | null): ParsedModifications | null => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const obj = raw as Record<string, unknown>;
-  const type = obj.type as string;
+  const type = obj.type;
   if (type !== 'swap' && type !== 'variant' && type !== 'split') return null;
-  return obj as unknown as ParsedModifications;
+  return { type, alternatives: obj.alternatives, options: obj.options, can_split_with: obj.can_split_with, min_split_percent: obj.min_split_percent } as ParsedModifications;
 };
 
 interface DishEditPanelProps {
