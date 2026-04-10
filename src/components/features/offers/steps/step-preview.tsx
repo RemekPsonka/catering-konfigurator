@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail } from 'lucide-react';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -30,6 +30,7 @@ interface StepPreviewProps {
   requirements?: ClientRequirement[];
   inquiryText?: string;
   onGoToStep?: (step: number) => void;
+  isLocked?: boolean;
 }
 
 type FullOffer = Tables<'offers'> & {
@@ -37,7 +38,7 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 
-export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep }: StepPreviewProps) => {
+export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep, isLocked = false }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -415,58 +416,65 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
             Zapisz jako szablon
           </Button>
         )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  variant="outline"
-                  disabled={!offer?.public_token}
-                  onClick={() => {
-                    if (offer?.public_token) {
-                      window.open(buildPublicOfferUrl(offer.public_token), '_blank');
-                    }
-                  }}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Podgląd klienta
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!offer?.public_token && (
-              <TooltipContent>Zapisz ofertę, aby zobaczyć podgląd klienta</TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-        <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
-          <Save className="mr-2 h-4 w-4" />
-          Zapisz szkic
-        </Button>
-        <Button variant="secondary" onClick={handleSaveAndShowLink} disabled={statusMutation.isPending}>
-          <Link2 className="mr-2 h-4 w-4" />
-          Zapisz i pokaż link
-        </Button>
-        <Button variant="secondary" onClick={handleMarkReady} disabled={statusMutation.isPending}>
-          <CheckCircle className="mr-2 h-4 w-4" />
-          Oznacz jako gotowa
-        </Button>
-        <Button onClick={handleGenerateEmail} disabled={statusMutation.isPending}>
-          <Mail className="mr-2 h-4 w-4" />
-          Wygeneruj treść emaila
-        </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button disabled className="opacity-50">
-                  <Send className="mr-2 h-4 w-4" />
-                  Wyślij do klienta
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Funkcja w przygotowaniu</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+
+        {isLocked ? (
+          <LockedActions offer={offer} queryClient={queryClient} offerId={offerId} />
+        ) : (
+          <>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      disabled={!offer?.public_token}
+                      onClick={() => {
+                        if (offer?.public_token) {
+                          window.open(buildPublicOfferUrl(offer.public_token), '_blank');
+                        }
+                      }}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Podgląd klienta
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!offer?.public_token && (
+                  <TooltipContent>Zapisz ofertę, aby zobaczyć podgląd klienta</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
+              <Save className="mr-2 h-4 w-4" />
+              Zapisz szkic
+            </Button>
+            <Button variant="secondary" onClick={handleSaveAndShowLink} disabled={statusMutation.isPending}>
+              <Link2 className="mr-2 h-4 w-4" />
+              Zapisz i pokaż link
+            </Button>
+            <Button variant="secondary" onClick={handleMarkReady} disabled={statusMutation.isPending}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Oznacz jako gotowa
+            </Button>
+            <Button onClick={handleGenerateEmail} disabled={statusMutation.isPending}>
+              <Mail className="mr-2 h-4 w-4" />
+              Wygeneruj treść emaila
+            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button disabled className="opacity-50">
+                      <Send className="mr-2 h-4 w-4" />
+                      Wyślij do klienta
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Funkcja w przygotowaniu</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </>
+        )}
       </div>
 
       {offerId && (

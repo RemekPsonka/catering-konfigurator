@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { WizardStepper } from './wizard-stepper';
 import { StepEventData } from './steps/step-event-data';
 import { StepMenu } from './steps/step-menu';
@@ -12,8 +14,10 @@ import { StepTheme } from './steps/step-theme';
 import { StepPreview } from './steps/step-preview';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { RequirementsSidebar, type ClientRequirement } from './requirements-sidebar';
 import type { TemplateData } from '@/hooks/use-offer-templates';
+import { useState } from 'react';
 
 interface OfferWizardProps {
   offerId?: string;
@@ -26,7 +30,9 @@ const STEP_TITLES = ['', 'Menu — konfiguracja dań', 'Usługi dodatkowe', 'Ust
 
 export const OfferWizard = ({ offerId, templateData, templateEventType, templatePricingMode }: OfferWizardProps) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { state, dispatch, offerQuery, saveDraftMutation } = useOfferWizard(offerId, templateData, templateEventType, templatePricingMode);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
 
   if (offerId && offerQuery.isLoading) {
     return <LoadingSpinner />;
@@ -44,8 +50,28 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     );
   }
 
+  const offerStatus = offerQuery.data?.status as string | undefined;
+  const isLocked = !!offerStatus && ['accepted', 'won'].includes(offerStatus);
+
+  const handleUnlock = async () => {
+    if (!offerId) return;
+    const { error } = await supabase
+      .from('offers')
+      .update({ status: 'revision' as const })
+      .eq('id', offerId);
+    if (error) {
+      toast.error('Nie udało się odblokować oferty');
+      return;
+    }
+    toast.success('Oferta odblokowana do edycji');
+    queryClient.invalidateQueries({ queryKey: ['offer', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offers'] });
+    setUnlockDialogOpen(false);
+  };
+
   const goToStep = (step: number) => {
-    // For step 2+, ensure offer is saved first
+    if (isLocked) return; // prevent navigation when locked
     if (step >= 2 && !state.offerId) {
       saveDraftMutation.mutate({ eventData: state.stepData.eventData }, {
         onSuccess: ({ data }) => {
@@ -58,11 +84,9 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
       });
       return;
     }
-    // Auto-save when navigating between steps 2+ if offer exists
     if (state.offerId && state.stepData.eventData.event_type) {
       saveDraftMutation.mutate({ eventData: state.stepData.eventData, silent: true });
     }
-    // Mark current step as completed when moving forward
     dispatch({ type: 'COMPLETE_STEP', step: state.currentStep });
     dispatch({ type: 'SET_STEP', step });
   };
@@ -71,7 +95,6 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     dispatch({ type: 'SET_EVENT_DATA', data });
     dispatch({ type: 'COMPLETE_STEP', step: 1 });
 
-    // Show toast about missing fields for draft awareness
     const missing: string[] = [];
     if (!data.client_id) missing.push('Klient');
     if (!data.people_count || data.people_count < 1) missing.push('Liczba osób');
@@ -102,10 +125,12 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     dispatch({ type: 'SET_REQUIREMENTS', requirements: reqs });
   };
 
-  const showSidebar = state.currentStep >= 2 && requirements.length > 0;
+  // When locked, force step 7
+  const currentStep = isLocked ? 7 : state.currentStep;
+  const showSidebar = currentStep >= 2 && requirements.length > 0 && !isLocked;
 
   const renderStep = () => {
-    switch (state.currentStep) {
+    switch (currentStep) {
       case 1:
         return <StepEventData data={state.stepData.eventData} onSubmit={handleStep1Submit} />;
       case 2:
@@ -149,7 +174,8 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
             peopleCount={state.stepData.eventData.people_count}
             requirements={requirements}
             inquiryText={state.stepData.eventData.inquiry_text}
-            onGoToStep={goToStep}
+            onGoToStep={isLocked ? undefined : goToStep}
+            isLocked={isLocked}
           />
         );
       default:
@@ -157,33 +183,55 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     }
   };
 
-  // Compute warning steps (missing required data for non-draft status)
   const warningSteps: number[] = [];
   const ed = state.stepData.eventData;
   if (!ed.client_id || !ed.people_count || ed.people_count < 1 || !ed.delivery_type) {
     warningSteps.push(1);
   }
 
-  const offerTitle = state.offerNumber
-    ? `Oferta ${state.offerNumber} (szkic)`
-    : offerId ? 'Edycja oferty' : 'Nowa oferta';
+  const offerTitle = isLocked
+    ? `Oferta ${state.offerNumber ?? ''} (${offerStatus === 'accepted' ? 'zaakceptowana' : 'wygrana'})`
+    : state.offerNumber
+      ? `Oferta ${state.offerNumber} (szkic)`
+      : offerId ? 'Edycja oferty' : 'Nowa oferta';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{offerTitle}</h1>
-        <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={saveDraftMutation.isPending || !ed.event_type}>
-          <Save className="mr-2 h-4 w-4" />
-          Zapisz szkic
-        </Button>
+        {!isLocked && (
+          <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={saveDraftMutation.isPending || !ed.event_type}>
+            <Save className="mr-2 h-4 w-4" />
+            Zapisz szkic
+          </Button>
+        )}
       </div>
 
-      <WizardStepper
-        currentStep={state.currentStep}
-        completedSteps={state.completedSteps}
-        onStepClick={goToStep}
-        warningSteps={warningSteps}
-      />
+      {/* Lock banner */}
+      {isLocked && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-green-600" />
+            <span className="text-green-800 font-medium">
+              Oferta {offerStatus === 'accepted' ? 'zaakceptowana' : 'wygrana'} — edycja zablokowana
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setUnlockDialogOpen(true)}>
+            <Unlock className="h-4 w-4 mr-2" />
+            Odblokuj do edycji
+          </Button>
+        </div>
+      )}
+
+      {/* Stepper — hidden when locked */}
+      {!isLocked && (
+        <WizardStepper
+          currentStep={state.currentStep}
+          completedSteps={state.completedSteps}
+          onStepClick={goToStep}
+          warningSteps={warningSteps}
+        />
+      )}
 
       <div className={showSidebar ? 'flex gap-6 items-start' : ''}>
         <div className={showSidebar ? 'flex-1 min-w-0' : ''}>
@@ -197,30 +245,41 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
         )}
       </div>
 
-      {/* Navigation — hidden on step 7 (has its own actions) */}
-      {state.currentStep < 7 && (
+      {/* Navigation — hidden when locked or on step 7 */}
+      {!isLocked && currentStep < 7 && (
         <div className="flex justify-between pt-4 border-t">
           <Button
             variant="outline"
-            onClick={() => state.currentStep === 1 ? navigate('/admin/offers') : goToStep(state.currentStep - 1)}
+            onClick={() => currentStep === 1 ? navigate('/admin/offers') : goToStep(currentStep - 1)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {state.currentStep === 1 ? 'Lista ofert' : 'Wstecz'}
+            {currentStep === 1 ? 'Lista ofert' : 'Wstecz'}
           </Button>
 
-          {state.currentStep === 1 ? (
+          {currentStep === 1 ? (
             <Button type="submit" form="step-event-data">
               Dalej
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={() => goToStep(state.currentStep + 1)}>
+            <Button onClick={() => goToStep(currentStep + 1)}>
               Dalej
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={unlockDialogOpen}
+        onOpenChange={setUnlockDialogOpen}
+        title="Odblokować ofertę?"
+        description="Status zostanie zmieniony na „Rewizja" i oferta będzie ponownie edytowalna. Klient zobaczy zmieniony status."
+        confirmLabel="Odblokuj"
+        cancelLabel="Anuluj"
+        onConfirm={handleUnlock}
+        variant="default"
+      />
     </div>
   );
 };
