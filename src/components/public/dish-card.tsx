@@ -109,12 +109,21 @@ export const DishCard = ({
         >
           {/* Masonry gallery above content when multiple photos */}
           {hasMultiplePhotos && (
-            <div className="mb-2 max-h-[140px] overflow-hidden rounded-xl cursor-pointer">
+            <div className="mb-2 max-h-[220px] rounded-xl cursor-pointer bg-neutral-50 overflow-hidden">
               <MasonryPhotoAlbum
                 photos={masonryPhotos}
                 columns={(containerWidth) => (containerWidth < 300 ? 2 : 3)}
                 spacing={4}
                 onClick={({ index }) => handlePhotoClick(index)}
+                render={{
+                  image: (props) => (
+                    <img
+                      {...props}
+                      style={{ ...props.style, objectFit: 'contain' }}
+                      className="rounded-lg bg-neutral-50"
+                    />
+                  ),
+                }}
               />
             </div>
           )}
