@@ -73,10 +73,6 @@ export const OfferFindPage = () => {
 
       const result = data[0];
 
-      if (PREPARING_STATUSES.includes(result.status)) {
-        setErrorMessage('Ta oferta jest w trakcie przygotowania. Skontaktujemy się z Tobą, gdy będzie gotowa.');
-        return;
-      }
 
       if (result.public_token) {
         toast.success(`Witaj! Oto Twoja oferta.`);
