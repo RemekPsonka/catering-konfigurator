@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye } from 'lucide-react';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -136,7 +136,31 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   );
 
   const isLoading = offerQuery.isLoading || variantsQuery.isLoading || servicesQuery.isLoading;
+  const isError = offerQuery.isError || variantsQuery.isError || servicesQuery.isError;
+
   if (isLoading) return <LoadingSpinner />;
+
+  if (isError) {
+    return (
+      <Card className="mx-auto max-w-lg mt-12">
+        <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+          <AlertTriangle className="h-10 w-10 text-destructive" />
+          <p className="font-semibold text-lg">Nie udało się załadować podglądu oferty</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              offerQuery.refetch();
+              variantsQuery.refetch();
+              servicesQuery.refetch();
+            }}
+          >
+            Spróbuj ponownie
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
 
   const handleSaveDraft = () => {
     // If offer was already sent/viewed/etc, don't reset status — just navigate

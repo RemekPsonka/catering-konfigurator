@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Copy, Trash2, Pencil } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency } from '@/lib/calculations';
+import { MAX_VARIANTS } from '@/lib/constants';
 import {
   useOfferVariants,
   useCreateVariant,
@@ -52,6 +53,15 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
   const [nameValue, setNameValue] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  const variantsList = variants ?? [];
+
+  // Set active tab to first variant if not set
+  useEffect(() => {
+    if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
+      setActiveTab(variantsList[0].id);
+    }
+  }, [variantsList, activeTab]);
+
   if (!offerId) {
     return (
       <Card>
@@ -64,18 +74,9 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
 
   if (isLoading) return <LoadingSpinner />;
 
-  const variantsList = variants ?? [];
-
-  // Set active tab to first variant if not set
-  useEffect(() => {
-    if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
-      setActiveTab(variantsList[0].id);
-    }
-  }, [variantsList, activeTab]);
-
   const handleAddVariant = () => {
-    if (variantsList.length >= 3) {
-      toast.error('Maksymalnie 3 warianty');
+    if (variantsList.length >= MAX_VARIANTS) {
+      toast.error(`Maksymalnie ${MAX_VARIANTS} warianty`);
       return;
     }
     const usedNames = variantsList.map(v => v.name);
@@ -99,8 +100,8 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
   };
 
   const handleDuplicate = (variant: VariantWithItems) => {
-    if (variantsList.length >= 3) {
-      toast.error('Maksymalnie 3 warianty');
+    if (variantsList.length >= MAX_VARIANTS) {
+      toast.error(`Maksymalnie ${MAX_VARIANTS} warianty`);
       return;
     }
     duplicateVariant.mutate({
@@ -173,7 +174,7 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
                   </TabsTrigger>
                 ))}
               </TabsList>
-              {variantsList.length < 3 && (
+              {variantsList.length < MAX_VARIANTS && (
                 <Button variant="outline" size="sm" onClick={handleAddVariant} disabled={createVariant.isPending}>
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -200,7 +201,7 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startRename(v)} title="Zmień nazwę">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDuplicate(v)} title="Duplikuj" disabled={variantsList.length >= 3}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDuplicate(v)} title="Duplikuj" disabled={variantsList.length >= MAX_VARIANTS}>
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                         {variantsList.length > 1 && (
