@@ -43,8 +43,6 @@ const PROPOSAL_STATUS_BADGE: Record<string, { className: string; label: string }
   rejected: { className: 'bg-red-100 text-red-800', label: 'Odrzucona' },
 };
 
-const formatPLN = (value: number) =>
-  new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(value);
 
 interface DiffRowProps {
   item: ProposalItemWithDishes;

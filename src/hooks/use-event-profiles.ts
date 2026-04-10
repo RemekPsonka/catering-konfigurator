@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
+import { MAX_EVENT_PHOTOS, MAX_PHOTO_SIZE_MB } from '@/lib/app-limits';
 
-const MAX_PHOTOS = 15;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export type EventProfile = Tables<'event_type_profiles'> & { photo_count: number };
@@ -13,25 +13,15 @@ export const useEventProfiles = () =>
   useQuery({
     queryKey: ['event-profiles'],
     queryFn: async () => {
-      const { data: profiles, error } = await supabase
+      const { data, error } = await supabase
         .from('event_type_profiles')
-        .select('*')
+        .select('*, event_type_photos(count)')
         .order('id');
       if (error) throw error;
 
-      const { data: counts, error: cErr } = await supabase
-        .from('event_type_photos')
-        .select('event_type_id');
-      if (cErr) throw cErr;
-
-      const countMap: Record<string, number> = {};
-      counts?.forEach((r) => {
-        countMap[r.event_type_id] = (countMap[r.event_type_id] ?? 0) + 1;
-      });
-
-      return (profiles ?? []).map((p) => ({
+      return (data ?? []).map((p) => ({
         ...p,
-        photo_count: countMap[p.id] ?? 0,
+        photo_count: (p.event_type_photos as unknown as { count: number }[])?.[0]?.count ?? 0,
       })) as EventProfile[];
     },
   });

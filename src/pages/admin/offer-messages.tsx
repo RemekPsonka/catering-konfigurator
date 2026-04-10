@@ -97,8 +97,6 @@ const CHANGE_LABEL: Record<string, string> = {
   QUANTITY_CHANGE: 'Ilość',
 };
 
-const formatPLN = (v: number) =>
-  v.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', minimumFractionDigits: 2 });
 
 // ── Page Component ──
 
