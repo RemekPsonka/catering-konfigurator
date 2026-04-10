@@ -61,7 +61,7 @@ export const TemplatesPage = () => {
         </TableHeader>
         <TableBody>
           {templates.map((tpl) => {
-            const td = tpl.template_data as TemplateData;
+            const td = tpl.template_data as unknown as TemplateData;
             return (
               <TableRow key={tpl.id}>
                 <TableCell>
