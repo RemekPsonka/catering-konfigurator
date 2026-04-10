@@ -1,61 +1,43 @@
 
 
-# Bugfix: Zapis liczby gości do bazy po zmianie na stronie publicznej
+# Pełny lifecycle oferty — blokada, Won/Lost, odblokowanie
 
-## Plik do zmiany
+## Pliki do zmiany
 
-### `src/components/public/calculation-section.tsx`
+### 1. `src/components/features/offers/offer-wizard.tsx`
+- Detect `isLocked` from offer status (`accepted` or `won`) using `offerQuery.data`
+- When locked: show banner with Lock icon + unlock button, force step 7 (preview only), hide stepper + navigation buttons, hide "Zapisz szkic" button
+- `handleUnlock`: update status to `revision` via supabase, invalidate queries
+- Title changes: show "(zaakceptowana)" or "(wygrana)" instead of "(szkic)"
 
-**1. Dodać import supabase (linia 8):**
-```typescript
-import { supabase } from '@/integrations/supabase/client';
-```
+### 2. `src/components/features/offers/steps/step-preview.tsx`
+- Add `isLocked` check from `offer.status`
+- When locked, replace action buttons (save draft, ready, email, send) with:
+  - "Oznacz jako wygrana" (Trophy icon, emerald) — only for `accepted`
+  - "Oznacz jako przegrana" (XCircle, destructive) — only for `accepted`
+  - Won badge — only for `won`
+  - "Odblokuj do edycji" (Unlock icon)
+  - "Podgląd klienta" (Eye icon)
+- `handleStatusChange(newStatus)`: confirm dialog → supabase update → invalidate → toast
+- Keep template save and client preview available for locked offers
 
-**2. Zamienić useEffect (linie 69-84) na wersję z zapisem do bazy:**
+### 3. `src/hooks/use-dashboard.ts`
+- Add `won` to `KpiCounts` interface and query filter
+- Initialize `won: 0` in counts
 
-Logika:
-- Jeśli brak `min_offer_price` — zapisz każdą zmianę (gdy `is_people_count_editable` i `debouncedCount !== people_count`)
-- Jeśli jest `min_offer_price` — zapisz tylko po walidacji (gdy total >= min)
-- Zapis: `supabase.from('offers').update({ people_count }).eq('id', offer.id)`
-- Warunek `is_people_count_editable` opakowuje oba zapisy
+### 4. `src/pages/admin/dashboard.tsx`
+- Add "Wygrane" KPI card with Trophy icon, emerald color scheme
+- Import Trophy from lucide-react
 
-```typescript
-useEffect(() => {
-  if (!is_people_count_editable || debouncedCount === people_count || debouncedCount < 1) return;
+### 5. `src/pages/admin/offers-list.tsx`
+- Verify `won` and `lost` tabs exist in status filter (they should via `OFFER_STATUS_LABELS`)
+- Add Lock icon next to offer number for `accepted`/`won` status rows
 
-  const persistCount = () => {
-    supabase
-      .from('offers')
-      .update({ people_count: debouncedCount })
-      .eq('id', offer.id)
-      .then(({ error }) => {
-        if (error) console.error('Failed to save people count:', error);
-      });
-  };
+## Nie zmieniam
+- Schema — `won`/`lost` statuses already exist in enum
+- No `won_at`/`lost_at` columns — just update `status`
+- RLS policies — existing `auth_full_access` covers admin updates
 
-  if (!min_offer_price || min_offer_price <= 0) {
-    prevValidCount.current = debouncedCount;
-    persistCount();
-    return;
-  }
-
-  if (debouncedCount === prevValidCount.current) return;
-
-  const checkTotals = calculateOfferTotals(...);
-
-  if (checkTotals.grandTotal < min_offer_price) {
-    toast.error('...');
-    setLocalPeopleCount(prevValidCount.current ?? people_count ?? 1);
-  } else {
-    prevValidCount.current = debouncedCount;
-    persistCount();
-  }
-}, [debouncedCount, ...deps, is_people_count_editable, people_count, offer.id]);
-```
-
-## Efekt
-- Zmiana liczby gości na stronie publicznej zapisuje się do bazy
-- Po odświeżeniu strony — nowa wartość się zachowuje
-- Zapis tylko gdy `is_people_count_editable === true`
-- Walidacja `min_offer_price` nadal działa
+## Flow
+draft → ready → sent → viewed → accepted → **LOCKED** → won/lost (or unlock → revision)
 
