@@ -35,7 +35,6 @@ const getEditableCount = (variant: Variant): number =>
 
 const buildDiffTable = (variants: Variant[]) => {
   const categoryMap = new Map<string, { name: string; icon: string | null; dishes: Map<string, string[]> }>();
-
   variants.forEach((v, vIdx) => {
     for (const item of v.variant_items) {
       const cat = item.dishes?.dish_categories;
@@ -54,16 +53,11 @@ const buildDiffTable = (variants: Variant[]) => {
       }
     }
   });
-
   return Array.from(categoryMap.values());
 };
 
 export const VariantComparisonSection = ({
-  variants,
-  pricingMode,
-  peopleCount,
-  priceDisplayMode,
-  onSelectVariant,
+  variants, pricingMode, peopleCount, priceDisplayMode, onSelectVariant,
 }: VariantComparisonSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const isMobile = useIsMobile();
@@ -81,81 +75,62 @@ export const VariantComparisonSection = ({
   );
 
   if (sorted.length < 2) return null;
-
   const showPrice = priceDisplayMode !== 'HIDDEN';
 
   const renderCard = (v: Variant) => {
     const topDishes = getTopDishes(v);
     const editableCount = getEditableCount(v);
-    const primaryPhoto = v.variant_items.find((it) => {
-      const photos = it.dishes?.dish_photos;
-      return Array.isArray(photos) && photos.length > 0;
-    });
 
     return (
       <motion.div
         key={v.id}
         variants={fadeInUp}
-        whileHover={{ y: -4 }}
+        whileHover={{ y: -2 }}
         transition={{ type: 'spring', stiffness: 300 }}
-        className="flex flex-col rounded-2xl shadow-premium overflow-hidden"
+        className="flex flex-col rounded-xl shadow-sm overflow-hidden"
         style={{
           backgroundColor: 'var(--theme-bg, #FAF7F2)',
           border: v.is_recommended ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
         }}
       >
-        <div className="p-6 flex-1">
-          <div className="flex items-start justify-between gap-2 mb-4">
-            <h3 className="font-display text-xl font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-              {v.name}
-            </h3>
+        <div className="p-4 flex-1">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <h3 className="font-display text-base font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{v.name}</h3>
             {v.is_recommended && (
-              <motion.span
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-ivory shrink-0"
-                style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
-              >
-                <Sparkles className="h-3 w-3" />
-                Polecany
-              </motion.span>
-            )}
-          </div>
-
-          {v.description && (
-            <p className="mb-4 font-body text-sm leading-relaxed" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.6 }}>
-              {v.description}
-            </p>
-          )}
-
-          {/* Stats */}
-          <div className="mb-4 flex flex-wrap gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, transparent)', color: 'var(--theme-primary, #1A1A1A)' }}>
-              <UtensilsCrossed className="h-3 w-3" />
-              {v.variant_items.length} pozycji
-            </span>
-            {editableCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent, #c9a84c) 15%, transparent)', color: 'var(--theme-accent, #c9a84c)' }}>
-                <RefreshCw className="h-3 w-3" />
-                {editableCount} do personalizacji
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory shrink-0" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}>
+                <Sparkles className="h-3 w-3" /> Polecany
               </span>
             )}
           </div>
 
-          {/* Top dishes */}
-          <div className="space-y-2">
+          {v.description && (
+            <p className="mb-3 font-body text-xs leading-relaxed" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.6 }}>{v.description}</p>
+          )}
+
+          <div className="mb-3 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, transparent)', color: 'var(--theme-primary, #1A1A1A)' }}>
+              <UtensilsCrossed className="h-3 w-3" /> {v.variant_items.length} pozycji
+            </span>
+            {editableCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent, #c9a84c) 15%, transparent)', color: 'var(--theme-accent, #c9a84c)' }}>
+                <RefreshCw className="h-3 w-3" /> {editableCount} do personalizacji
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             {topDishes.map((item) => {
               const photo = Array.isArray(item.dishes?.dish_photos) ? item.dishes.dish_photos.find((p) => p.is_primary) ?? item.dishes.dish_photos[0] : null;
               return (
-                <div key={item.id} className="flex items-center gap-3">
+                <div key={item.id} className="flex items-center gap-2">
                   {photo ? (
-                    <img src={photo.photo_url} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                    <img src={photo.photo_url} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
                   ) : (
-                    <div className="h-8 w-8 rounded-lg shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, transparent)' }} />
+                    <div className="h-6 w-6 rounded shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, transparent)' }} />
                   )}
-                  <span className="font-body text-sm truncate" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                  <span className="font-body text-xs truncate" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
                     {item.custom_name || item.dishes?.display_name || item.dishes?.name}
                   </span>
                 </div>
@@ -163,29 +138,24 @@ export const VariantComparisonSection = ({
             })}
           </div>
 
-          {/* Price */}
           {showPrice && v.price_per_person != null && Number(v.price_per_person) > 0 && (
-            <div className="mt-5">
+            <div className="mt-3">
               {(priceDisplayMode === 'PER_PERSON_AND_TOTAL' || priceDisplayMode === 'PER_PERSON_ONLY' || priceDisplayMode === 'DETAILED') && (
-                <p className="font-display text-xl font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-                  {formatCurrency(Number(v.price_per_person))}/os.
-                </p>
+                <p className="font-display text-base font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>{formatCurrency(Number(v.price_per_person))}/os.</p>
               )}
               {(priceDisplayMode === 'PER_PERSON_AND_TOTAL' || priceDisplayMode === 'TOTAL_ONLY' || priceDisplayMode === 'DETAILED') && v.total_value != null && (
-                <p className="font-body text-sm mt-0.5" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.6 }}>
-                  {formatCurrency(Number(v.total_value))} łącznie
-                </p>
+                <p className="font-body text-xs mt-0.5" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.6 }}>{formatCurrency(Number(v.total_value))} łącznie</p>
               )}
             </div>
           )}
         </div>
 
-        <div className="p-6 pt-0">
+        <div className="p-4 pt-0">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleSelect(v.id)}
-            className="w-full rounded-xl py-3 font-body font-semibold text-ivory transition-all"
+            className="w-full rounded-lg py-2.5 font-body text-sm font-semibold text-ivory transition-all"
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
           >
             Wybierz {v.name}
@@ -201,43 +171,36 @@ export const VariantComparisonSection = ({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
-      className="py-16 md:py-24"
+      className="py-8 md:py-12"
     >
       <div className="mx-auto max-w-5xl px-6">
         <motion.h2
           variants={fadeInUp}
-          className="mb-10 text-center font-display text-2xl font-bold md:text-3xl"
+          className="mb-6 text-center font-display text-xl font-bold"
           style={{ color: 'var(--theme-text, #1A1A1A)' }}
         >
           Porównaj warianty
         </motion.h2>
 
-        {/* Cards */}
         {isMobile ? (
           <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               {sorted.map((v) => (
-                <div key={v.id} className="min-w-0 flex-[0_0_90%]">
-                  {renderCard(v)}
-                </div>
+                <div key={v.id} className="min-w-0 flex-[0_0_90%]">{renderCard(v)}</div>
               ))}
             </div>
           </div>
         ) : (
-          <motion.div variants={fadeInUp} className={`grid gap-6 ${sorted.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          <motion.div variants={fadeInUp} className={`grid gap-4 ${sorted.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
             {sorted.map(renderCard)}
           </motion.div>
         )}
 
-        {/* Diff table toggle */}
-        <motion.div variants={fadeInUp} className="mt-8">
+        <motion.div variants={fadeInUp} className="mt-6">
           <button
             onClick={() => setShowDiff(!showDiff)}
-            className="mx-auto flex items-center gap-2 rounded-xl px-6 py-3 font-body text-sm font-medium transition-all"
-            style={{
-              backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, transparent)',
-              color: 'var(--theme-primary, #1A1A1A)',
-            }}
+            className="mx-auto flex items-center gap-2 rounded-lg px-5 py-2 font-body text-sm font-medium transition-all"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, transparent)', color: 'var(--theme-primary, #1A1A1A)' }}
           >
             Pokaż szczegółowe różnice
             <ChevronDown className={`h-4 w-4 transition-transform ${showDiff ? 'rotate-180' : ''}`} />
@@ -248,19 +211,15 @@ export const VariantComparisonSection = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-6 overflow-x-auto rounded-2xl shadow-premium"
+              className="mt-4 overflow-x-auto rounded-xl shadow-sm"
               style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)' }}
             >
               <table className="w-full min-w-[500px] text-left">
                 <thead>
                   <tr style={{ borderBottom: '2px solid color-mix(in srgb, var(--theme-primary, #1A1A1A) 15%, transparent)' }}>
-                    <th className="sticky left-0 p-4 font-display text-sm font-semibold" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
-                      Kategoria
-                    </th>
+                    <th className="sticky left-0 p-3 font-display text-xs font-semibold" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>Kategoria</th>
                     {sorted.map((v) => (
-                      <th key={v.id} className="p-4 font-display text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                        {v.name}
-                      </th>
+                      <th key={v.id} className="p-3 font-display text-xs font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{v.name}</th>
                     ))}
                   </tr>
                 </thead>
@@ -277,31 +236,20 @@ export const VariantComparisonSection = ({
                             backgroundColor: isDiff ? 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, transparent)' : 'transparent',
                           }}
                         >
-                          <td
-                            className="sticky left-0 p-3 font-body text-xs font-medium"
+                          <td className="sticky left-0 p-2 font-body text-xs font-medium"
                             style={{
                               backgroundColor: isDiff ? 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, var(--theme-bg, #FAF7F2))' : 'var(--theme-bg, #FAF7F2)',
-                              color: 'var(--theme-text, #1A1A1A)',
-                              opacity: 0.6,
-                            }}
-                          >
-                            {dIdx === 0 && (
-                              <span>
-                                {cat.icon && <span className="mr-1">{cat.icon}</span>}
-                                {cat.name}
-                              </span>
-                            )}
+                              color: 'var(--theme-text, #1A1A1A)', opacity: 0.6,
+                            }}>
+                            {dIdx === 0 && (<span>{cat.icon && <span className="mr-1">{cat.icon}</span>}{cat.name}</span>)}
                           </td>
                           {cols.map((cell, cIdx) => (
-                            <td
-                              key={cIdx}
-                              className="p-3 font-body text-sm"
+                            <td key={cIdx} className="p-2 font-body text-xs"
                               style={{
                                 color: cell === '—' ? 'var(--theme-text, #1A1A1A)' : isDiff ? 'var(--theme-primary, #1A1A1A)' : 'var(--theme-text, #1A1A1A)',
                                 opacity: cell === '—' ? 0.3 : isDiff ? 1 : 0.6,
                                 fontWeight: isDiff && cell !== '—' ? 600 : 400,
-                              }}
-                            >
+                              }}>
                               {cell}
                             </td>
                           ))}

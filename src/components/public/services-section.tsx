@@ -36,19 +36,19 @@ export const ServicesSection = ({ services, priceDisplayMode }: ServicesSectionP
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
-      className="py-16 md:py-24"
+      className="py-8 md:py-12"
       style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)' }}
     >
       <div className="mx-auto max-w-5xl px-6">
         <motion.h2
           variants={fadeInUp}
-          className="mb-10 text-center font-display text-2xl font-bold md:text-3xl"
+          className="mb-6 text-center font-display text-xl font-bold"
           style={{ color: 'var(--theme-text, #1A1A1A)' }}
         >
           Usługi dodatkowe
         </motion.h2>
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4">
           {(['STAFF', 'EQUIPMENT', 'LOGISTICS'] as const).map((type) => {
             const items = grouped.get(type);
             if (!items?.length) return null;
@@ -56,14 +56,14 @@ export const ServicesSection = ({ services, priceDisplayMode }: ServicesSectionP
 
             return (
               <motion.div key={type} variants={fadeInUp}>
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-2 flex items-center gap-2">
                   <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg"
                     style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
-                  <h3 className="font-display text-lg font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                  <h3 className="font-display text-base font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
                     {label}
                   </h3>
                 </div>
@@ -72,7 +72,7 @@ export const ServicesSection = ({ services, priceDisplayMode }: ServicesSectionP
                   variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
                   initial="hidden"
                   animate="visible"
-                  className="flex flex-col gap-2"
+                  className="flex flex-col gap-1.5"
                 >
                   {items.map((s) => {
                     const price = s.custom_price != null ? Number(s.custom_price) : s.services.price;
@@ -80,16 +80,16 @@ export const ServicesSection = ({ services, priceDisplayMode }: ServicesSectionP
                       <motion.div
                         key={s.id}
                         variants={fadeInUp}
-                        className="flex items-center justify-between rounded-xl bg-ivory p-4 shadow-premium"
+                        className="flex items-center justify-between rounded-lg bg-ivory px-4 py-2.5 shadow-sm"
                       >
-                        <div>
-                          <p className="font-body text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-body text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
                             {s.services.name}
-                          </p>
+                          </span>
                           {s.services.description && (
-                            <p className="mt-0.5 font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.6 }}>
+                            <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
                               {s.services.description}
-                            </p>
+                            </span>
                           )}
                         </div>
                         {showPrice && (

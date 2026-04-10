@@ -21,6 +21,7 @@ import {
   Search,
   FileDown,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
@@ -34,10 +35,6 @@ import { LogisticsSection } from '@/components/public/logistics-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
 import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
-import { AboutCateringSection } from '@/components/public/about-catering-section';
-import { FeaturesSection } from '@/components/public/features-section';
-import { EventGallerySection } from '@/components/public/event-gallery-section';
-import { TestimonialSection } from '@/components/public/testimonial-section';
 import type { DishModification } from '@/components/public/dish-edit-panel';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
@@ -56,11 +53,17 @@ const loadGoogleFont = (fontFamily: string | null) => {
 
 const isValidToken = (token: string | undefined): boolean => {
   if (!token || token.length === 0) return false;
-  // Old format: 64-char hex
   if (/^[a-f0-9]{64}$/.test(token)) return true;
-  // New format: 12-char alphanumeric (safe chars, no 0/O/1/l/I)
   if (/^[A-HJ-NP-Za-hj-km-np-z2-9]{12}$/.test(token)) return true;
   return false;
+};
+
+const GREETING_WORD_LIMIT = 40;
+
+const truncateText = (text: string, wordLimit: number) => {
+  const words = text.split(/\s+/);
+  if (words.length <= wordLimit) return { truncated: text, isTruncated: false };
+  return { truncated: words.slice(0, wordLimit).join(' ') + '…', isTruncated: true };
 };
 
 export const PublicOfferPage = () => {
@@ -75,9 +78,9 @@ export const PublicOfferPage = () => {
   const [offerAccepted, setOfferAccepted] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [preSelectedVariantId, setPreSelectedVariantId] = useState<string | null>(null);
+  const [greetingExpanded, setGreetingExpanded] = useState(false);
   const isFirstVisitRef = useRef<boolean | null>(null);
 
-  // Fetch event profile data
   const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
   const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
 
@@ -85,16 +88,6 @@ export const PublicOfferPage = () => {
     () => eventPhotos?.find((p) => p.is_hero) ?? null,
     [eventPhotos],
   );
-
-  const features = useMemo(() => {
-    if (!eventProfile?.features) return [];
-    try {
-      const parsed = eventProfile.features as unknown;
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }, [eventProfile?.features]);
 
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
@@ -120,7 +113,6 @@ export const PublicOfferPage = () => {
     document.title = originalTitle;
   }, [offer?.offer_number]);
 
-  // Calculate totals for changes panel
   const { originalTotal, proposedTotal } = useMemo(() => {
     if (!offer) return { originalTotal: 0, proposedTotal: 0 };
     const variants = offer.offer_variants as unknown as VariantWithItems[];
@@ -152,7 +144,6 @@ export const PublicOfferPage = () => {
     return { originalTotal: origTotals.grandTotal, proposedTotal: propTotals.grandTotal };
   }, [offer, modifications]);
 
-  // Set CSS custom properties from theme
   useEffect(() => {
     if (!offer?.offer_themes) return;
     const t = offer.offer_themes;
@@ -190,18 +181,15 @@ export const PublicOfferPage = () => {
     };
   }, [offer?.offer_themes]);
 
-  // Track first visit before marking as viewed
   useEffect(() => {
     if (offer && isFirstVisitRef.current === null) {
       isFirstVisitRef.current = !offer.viewed_at;
     }
   }, [offer]);
 
-  // Mark as viewed on first open + fire notification
   useEffect(() => {
     if (offer && !offer.viewed_at && offer.status === 'sent') {
       markViewed.mutate(offer.id);
-      // Fire-and-forget notification
       const clientName = offer.clients?.name ?? 'Klient';
       const eventTypeLabel = eventTypeInfo?.label ?? offer.event_type;
       fireNotification({
@@ -248,15 +236,10 @@ export const PublicOfferPage = () => {
     );
   }
 
-  // Loading
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-charcoal/20 border-t-charcoal" />
           <p className="font-body text-charcoal/60 tracking-wide">Ładowanie oferty...</p>
         </motion.div>
@@ -264,37 +247,19 @@ export const PublicOfferPage = () => {
     );
   }
 
-  // Not found
   if (!offer || error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
           <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
-          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">
-            Nie znaleziono oferty
-          </h1>
-          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
-            Sprawdź link lub skontaktuj się z nami.
-          </p>
+          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Nie znaleziono oferty</h1>
+          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Sprawdź link lub skontaktuj się z nami.</p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <a
-              href="/offer/find"
-              className="inline-flex items-center gap-2 rounded-xl bg-charcoal px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all hover:bg-charcoal/90"
-            >
-              <Search className="h-4 w-4" />
-              Szukaj oferty
+            <a href="/offer/find" className="inline-flex items-center gap-2 rounded-xl bg-charcoal px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all hover:bg-charcoal/90">
+              <Search className="h-4 w-4" /> Szukaj oferty
             </a>
-            <a
-              href="mailto:zamowienia@cateringslaski.pl"
-              className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal"
-            >
-              <Mail className="h-4 w-4" />
-              Skontaktuj się z nami
+            <a href="mailto:zamowienia@cateringslaski.pl" className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+              <Mail className="h-4 w-4" /> Skontaktuj się z nami
             </a>
           </div>
         </motion.div>
@@ -302,25 +267,19 @@ export const PublicOfferPage = () => {
     );
   }
 
-  // Status flags for conditional rendering
   const isDraft = offer?.status === 'draft';
   const isLost = offer?.status === 'lost';
   const isAccepted = offer?.status === 'accepted';
   const isWon = offer?.status === 'won';
-
-  // Actions are disabled for: draft, accepted, won, lost, expired
   const actionsDisabled = isDraft || isLost || isAccepted || isWon || isExpired;
 
-  // Draft — show "being updated" page (no content)
   if (isDraft) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
           <Sparkles className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
           <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Ta oferta jest w trakcie aktualizacji</h1>
-          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
-            Wróć później lub skontaktuj się z nami.
-          </p>
+          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Wróć później lub skontaktuj się z nami.</p>
           <div className="mt-8 flex flex-col items-center gap-4">
             <a href="tel:+48123456789" className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
               <Phone className="h-4 w-4" /> +48 123 456 789
@@ -334,16 +293,13 @@ export const PublicOfferPage = () => {
     );
   }
 
-  // Lost — show "offer closed" page (no content)
   if (isLost) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
           <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
           <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta zamknięta</h1>
-          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
-            Ta oferta została zamknięta. Jeśli chcesz wznowić rozmowę, skontaktuj się z nami.
-          </p>
+          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Ta oferta została zamknięta. Jeśli chcesz wznowić rozmowę, skontaktuj się z nami.</p>
           <div className="mt-8 flex flex-col items-center gap-4">
             <a href="tel:+48123456789" className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
               <Phone className="h-4 w-4" /> +48 123 456 789
@@ -359,11 +315,7 @@ export const PublicOfferPage = () => {
 
   const formatDate = (d: string | null) =>
     d
-      ? new Date(d).toLocaleDateString('pl-PL', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
+      ? new Date(d).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })
       : null;
 
   const formatTime = (t: string | null) => (t ? t.slice(0, 5) : null);
@@ -407,6 +359,10 @@ export const PublicOfferPage = () => {
 
   const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
 
+  // Combine greeting + ai_summary into one collapsible text
+  const combinedGreeting = [offer.greeting_text, offer.ai_summary].filter(Boolean).join('\n\n');
+  const greetingTruncation = combinedGreeting ? truncateText(combinedGreeting, GREETING_WORD_LIMIT) : null;
+
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
       {/* Status banners */}
@@ -428,6 +384,7 @@ export const PublicOfferPage = () => {
           Zamówienie potwierdzone
         </div>
       )}
+
       {/* Print-only header */}
       <div className="print-only hidden">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 0', borderBottom: '2px solid #1A1A1A', marginBottom: '20px' }}>
@@ -443,6 +400,7 @@ export const PublicOfferPage = () => {
           </div>
         </div>
       </div>
+
       {/* Onboarding overlay */}
       <div className="no-print">
         {showOnboarding && (
@@ -452,16 +410,12 @@ export const PublicOfferPage = () => {
             onDismiss={() => setOnboardingDismissed(true)}
           />
         )}
-
-        {/* Editable tooltip */}
         <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
       </div>
-      {/* 1. HERO */}
-      <section className="relative min-h-[50vh] overflow-hidden md:min-h-[60vh]">
-        <motion.div
-          style={{ y: heroY }}
-          className="absolute inset-0"
-        >
+
+      {/* 1. COMPACT HERO */}
+      <section className="relative overflow-hidden">
+        <motion.div style={{ y: heroY }} className="absolute inset-0">
           {heroPhoto ? (
             <img
               src={heroPhoto.photo_url}
@@ -478,7 +432,6 @@ export const PublicOfferPage = () => {
             />
           )}
         </motion.div>
-        {/* Gradient overlay */}
         <div
           className="absolute inset-0"
           style={{
@@ -488,161 +441,118 @@ export const PublicOfferPage = () => {
           }}
         />
 
-        <div className="relative z-10 flex min-h-[50vh] flex-col items-center justify-center px-4 text-center md:min-h-[60vh]">
+        <div className="relative z-10 flex flex-col items-center justify-center px-4 py-12 text-center md:py-16">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <h1 className="font-display text-4xl font-bold text-ivory md:text-6xl lg:text-7xl">
+            <h1 className="font-display text-3xl font-bold text-ivory md:text-4xl">
               Catering Śląski
             </h1>
           </motion.div>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-3 font-body text-ivory/70 tracking-wide"
+            className="mt-3 flex flex-wrap items-center justify-center gap-3 font-body text-sm text-ivory/70 tracking-wide"
           >
-            {offer.offer_number}
-          </motion.p>
+            <span>{offer.offer_number}</span>
+            <span className="hidden sm:inline">•</span>
+            <span>{heroHeadline}</span>
+            {offer.valid_until && (
+              <>
+                <span className="hidden sm:inline">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  Ważna do: {formatDate(offer.valid_until)}
+                </span>
+              </>
+            )}
+          </motion.div>
 
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
             onClick={handlePrint}
-            className="no-print mt-4 inline-flex items-center gap-2 rounded-xl bg-ivory/15 px-5 py-2.5 font-body text-sm font-medium text-ivory/90 backdrop-blur-md transition-all hover:bg-ivory/25"
+            className="no-print mt-4 inline-flex items-center gap-2 rounded-xl bg-ivory/15 px-4 py-2 font-body text-sm font-medium text-ivory/90 backdrop-blur-md transition-all hover:bg-ivory/25"
           >
             <FileDown className="h-4 w-4" />
-            Pobierz ofertę PDF
+            Pobierz PDF
           </motion.button>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-            className="mt-6 font-display text-xl font-semibold text-ivory/90 md:text-2xl"
-          >
-            {heroHeadline}
-          </motion.div>
-
-          {offer.valid_until && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.9 }}
-              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-ivory/10 px-5 py-2.5 backdrop-blur-md"
-            >
-              <Clock className="h-4 w-4 text-ivory/80" />
-              <span className="font-body text-sm text-ivory/80 tracking-wide">
-                Ważna do: {formatDate(offer.valid_until)}
-              </span>
-            </motion.div>
-          )}
         </div>
       </section>
 
-      {/* 2. POWITANIE */}
-      {offer.greeting_text && (
+      {/* 2. GREETING + AI SUMMARY — collapsed */}
+      {combinedGreeting && (
         <motion.section
           variants={fadeInUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-50px' }}
-          className="py-16 md:py-24"
+          className="py-6 md:py-8"
         >
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <div className="relative font-display text-xl leading-relaxed md:text-2xl" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-              <span className="absolute -left-4 -top-6 text-5xl opacity-20 md:-left-8 md:text-7xl" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-                „
-              </span>
-              {offer.greeting_text}
-              <span className="absolute -bottom-8 -right-4 text-5xl opacity-20 md:-right-8 md:text-7xl" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-                "
-              </span>
-            </div>
-          </div>
-        </motion.section>
-      )}
-
-      {/* 3. AI PODSUMOWANIE */}
-      {offer.ai_summary && (
-        <motion.section
-          variants={fadeIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-50px' }}
-          className="py-16 md:py-24"
-          style={{ backgroundColor: 'var(--theme-secondary, #f0ebe3)', opacity: 0.97 }}
-        >
-          <div className="mx-auto max-w-3xl px-6 text-center">
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-              className="mb-4 inline-block"
+            <p
+              className="font-body text-base leading-relaxed md:text-lg"
+              style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.8 }}
             >
-              <Sparkles className="h-7 w-7" style={{ color: 'var(--theme-accent, #c9a84c)' }} />
-            </motion.div>
-            <p className="font-body text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
-              {offer.ai_summary}
+              {greetingExpanded || !greetingTruncation?.isTruncated
+                ? combinedGreeting
+                : greetingTruncation.truncated}
             </p>
+            {greetingTruncation?.isTruncated && (
+              <button
+                onClick={() => setGreetingExpanded(!greetingExpanded)}
+                className="mt-2 inline-flex items-center gap-1 font-body text-sm font-medium transition-colors"
+                style={{ color: 'var(--theme-primary, #1A1A1A)' }}
+              >
+                {greetingExpanded ? 'Zwiń' : 'Czytaj więcej'}
+                <ChevronDown className={`h-4 w-4 transition-transform ${greetingExpanded ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
         </motion.section>
       )}
 
-      {/* 4. O NASZYM CATERINGU */}
-      {eventProfile?.description_long && (
-        <AboutCateringSection descriptionLong={eventProfile.description_long} />
-      )}
-
-      {/* 5. DLACZEGO MY — wyróżniki */}
-      {features.length > 0 && <FeaturesSection features={features} />}
-
-      {/* 6. GALERIA REALIZACJI */}
-      {eventPhotos && eventPhotos.length > 0 && (
-        <EventGallerySection photos={eventPhotos} />
-      )}
-
-      {/* 7. SZCZEGÓŁY EVENTU */}
+      {/* 3. EVENT DETAILS — compact grid */}
       <motion.section
         variants={staggerContainer}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-50px' }}
-        className="py-16 md:py-24"
+        className="py-6 md:py-8"
       >
         <div className="mx-auto max-w-4xl px-6">
           <motion.h2
             variants={fadeInUp}
-            className="mb-10 text-center font-display text-2xl font-bold md:text-3xl"
+            className="mb-4 text-center font-display text-xl font-bold"
             style={{ color: 'var(--theme-text, #1A1A1A)' }}
           >
             Szczegóły wydarzenia
           </motion.h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {eventDetails.map((detail) => (
               <motion.div
                 key={detail.label}
                 variants={fadeInUp}
-                whileHover={{ y: -4 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className="flex items-start gap-4 rounded-2xl bg-ivory p-6 shadow-premium"
+                className="flex items-center gap-3 rounded-xl bg-ivory px-4 py-3 shadow-sm"
               >
                 <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                   style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}
                 >
-                  <detail.icon className="h-5 w-5" />
+                  <detail.icon className="h-4 w-4" />
                 </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-charcoal/50">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-charcoal/50">
                     {detail.label}
-                  </p>
-                  <p className="mt-1 font-body text-base font-semibold text-charcoal">
+                  </span>
+                  <span className="font-body text-sm font-semibold text-charcoal">
                     {detail.value}
-                  </p>
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -650,7 +560,7 @@ export const PublicOfferPage = () => {
         </div>
       </motion.section>
 
-      {/* 8. WARIANTY MENU */}
+      {/* 4. MENU */}
       {offer.offer_variants.length > 0 && (
         <MenuVariantsSection
           variants={offer.offer_variants}
@@ -662,7 +572,7 @@ export const PublicOfferPage = () => {
         />
       )}
 
-      {/* 9. USŁUGI DODATKOWE */}
+      {/* 5. SERVICES */}
       {offer.offer_services.length > 0 && (
         <ServicesSection
           services={offer.offer_services}
@@ -670,13 +580,13 @@ export const PublicOfferPage = () => {
         />
       )}
 
-      {/* 10. KALKULACJA */}
+      {/* 6. CALCULATION */}
       <CalculationSection offer={offer} modifications={modifications} />
 
-      {/* 10.5. LOGISTYKA */}
+      {/* 7. LOGISTICS */}
       <LogisticsSection offer={offer} />
 
-      {/* 10.6. PORÓWNANIE WARIANTÓW */}
+      {/* 8. VARIANT COMPARISON */}
       {offer.offer_variants.length >= 2 && (
         <VariantComparisonSection
           variants={offer.offer_variants}
@@ -687,24 +597,15 @@ export const PublicOfferPage = () => {
         />
       )}
 
-      {/* 11. OPINIA KLIENTA */}
-      {eventProfile?.testimonial_text && (
-        <TestimonialSection
-          text={eventProfile.testimonial_text}
-          author={eventProfile.testimonial_author}
-          event={eventProfile.testimonial_event}
-        />
-      )}
-
-      {/* 12. WARUNKI OFERTY */}
+      {/* 9. TERMS */}
       <TermsSection />
 
-      {/* 13. PYTANIA I UWAGI + HISTORIA KOMUNIKACJI */}
+      {/* 10. COMMUNICATION */}
       <div className="no-print">
         <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} actionsDisabled={actionsDisabled} />
       </div>
 
-      {/* 14. AKCEPTACJA OFERTY */}
+      {/* 11. ACCEPTANCE */}
       <div className="no-print">
         {!offerAccepted && (
           <div id="acceptance-section">
@@ -713,8 +614,8 @@ export const PublicOfferPage = () => {
         )}
       </div>
 
-      {/* 15. KONTAKT */}
-      <ContactSection ctaText={eventProfile?.cta_text} onPrint={handlePrint} />
+      {/* 12. CONTACT */}
+      <ContactSection onPrint={handlePrint} />
 
       {/* Floating changes panel */}
       <div className="no-print">
@@ -728,25 +629,15 @@ export const PublicOfferPage = () => {
         />
       </div>
 
-      {/* 16. FOOTER */}
-      <motion.footer
-        variants={fadeIn}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        className="py-12 text-center"
+      {/* FOOTER — compact */}
+      <footer
+        className="py-4 text-center"
         style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
       >
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="mb-4 h-px w-full opacity-20" style={{ backgroundColor: '#FAF7F2' }} />
-          <p className="font-display text-lg font-semibold text-ivory/90">
-            Catering Śląski
-          </p>
-          <p className="mt-1 font-body text-sm text-ivory/50 tracking-wide">
-            © {new Date().getFullYear()} Catering Śląski. Wszystkie prawa zastrzeżone.
-          </p>
-        </div>
-      </motion.footer>
+        <p className="font-body text-sm text-ivory/60">
+          © {new Date().getFullYear()} Catering Śląski
+        </p>
+      </footer>
 
       {/* Print-only footer */}
       <div className="print-only hidden" style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #ccc', marginTop: '20px', fontSize: '9pt', color: '#666' }}>

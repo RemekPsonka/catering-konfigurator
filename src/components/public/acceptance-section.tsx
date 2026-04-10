@@ -52,7 +52,6 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
           setShowConfirm(false);
           setAccepted(true);
           onAccepted();
-          // Fire-and-forget notification
           const clientName = offer.clients?.name ?? 'Klient';
           const variantName = selectedVariant?.name ?? 'brak';
           const totalValue = selectedVariant?.total_value ?? offer.total_value ?? 0;
@@ -72,43 +71,25 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
     );
   };
 
-  // Show success state
   if (accepted) {
     return (
-      <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="py-16 md:py-24"
-      >
+      <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8 md:py-12">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
-            className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full"
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
           >
-            <motion.svg
-              viewBox="0 0 24 24"
-              className="h-10 w-10 text-ivory"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <motion.path
-                d="M5 13l4 4L19 7"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              />
+            <motion.svg viewBox="0 0 24 24" className="h-8 w-8 text-ivory" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <motion.path d="M5 13l4 4L19 7" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay: 0.3 }} />
             </motion.svg>
           </motion.div>
-          <h2 className="font-display text-2xl font-bold md:text-3xl" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+          <h2 className="font-display text-xl font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
             Dziękujemy za akceptację!
           </h2>
-          <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
+          <p className="mt-2 font-body text-sm text-charcoal/60 leading-relaxed">
             Skontaktujemy się w sprawie dalszych szczegółów.
           </p>
         </div>
@@ -123,58 +104,54 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-50px' }}
-        className="py-16 md:py-24"
+        className="py-8 md:py-12"
         style={{
           background: `linear-gradient(135deg, color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, var(--theme-bg, #FAF7F2)), color-mix(in srgb, var(--theme-accent, #c9a84c) 5%, var(--theme-bg, #FAF7F2)))`,
         }}
       >
         <div className="mx-auto max-w-4xl px-6">
           <h2
-            className="mb-10 text-center font-display text-2xl font-bold md:text-3xl"
+            className="mb-6 text-center font-display text-xl font-bold"
             style={{ color: 'var(--theme-text, #1A1A1A)' }}
           >
             Akceptacja oferty
           </h2>
 
-          {/* Variant selection */}
+          {/* Variant selection — compact radio row */}
           {multiVariant && (
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
               {offer.offer_variants.map((v) => {
                 const isSelected = selectedVariantId === v.id;
                 return (
-                  <motion.button
+                  <button
                     key={v.id}
-                    whileHover={{ scale: 1.02, boxShadow: '0 0 40px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' }}
                     onClick={() => setSelectedVariantId(v.id)}
-                    className="rounded-2xl border-2 p-6 text-left transition-all"
+                    className="inline-flex items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-left transition-all"
                     style={{
-                      borderColor: isSelected ? 'var(--theme-primary, #1A1A1A)' : 'transparent',
-                      backgroundColor: '#FFFFF0',
-                      boxShadow: isSelected ? '0 0 40px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' : '0 20px 60px rgba(0,0,0,0.08)',
+                      borderColor: isSelected ? 'var(--theme-primary, #1A1A1A)' : 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 20%, transparent)',
+                      backgroundColor: isSelected ? 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 8%, white)' : 'white',
                     }}
                   >
-                    <h3 className="font-display text-lg font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                      {v.name}
-                    </h3>
-                    {v.description && (
-                      <p className="mt-1 font-body text-sm text-charcoal/60">{v.description}</p>
-                    )}
-                    {v.price_per_person != null && (
-                      <p className="mt-3 font-display text-xl font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-                        {formatCurrency(v.price_per_person)}/os.
-                      </p>
-                    )}
-                    {isSelected && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="mt-3 flex h-6 w-6 items-center justify-center rounded-full"
-                        style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
-                      >
-                        <Check className="h-4 w-4 text-ivory" />
-                      </motion.div>
-                    )}
-                  </motion.button>
+                    <div
+                      className="flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all"
+                      style={{
+                        borderColor: isSelected ? 'var(--theme-primary, #1A1A1A)' : 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 30%, transparent)',
+                        backgroundColor: isSelected ? 'var(--theme-primary, #1A1A1A)' : 'transparent',
+                      }}
+                    >
+                      {isSelected && <Check className="h-3 w-3 text-ivory" />}
+                    </div>
+                    <div>
+                      <span className="font-display text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                        {v.name}
+                      </span>
+                      {v.price_per_person != null && (
+                        <span className="ml-2 font-body text-sm font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
+                          {formatCurrency(v.price_per_person)}/os.
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -183,11 +160,11 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
           {/* Accept button */}
           <div className="flex justify-center">
             <motion.button
-              whileHover={{ scale: 1.03, boxShadow: '0 0 40px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' }}
+              whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' }}
               whileTap={{ scale: 0.97 }}
               onClick={handleAccept}
               disabled={multiVariant && !selectedVariantId}
-              className="rounded-xl px-12 py-5 font-body text-xl font-semibold text-ivory shadow-glow transition-all disabled:opacity-50"
+              className="rounded-xl px-10 py-4 font-body text-lg font-semibold text-ivory shadow-glow transition-all disabled:opacity-50"
               style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
             >
               Akceptuję ofertę
@@ -212,12 +189,12 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
               animate="visible"
               exit="hidden"
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl bg-ivory p-8 shadow-premium"
+              className="w-full max-w-md rounded-2xl bg-ivory p-6 shadow-premium"
             >
-              <h3 className="font-display text-xl font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+              <h3 className="font-display text-lg font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
                 Potwierdzenie akceptacji
               </h3>
-              <p className="mt-4 font-body text-charcoal/70 leading-relaxed">
+              <p className="mt-3 font-body text-sm text-charcoal/70 leading-relaxed">
                 Czy na pewno akceptujesz{selectedVariant ? ` wariant "${selectedVariant.name}"` : ' tę ofertę'}?
                 {selectedVariant?.total_value != null && (
                   <span className="block mt-2 font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
@@ -225,10 +202,10 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
                   </span>
                 )}
               </p>
-              <div className="mt-6 flex gap-3">
+              <div className="mt-5 flex gap-3">
                 <button
                   onClick={() => setShowConfirm(false)}
-                  className="flex-1 rounded-xl border-2 py-3 font-body font-semibold transition-colors"
+                  className="flex-1 rounded-xl border-2 py-2.5 font-body text-sm font-semibold transition-colors"
                   style={{ borderColor: 'var(--theme-primary, #1A1A1A)', color: 'var(--theme-primary, #1A1A1A)' }}
                 >
                   Anuluj
@@ -237,7 +214,7 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, act
                   whileTap={{ scale: 0.97 }}
                   disabled={acceptOffer.isPending}
                   onClick={handleConfirm}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-body font-semibold text-ivory disabled:opacity-70"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 font-body text-sm font-semibold text-ivory disabled:opacity-70"
                   style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
                 >
                   {acceptOffer.isPending ? (
