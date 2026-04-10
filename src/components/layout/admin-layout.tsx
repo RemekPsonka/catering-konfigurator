@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/use-auth';
-import { DEV_MODE } from '@/lib/constants';
 import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench, Bell, LayoutDashboard } from 'lucide-react';
 import { NotificationBell } from '@/components/features/notifications/notification-bell';
 import { PushPermissionBanner } from '@/components/features/notifications/push-permission-banner';
@@ -86,11 +85,6 @@ export const AdminLayout = () => {
       <div className="min-h-screen flex w-full">
         <SidebarNav />
         <div className="flex-1 flex flex-col">
-          {DEV_MODE && (
-            <div className="bg-destructive text-destructive-foreground text-center text-sm font-medium py-1.5">
-              ⚠️ TRYB DEWELOPERSKI — logowanie wyłączone
-            </div>
-          )}
           <PushPermissionBanner />
           <header className="h-14 flex items-center justify-between border-b px-4">
             <SidebarTrigger className="ml-0" />

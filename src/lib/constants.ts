@@ -1,6 +1,6 @@
 import type { OfferStatus, LeadStatus, EventType, DishCategory } from '@/types';
 
-export const DEV_MODE = false;
+
 
 export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   draft: 'Szkic',

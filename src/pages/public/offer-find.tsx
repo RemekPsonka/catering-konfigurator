@@ -85,6 +85,7 @@ export const OfferFindPage = () => {
       setErrorMessage('Wystąpił błąd. Spróbuj ponownie.');
     } finally {
       setIsSubmitting(false);
+      setCooldownSeconds(3);
     }
   }, [email, offerNumber, failedAttempts, cooldownSeconds, navigate]);
 

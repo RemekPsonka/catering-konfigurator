@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { DEV_MODE } from '@/lib/constants';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextValue {
@@ -13,16 +12,11 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const DEV_USER = { id: 'dev-user-id', email: 'dev@test.pl', app_metadata: {}, user_metadata: { role: 'admin' }, aud: 'authenticated', created_at: '' } as User;
-const DEV_SESSION = { user: DEV_USER, access_token: '', refresh_token: '', expires_in: 0, token_type: 'bearer' as const };
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(DEV_MODE ? DEV_SESSION : null);
-  const [isLoading, setIsLoading] = useState(!DEV_MODE);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (DEV_MODE) return;
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setIsLoading(false);
@@ -37,13 +31,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    if (DEV_MODE) return;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   }, []);
 
   const signOut = useCallback(async () => {
-    if (DEV_MODE) return;
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }, []);
