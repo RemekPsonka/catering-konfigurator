@@ -164,9 +164,14 @@ export const DishCard = ({
                     exit={{ opacity: 0, y: 5 }}
                     className="font-display text-base font-semibold md:text-lg"
                     style={{ color: 'var(--theme-text, #1A1A1A)' }}
-                  >
-                    {displayName}
-                  </motion.h4>
+                    >
+                     {displayName}
+                     {item.selected_variant_option && (
+                       <span className="text-xs font-normal opacity-60 ml-1">
+                         ({item.selected_variant_option})
+                       </span>
+                     )}
+                    </motion.h4>
                 </AnimatePresence>
 
                 <div className="flex shrink-0 items-center gap-1">

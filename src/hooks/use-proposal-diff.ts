@@ -90,6 +90,7 @@ export const useResolveProposal = () => {
       managerNotes?: string;
       resolvedBy: string;
     }) => {
+      // 1. Update proposal status
       const { error } = await supabase
         .from('change_proposals')
         .update({
@@ -101,10 +102,60 @@ export const useResolveProposal = () => {
         .eq('id', proposalId);
 
       if (error) throw error;
+
+      // 2. Fetch accepted proposal items to apply to variant_items
+      const { data: acceptedItems, error: fetchError } = await supabase
+        .from('proposal_items')
+        .select('*, proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(id, display_name)')
+        .eq('proposal_id', proposalId)
+        .eq('status', 'accepted');
+
+      if (fetchError) throw fetchError;
+      if (!acceptedItems || acceptedItems.length === 0) return;
+
+      // 3. Apply each accepted change to variant_items
+      const errors: string[] = [];
+
+      for (const item of acceptedItems) {
+        if (!item.variant_item_id) continue;
+
+        const updateData: Record<string, unknown> = {};
+
+        if (item.change_type === 'SWAP' && item.proposed_dish_id) {
+          updateData.dish_id = item.proposed_dish_id;
+          updateData.custom_price = item.proposed_price;
+          if (item.proposed_dish && typeof item.proposed_dish === 'object' && 'display_name' in item.proposed_dish) {
+            updateData.custom_name = (item.proposed_dish as { display_name: string }).display_name;
+          }
+        } else if (item.change_type === 'VARIANT_CHANGE') {
+          updateData.selected_variant_option = item.proposed_variant_option;
+          updateData.custom_price = item.proposed_price;
+        } else if (item.change_type === 'QUANTITY_CHANGE') {
+          updateData.quantity = item.proposed_quantity;
+          updateData.custom_price = item.proposed_price;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          const { error: updateError } = await supabase
+            .from('variant_items')
+            .update(updateData)
+            .eq('id', item.variant_item_id);
+
+          if (updateError) {
+            errors.push(item.variant_item_id);
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        throw new Error(`Nie udało się zaktualizować ${errors.length} pozycji oferty`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-detail'] });
       queryClient.invalidateQueries({ queryKey: ['admin-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['public-offer'] });
+      queryClient.invalidateQueries({ queryKey: ['offer'] });
     },
   });
 };
