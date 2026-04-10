@@ -20,6 +20,7 @@ import {
   Mail,
   Search,
   FileDown,
+  Check,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
