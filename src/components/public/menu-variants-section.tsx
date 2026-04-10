@@ -17,6 +17,8 @@ interface MenuVariantsSectionProps {
   pricingMode: Enums<'pricing_mode'>;
   peopleCount: number;
   priceDisplayMode: Enums<'price_display_mode'>;
+  activeVariantId?: string;
+  onActiveVariantChange?: (id: string) => void;
   modifications?: Map<string, DishModification>;
   onModificationChange?: (itemId: string, mod: DishModification | undefined) => void;
 }
@@ -36,9 +38,12 @@ const groupByCategory = (items: Variant['variant_items']) => {
   return Array.from(groups.values());
 };
 
-export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, modifications, onModificationChange }: MenuVariantsSectionProps) => {
+export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange }: MenuVariantsSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const [activeId, setActiveId] = useState(sorted[0]?.id ?? '');
+  const activeId = controlledId ?? sorted[0]?.id ?? '';
+  const setActiveId = (id: string) => {
+    onActiveVariantChange?.(id);
+  };
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
@@ -69,6 +74,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
 
   return (
     <motion.section
+      id="menu-section"
       variants={staggerContainer}
       initial="hidden"
       whileInView="visible"

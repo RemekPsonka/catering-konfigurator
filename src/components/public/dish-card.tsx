@@ -203,18 +203,18 @@ export const DishCard = ({
                     </motion.button>
                   )}
                   {isEditable && (
-                    <motion.button
-                      whileHover={{ rotate: 180 }}
-                      transition={{ duration: 0.4 }}
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleExpand?.();
                       }}
-                      className="shrink-0"
+                      className="flex shrink-0 items-center gap-1 font-body text-xs font-medium transition-colors hover:underline"
+                      style={{ color: 'var(--theme-accent, #c9a84c)' }}
                       title="Kliknij aby zobaczyć alternatywy"
                     >
-                      <RefreshCw className="h-4 w-4" style={{ color: 'var(--theme-accent, #c9a84c)' }} />
-                    </motion.button>
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>wymień na inne</span>
+                    </button>
                   )}
                 </div>
               </div>

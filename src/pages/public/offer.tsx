@@ -24,14 +24,13 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
-import { ServicesSection } from '@/components/public/services-section';
+import { ServicesLogisticsSection } from '@/components/public/services-logistics-section';
 import { CalculationSection } from '@/components/public/calculation-section';
 import { ChangesPanel } from '@/components/public/changes-panel';
 import { TermsSection } from '@/components/public/terms-section';
 import { CommunicationSection } from '@/components/public/communication-section';
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
-import { LogisticsSection } from '@/components/public/logistics-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
 import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
@@ -77,12 +76,20 @@ export const PublicOfferPage = () => {
   const [modifications, setModifications] = useState<Map<string, DishModification>>(new Map());
   const [offerAccepted, setOfferAccepted] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const [preSelectedVariantId, setPreSelectedVariantId] = useState<string | null>(null);
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const [greetingExpanded, setGreetingExpanded] = useState(false);
   const isFirstVisitRef = useRef<boolean | null>(null);
 
   const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
   const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
+
+  // Initialize activeVariantId when offer loads
+  useEffect(() => {
+    if (offer && !activeVariantId) {
+      const sorted = [...offer.offer_variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      if (sorted.length > 0) setActiveVariantId(sorted[0].id);
+    }
+  }, [offer, activeVariantId]);
 
   const heroPhoto = useMemo(
     () => eventPhotos?.find((p) => p.is_hero) ?? null,
@@ -117,8 +124,9 @@ export const PublicOfferPage = () => {
     if (!offer) return { originalTotal: 0, proposedTotal: 0 };
     const variants = offer.offer_variants as unknown as VariantWithItems[];
     const services = offer.offer_services as unknown as OfferServiceWithService[];
+    const pc = offer.people_count ?? 1;
     const origTotals = calculateOfferTotals(
-      offer.pricing_mode, offer.people_count, variants, services,
+      offer.pricing_mode, pc, variants, services,
       offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
     );
 
@@ -137,7 +145,7 @@ export const PublicOfferPage = () => {
     })) as unknown as VariantWithItems[];
 
     const propTotals = calculateOfferTotals(
-      offer.pricing_mode, offer.people_count, adjustedVariants, services,
+      offer.pricing_mode, pc, adjustedVariants, services,
       offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0,
     );
 
@@ -560,61 +568,58 @@ export const PublicOfferPage = () => {
         </div>
       </motion.section>
 
-      {/* 4. MENU */}
+      {/* 4. VARIANT COMPARISON — compact cards above menu */}
+      {offer.offer_variants.length >= 2 && (
+        <VariantComparisonSection
+          variants={offer.offer_variants}
+          pricingMode={offer.pricing_mode}
+          peopleCount={offer.people_count ?? 1}
+          priceDisplayMode={offer.price_display_mode}
+          onSelectVariant={setActiveVariantId}
+        />
+      )}
+
+      {/* 5. MENU */}
       {offer.offer_variants.length > 0 && (
         <MenuVariantsSection
           variants={offer.offer_variants}
           pricingMode={offer.pricing_mode}
-          peopleCount={offer.people_count}
+          peopleCount={offer.people_count ?? 1}
           priceDisplayMode={offer.price_display_mode}
+          activeVariantId={activeVariantId ?? undefined}
+          onActiveVariantChange={setActiveVariantId}
           modifications={modifications}
           onModificationChange={handleModificationChange}
         />
       )}
 
-      {/* 5. SERVICES */}
-      {offer.offer_services.length > 0 && (
-        <ServicesSection
-          services={offer.offer_services}
-          priceDisplayMode={offer.price_display_mode}
-        />
-      )}
+      {/* 6. SERVICES & LOGISTICS */}
+      <ServicesLogisticsSection
+        offer={offer}
+        priceDisplayMode={offer.price_display_mode}
+      />
 
-      {/* 6. CALCULATION */}
+      {/* 7. CALCULATION */}
       <CalculationSection offer={offer} modifications={modifications} />
 
-      {/* 7. LOGISTICS */}
-      <LogisticsSection offer={offer} />
-
-      {/* 8. VARIANT COMPARISON */}
-      {offer.offer_variants.length >= 2 && (
-        <VariantComparisonSection
-          variants={offer.offer_variants}
-          pricingMode={offer.pricing_mode}
-          peopleCount={offer.people_count}
-          priceDisplayMode={offer.price_display_mode}
-          onSelectVariant={setPreSelectedVariantId}
-        />
-      )}
-
-      {/* 9. TERMS */}
+      {/* 8. TERMS */}
       <TermsSection />
 
-      {/* 10. COMMUNICATION */}
+      {/* 9. COMMUNICATION */}
       <div className="no-print">
         <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} actionsDisabled={actionsDisabled} />
       </div>
 
-      {/* 11. ACCEPTANCE */}
+      {/* 10. ACCEPTANCE */}
       <div className="no-print">
         {!offerAccepted && (
           <div id="acceptance-section">
-            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} actionsDisabled={actionsDisabled} />
+            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} activeVariantId={activeVariantId} actionsDisabled={actionsDisabled} />
           </div>
         )}
       </div>
 
-      {/* 12. CONTACT */}
+      {/* 11. CONTACT */}
       <ContactSection onPrint={handlePrint} />
 
       {/* Floating changes panel */}
