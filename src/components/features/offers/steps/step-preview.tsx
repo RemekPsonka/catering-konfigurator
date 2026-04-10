@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye } from 'lucide-react';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
