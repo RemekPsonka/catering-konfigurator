@@ -1,4 +1,5 @@
 import { PUBLIC_BASE_URL, buildPublicOfferUrl } from '@/lib/constants';
+import { companySignature } from '@/lib/company-config';
 
 export const OFFER_EMAIL_TEMPLATE = `Szanowna/y {clientName},
 
