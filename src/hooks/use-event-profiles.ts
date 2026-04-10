@@ -126,7 +126,7 @@ export const useUploadEventPhoto = () => {
         .from('event_type_photos')
         .select('id', { count: 'exact' })
         .eq('event_type_id', eventTypeId);
-      if ((existing.count ?? 0) >= MAX_PHOTOS) throw new Error(`Maksymalnie ${MAX_PHOTOS} zdjęć`);
+      if ((existing.count ?? 0) >= MAX_EVENT_PHOTOS) throw new Error(`Maksymalnie ${MAX_EVENT_PHOTOS} zdjęć`);
 
       const { width, height } = await getImageDimensions(file);
       const ext = file.name.split('.').pop() ?? 'jpg';
