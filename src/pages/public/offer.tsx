@@ -701,14 +701,14 @@ export const PublicOfferPage = () => {
 
       {/* 13. PYTANIA I UWAGI + HISTORIA KOMUNIKACJI */}
       <div className="no-print">
-        <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
+        <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} actionsDisabled={actionsDisabled} />
       </div>
 
       {/* 14. AKCEPTACJA OFERTY */}
       <div className="no-print">
         {!offerAccepted && (
           <div id="acceptance-section">
-            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} />
+            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} actionsDisabled={actionsDisabled} />
           </div>
         )}
       </div>
@@ -719,11 +719,12 @@ export const PublicOfferPage = () => {
       {/* Floating changes panel */}
       <div className="no-print">
         <ChangesPanel
-        modifications={modifications}
-        offer={offer}
-        onClearModifications={handleClearModifications}
+          modifications={modifications}
+          offer={offer}
+          onClearModifications={handleClearModifications}
           originalTotal={originalTotal}
           proposedTotal={proposedTotal}
+          actionsDisabled={actionsDisabled}
         />
       </div>
 
