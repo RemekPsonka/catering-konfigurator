@@ -118,7 +118,7 @@ export const useSubmitProposal = () => {
 
       if (proposalError) throw proposalError;
 
-      // Insert proposal_items
+      // Insert proposal_items — rollback proposal on failure
       const items = Array.from(modifications.entries()).map(([itemId, mod]) => {
         const variantItem = variantItems.find((vi) => vi.id === itemId);
         const originalPrice = variantItem?.custom_price ?? 0;
@@ -161,7 +161,15 @@ export const useSubmitProposal = () => {
         const { error: itemsError } = await supabase
           .from('proposal_items')
           .insert(items);
-        if (itemsError) throw itemsError;
+
+        if (itemsError) {
+          // Cleanup orphaned proposal record
+          await supabase
+            .from('change_proposals')
+            .delete()
+            .eq('id', proposal.id);
+          throw itemsError;
+        }
       }
 
       // Update offer status to revision
