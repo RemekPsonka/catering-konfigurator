@@ -1,4 +1,5 @@
 import { PUBLIC_BASE_URL, buildPublicOfferUrl } from '@/lib/constants';
+import { companySignature } from '@/lib/company-config';
 
 export const OFFER_EMAIL_TEMPLATE = `Szanowna/y {clientName},
 
@@ -16,8 +17,7 @@ i wpisać:
 Oferta ważna do: {validUntil}
 
 Pozdrawiamy,
-Catering Śląski
-tel. +48 123 456 789 | zamowienia@cateringslaski.pl`;
+${companySignature}`;
 
 export const buildOfferEmailText = (params: {
   clientName: string;
@@ -66,8 +66,7 @@ Jeśli link nie działa, wejdź na {findLink} i wpisz swój email oraz numer ofe
 Oferta ważna do: {validUntil}
 
 Pozdrawiamy,
-Catering Śląski
-tel. +48 123 456 789 | zamowienia@cateringslaski.pl`;
+${companySignature}`;
 
 export const buildRichOfferEmail = (params: {
   clientName: string;

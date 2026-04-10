@@ -1,19 +1,20 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, Instagram, FileDown } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
+import { COMPANY } from '@/lib/company-config';
 
 const CONTACTS = [
   {
     icon: Phone,
     label: 'Telefon',
-    value: '+48 123 456 789',
-    href: 'tel:+48123456789',
+    value: COMPANY.phone,
+    href: `tel:${COMPANY.phone.replace(/\s/g, '')}`,
   },
   {
     icon: Mail,
     label: 'E-mail',
-    value: 'zamowienia@cateringslaski.pl',
-    href: 'mailto:zamowienia@cateringslaski.pl',
+    value: COMPANY.email,
+    href: `mailto:${COMPANY.email}`,
   },
   {
     icon: Instagram,
