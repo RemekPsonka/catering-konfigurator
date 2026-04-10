@@ -1,66 +1,61 @@
 
 
-# Naprawy utrzymywalności — duplikacje, stałe, debounce
+# Bugfix: Zapis liczby gości do bazy po zmianie na stronie publicznej
 
-## Pliki do zmiany
+## Plik do zmiany
 
-### 1. `src/pages/admin/offer-messages.tsx` — usunięcie `formatPLN`
-- Usunąć linie 100-101 (`const formatPLN = ...`)
-- Dodać `import { formatCurrency } from '@/lib/calculations';`
-- Zamienić 3 wystąpienia `formatPLN(` na `formatCurrency(`
+### `src/components/public/calculation-section.tsx`
 
-### 2. `src/pages/admin/proposal-diff.tsx` — usunięcie `formatPLN`
-- Usunąć linie 46-47 (`const formatPLN = ...`)
-- Dodać `import { formatCurrency } from '@/lib/calculations';`
-- Zamienić 4 wystąpienia `formatPLN(` na `formatCurrency(`
-
-### 3. Nowy plik `src/lib/app-limits.ts`
-Centralne stałe:
+**1. Dodać import supabase (linia 8):**
 ```typescript
-export const MAX_DISH_PHOTOS = 5;
-export const MAX_EVENT_PHOTOS = 15;
-export const MAX_PHOTO_SIZE_MB = 10;
-export const DEBOUNCE_SAVE_MS = 800;
-export const DEBOUNCE_SEARCH_MS = 300;
-export const GREETING_WORD_LIMIT = 40;
-export const SEARCH_COOLDOWN_MS = 3000;
+import { supabase } from '@/integrations/supabase/client';
 ```
 
-### 4. Aktualizacja importów stałych
-- `src/hooks/use-event-profiles.ts`: `MAX_PHOTOS` → `MAX_EVENT_PHOTOS` z app-limits
-- `src/pages/public/offer.tsx`: `GREETING_WORD_LIMIT = 40` → import z app-limits
+**2. Zamienić useEffect (linie 69-84) na wersję z zapisem do bazy:**
 
-### 5. `src/components/features/offers/steps/step-calculation.tsx` — konsolidacja debounce
-Zamienić 4 osobne `useDebounce` + 4 `useEffect` (linie 117-140) na jeden połączony obiekt:
+Logika:
+- Jeśli brak `min_offer_price` — zapisz każdą zmianę (gdy `is_people_count_editable` i `debouncedCount !== people_count`)
+- Jeśli jest `min_offer_price` — zapisz tylko po walidacji (gdy total >= min)
+- Zapis: `supabase.from('offers').update({ people_count }).eq('id', offer.id)`
+- Warunek `is_people_count_editable` opakowuje oba zapisy
+
 ```typescript
-const textFields = useMemo(() => ({
-  greeting_text: greetingText || null,
-  ai_summary: aiSummary || null,
-  notes_client: notesClient || null,
-  notes_internal: notesInternal || null,
-}), [greetingText, aiSummary, notesClient, notesInternal]);
-
-const debouncedTextFields = useDebounce(textFields, 800);
-const prevTextRef = useRef(debouncedTextFields);
-
 useEffect(() => {
-  if (!loaded || !offerId) return;
-  if (prevTextRef.current === debouncedTextFields) return;
-  prevTextRef.current = debouncedTextFields;
-  saveMutation.mutate(debouncedTextFields);
-}, [debouncedTextFields]);
+  if (!is_people_count_editable || debouncedCount === people_count || debouncedCount < 1) return;
+
+  const persistCount = () => {
+    supabase
+      .from('offers')
+      .update({ people_count: debouncedCount })
+      .eq('id', offer.id)
+      .then(({ error }) => {
+        if (error) console.error('Failed to save people count:', error);
+      });
+  };
+
+  if (!min_offer_price || min_offer_price <= 0) {
+    prevValidCount.current = debouncedCount;
+    persistCount();
+    return;
+  }
+
+  if (debouncedCount === prevValidCount.current) return;
+
+  const checkTotals = calculateOfferTotals(...);
+
+  if (checkTotals.grandTotal < min_offer_price) {
+    toast.error('...');
+    setLocalPeopleCount(prevValidCount.current ?? people_count ?? 1);
+  } else {
+    prevValidCount.current = debouncedCount;
+    persistCount();
+  }
+}, [debouncedCount, ...deps, is_people_count_editable, people_count, offer.id]);
 ```
-
-### 6. `src/hooks/use-event-profiles.ts` — optymalizacja zapytania
-Zamienić dwa zapytania (profiles + all photos) na jedno z `select('*, event_type_photos(count)')`, usunąć drugie query i `countMap`.
-
-## Nie zmieniam
-- `ITEMS_PER_PAGE` w `constants.ts` — re-export dodałby łamania importów bez zysku
-- `dish-photos-section.tsx` — tam limit 5 jest w hooku `use-dish-photos.ts`, nie w tym pliku bezpośrednio
 
 ## Efekt
-- 2 duplikacje `formatPLN` usunięte
-- Magic numbers scentralizowane
-- 4 requesty debounce → 1 request
-- 2 zapytania SQL → 1 zapytanie (event profiles)
+- Zmiana liczby gości na stronie publicznej zapisuje się do bazy
+- Po odświeżeniu strony — nowa wartość się zachowuje
+- Zapis tylko gdy `is_people_count_editable === true`
+- Walidacja `min_offer_price` nadal działa
 
