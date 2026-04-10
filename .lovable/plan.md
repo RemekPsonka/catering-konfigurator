@@ -1,74 +1,80 @@
 
 
-# Stałe linki publiczne — uzupełnienia i edge-case'y
+# Kompaktowy redesign strony publicznej oferty
 
-## Stan obecny po ostatniej zmianie
-- `use-offer-wizard.ts`: przy UPDATE pomija `status` — OK
-- `use-public-offer.ts`: brak filtra po statusie — OK
-- RLS `public_offer_read`: `public_token IS NOT NULL` — OK
-- `offer.tsx`: draft/lost mają osobne ekrany — ale brak pełnej obsługi wg wymagań
-- `step-preview.tsx`: przycisk "Zapisz szkic" nadal ustawia `status: 'draft'` — BUG, to resetuje status wysłanej oferty
-- `use-offers.ts` (duplikacja): ustawia `status: 'draft'` — OK, bo duplikat to nowa oferta
-- `find_offer_by_email_and_number` RPC: nie filtruje po statusie — OK, ale trzeba sprawdzić czy zwraca oferty bez tokena
-- `acceptance-section.tsx`: ukrywa się dla `ready` — powinno pokazywać akceptację tylko dla `sent/viewed/revision`
-- Token generuje się automatycznie przez trigger `generate_public_token` na INSERT — trzeba to zmienić
-
-## Zmiany do wdrożenia
-
-### 1. Trigger bazy danych — token NIE przy INSERT
-Obecnie trigger `generate_public_token` generuje token przy każdym INSERT. Wymaganie: token powstaje dopiero przy pierwszym wysłaniu.
-- Migracja: usuń trigger z INSERT, dodaj trigger na UPDATE, który generuje token gdy `status` zmienia się na `sent` i `public_token IS NULL`
-- Alternatywa: zostaw trigger INSERT ale ustaw `public_token = NULL` jawnie, a token generuj w logice wysyłania — prostsze: zmień trigger na BEFORE UPDATE
-
-### 2. `step-preview.tsx` — "Zapisz szkic" NIE resetuje statusu
-- Linia 141: `statusMutation.mutate({ status: 'draft' })` — to jest jawny reset statusu
-- Zmiana: "Zapisz szkic" nie powinno zmieniać statusu jeśli oferta była już wysłana
-- Logika: jeśli `offer.status` jest w `['sent','viewed','revision','accepted','won']`, przycisk "Zapisz szkic" po prostu nawiguje bez zmiany statusu
-- "Zapisz i pokaż link" oraz "Gotowa" — ustawiają `ready`, OK
-- "Generuj email" — ustawia `ready` + wysyła, zmienić na `sent`
-
-### 3. `offer.tsx` — pełna obsługa statusów wg tabeli
-Zmienić logikę ekranów statusowych:
-- `draft`: "Oferta jest w trakcie aktualizacji. Wróć później." + telefon + email. BEZ dań/cen/wariantów
-- `ready`: pełna oferta, ale BEZ akceptacji (oferta jeszcze nie wysłana)
-- `sent/viewed`: pełna oferta + pełne akcje (zamiany, pytania, akceptacja)
-- `revision`: pełna oferta + poprawki widoczne + pytania
-- `accepted`: pełna oferta + baner "Oferta zaakceptowana [data]", bez akcji
-- `won`: pełna oferta + baner "Zamówienie potwierdzone", bez akcji
-- `lost`: "Oferta zamknięta. Skontaktuj się z nami." + dane kontaktowe. BEZ dań
-- Wygasła (`valid_until < now()`): pełna oferta widoczna + baner na górze "Termin ważności minął [data]. Skontaktuj się w celu przedłużenia." Akcje zablokowane
-
-Obecnie `isExpired` blokuje całą stronę. Zmienić: pokazać pełną ofertę + baner + zablokować akcje.
-
-### 4. `acceptance-section.tsx` — dostosować widoczność
-- Obecnie: `['ready', 'sent', 'viewed', 'revision']`
-- Zmienić na: `['sent', 'viewed', 'revision']` — `ready` nie pokazuje akceptacji
-- Dodać warunek: `!isExpired` (przekazać jako prop)
-
-### 5. `changes-panel.tsx` / `communication-section.tsx` — blokada dla expired/accepted/won
-- Dodać prop `actionsDisabled` do tych komponentów
-- Gdy `actionsDisabled = true`: ukryj formularze, pokaż tylko historię
-
-### 6. `find_offer_by_email_and_number` RPC — filtruj po tokenie
-- Obecna funkcja nie sprawdza `public_token IS NOT NULL` — może zwrócić ofertę bez tokena
-- Migracja: dodać `AND o.public_token IS NOT NULL` do WHERE
-
-### 7. Admin UI — ukryj "Kopiuj link" gdy brak tokena
-- `offers-list.tsx` linia 201: `{offer.public_token && (...)}` — już OK
-- `step-preview.tsx`: przycisk "Zapisz i pokaż link" powinien być widoczny zawsze (generuje token przy ustawieniu ready/sent)
+## Cel
+Zmniejszenie strony z ~9000px (12 ekranów) do ~3500px (4-5 ekranów). Menu i cena widoczne po max 2 przewinięciach.
 
 ## Pliki do zmiany
-- Nowa migracja SQL: zmiana triggera `generate_public_token`, update RPC `find_offer_by_email_and_number`
-- `src/components/features/offers/steps/step-preview.tsx` — nie resetuj statusu przy "Zapisz szkic"
-- `src/pages/public/offer.tsx` — pełna obsługa statusów wg tabeli, expired jako baner zamiast blokady
-- `src/components/public/acceptance-section.tsx` — usunąć `ready` z widocznych statusów, dodać prop `isExpired`
-- `src/components/public/changes-panel.tsx` — dodać prop `actionsDisabled`
-- `src/components/public/communication-section.tsx` — dodać prop `actionsDisabled`
 
-## Efekt końcowy
-- Nowa oferta nie dostaje tokena dopóki nie zostanie wysłana
-- Edycja wysłanej oferty nie resetuje statusu
-- Link zawsze działa, ale klient widzi odpowiedni ekran zależnie od statusu
-- Expired oferty pokazują pełną treść + baner ostrzegawczy
-- Akcje klienta zablokowane w stanach: draft, accepted, won, lost, expired
+### 1. `src/pages/public/offer.tsx` — główne zmiany
+- **Hero**: Usunąć `min-h-[50vh]` / `min-h-[60vh]`, H1 z `text-7xl` → `text-4xl`, dane oferty (numer, typ, ważność) w jednym wierszu flexbox row
+- **Powitanie + AI Summary**: Połączyć w jedną sekcję. Pierwsze ~150 słów widoczne, reszta za "Czytaj więcej" (collapsible)
+- **Usunąć**: `AboutCateringSection`, `FeaturesSection`, `EventGallerySection`, `TestimonialSection` — nie renderować na stronie oferty
+- **Szczegóły wydarzenia**: Grid 2 kolumny, etykieta+wartość w jednym wierszu, H2 → `text-xl`, `py-8 md:py-12`
+- **Sekcje py-16 md:py-24**: Zmienić na `py-8 md:py-12` we WSZYSTKICH inline sekcjach
+- **H2 sekcji**: Zmienić `text-2xl md:text-3xl` → `text-xl`, `mb-10` → `mb-6`
+- **Footer**: Skompresować do ~60px, jedna linia
+
+### 2. `src/components/public/menu-variants-section.tsx`
+- H2 `text-2xl md:text-3xl` → `text-xl`, `mb-10` → `mb-6`
+- Nazwy kategorii: `text-lg md:text-xl` → `text-base font-semibold`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- Gap między kategoriami: `mb-8` → `mb-4`
+- Gap między daniami: `gap-3` → `gap-2`
+
+### 3. `src/components/public/services-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`, `mb-10` → `mb-6`
+- Nagłówki kategorii: `text-lg` → `text-base`
+- Gap między usługami: `gap-2` (już jest), gap między grupami: `gap-8` → `gap-4`
+
+### 4. `src/components/public/calculation-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`, `mb-10` → `mb-6`
+- People count selector: kompaktowy, mniejszy (`mb-10` → `mb-4`)
+- Grand total box: `p-8 md:p-10` → `p-5 md:p-6`, font `text-3xl md:text-5xl` → `text-2xl md:text-3xl`
+- Wielowariantowe totale: kompaktowa tabelka zamiast dużych bloków
+
+### 5. `src/components/public/terms-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`, `mb-10` → `mb-6`
+- Domyślnie `openIndex = -1` (wszystkie zwinięte)
+- Padding w accordion items: `p-5` → `p-3`
+
+### 6. `src/components/public/communication-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`, `mb-8` → `mb-4`
+- Textarea: `min-h-[120px]` → `min-h-[80px]`
+- Historia: domyślnie pokaż 2 ostatnie, reszta za "Pokaż starszą historię"
+
+### 7. `src/components/public/acceptance-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`, `mb-10` → `mb-6`
+- Warianty: z dużych kafelków na kompaktowe radio buttons w jednym wierszu
+- Przycisk CTA: zostaje duży
+
+### 8. `src/components/public/contact-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`, `mb-10` → `mb-4`
+- Kontakty w jednym wierszu (flexbox row) na desktopie
+- Usunąć CTA "Zaplanuj catering"
+
+### 9. `src/components/public/logistics-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`
+
+### 10. `src/components/public/variant-comparison-section.tsx`
+- `py-16 md:py-24` → `py-8 md:py-12`
+- H2 → `text-xl`
+
+## Co NIE ulega zmianie
+- Panel admina — zero zmian
+- Kolorystyka i gradienty — zachowane
+- Responsywność — zachowana (1 kolumna na mobile)
+- Logika biznesowa — zero zmian
+- Drukowanie — zachowane
+
+## Oczekiwany rezultat
+~3400-3500px łącznej wysokości zamiast ~9000px
 
