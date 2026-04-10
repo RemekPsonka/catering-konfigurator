@@ -193,11 +193,10 @@ export const OfferMessagesPage = () => {
         <EmailTemplateModal
           open={emailModal.open}
           onClose={() => setEmailModal(null)}
-          clientEmail={emailModal.clientEmail}
-          clientName={emailModal.clientName}
+          recipientEmail={emailModal.clientEmail}
           subject={emailModal.subject}
           body={emailModal.body}
-          offerNumber={offer?.offer_number ?? ''}
+          title="Powiadom klienta o odpowiedzi"
         />
       )}
     </div>
