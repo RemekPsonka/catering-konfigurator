@@ -299,6 +299,7 @@ export const PublicOfferPage = () => {
         </motion.div>
       </div>
     );
+  }
 
   // Status flags for conditional rendering
   const isDraft = offer?.status === 'draft';
