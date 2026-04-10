@@ -94,7 +94,7 @@ export const StepCalculation = ({
 
   // Use shared calculation function
   const totals = useMemo(() => {
-    const dp = discountType === 'percent' ? discountPercent : 0;
+    const dp = discountType === 'percent' ? Math.min(100, Math.max(0, discountPercent)) : 0;
     const dv = discountType === 'value' ? discountValue : 0;
     return calculateOfferTotals(pricingMode, peopleCount, variants, offerServices, dp, dv, deliveryCost);
   }, [variants, offerServices, pricingMode, peopleCount, discountType, discountPercent, discountValue, deliveryCost]);
@@ -164,7 +164,7 @@ export const StepCalculation = ({
   };
 
   const handleDiscountChange = (val: number) => {
-    if (discountType === 'percent') setDiscountPercent(val);
+    if (discountType === 'percent') setDiscountPercent(Math.min(100, Math.max(0, val)));
     else setDiscountValue(val);
   };
 

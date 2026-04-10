@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,9 +67,11 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
   const variantsList = variants ?? [];
 
   // Set active tab to first variant if not set
-  if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
-    setActiveTab(variantsList[0].id);
-  }
+  useEffect(() => {
+    if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
+      setActiveTab(variantsList[0].id);
+    }
+  }, [variantsList, activeTab]);
 
   const handleAddVariant = () => {
     if (variantsList.length >= 3) {
