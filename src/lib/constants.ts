@@ -1,5 +1,6 @@
 import type { OfferStatus, LeadStatus, EventType, DishCategory } from '@/types';
 
+export const MAX_VARIANTS = 3;
 
 
 export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
