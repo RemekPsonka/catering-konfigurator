@@ -123,6 +123,7 @@ export const ChangesPanel = ({
     return { itemId, mod, dishName };
   });
 
+  if (actionsDisabled) return null;
   if (!hasChanges && !showSuccess && !(pendingProposals && pendingProposals.length > 0)) return null;
 
   return (
