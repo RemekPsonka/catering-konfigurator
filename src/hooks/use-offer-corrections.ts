@@ -119,6 +119,7 @@ export const useAdminProposals = (offerId: string | undefined) => {
           )
         `)
         .eq('offer_id', offerId)
+        .not('status', 'eq', 'draft_client')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

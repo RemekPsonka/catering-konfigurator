@@ -99,7 +99,7 @@ export const ChangesPanel = ({
             eventType: 'proposal_submitted',
             title: `🔄 Propozycja zmian — ${offer.offer_number ?? ''}`,
             body: `${clientName} proponuje zmiany (${modifications.size} pozycji). Sprawdź i zdecyduj.`,
-            link: `/admin/offers/${offer.id}/edit`,
+            link: `/admin/offers/${offer.id}/messages`,
           });
           setTimeout(() => {
             setShowSuccess(false);
