@@ -119,7 +119,13 @@ export const useResolveProposal = () => {
       for (const item of acceptedItems) {
         if (!item.variant_item_id) continue;
 
-        const updateData: Record<string, unknown> = {};
+        const updateData: Partial<{
+          dish_id: string;
+          custom_price: number;
+          custom_name: string;
+          selected_variant_option: string;
+          quantity: number;
+        }> = {};
 
         if (item.change_type === 'SWAP' && item.proposed_dish_id) {
           updateData.dish_id = item.proposed_dish_id;
@@ -128,10 +134,10 @@ export const useResolveProposal = () => {
             updateData.custom_name = (item.proposed_dish as { display_name: string }).display_name;
           }
         } else if (item.change_type === 'VARIANT_CHANGE') {
-          updateData.selected_variant_option = item.proposed_variant_option;
+          updateData.selected_variant_option = item.proposed_variant_option ?? undefined;
           updateData.custom_price = item.proposed_price;
         } else if (item.change_type === 'QUANTITY_CHANGE') {
-          updateData.quantity = item.proposed_quantity;
+          updateData.quantity = item.proposed_quantity ?? undefined;
           updateData.custom_price = item.proposed_price;
         }
 
