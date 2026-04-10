@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -21,11 +21,12 @@ import type { Tables } from '@/integrations/supabase/types';
 interface StepServicesProps {
   offerId: string | null;
   requirements?: ClientRequirement[];
+  peopleCount?: number;
 }
 
 const SERVICE_GROUPS = ['STAFF', 'EQUIPMENT', 'LOGISTICS'] as const;
 
-export const StepServices = ({ offerId, requirements = [] }: StepServicesProps) => {
+export const StepServices = ({ offerId, requirements = [], peopleCount }: StepServicesProps) => {
   const { data: allServices, isLoading: loadingServices } = useServices();
   const { data: offerServices, isLoading: loadingOfferServices } = useOfferServices(offerId);
   const addService = useAddOfferService();
@@ -51,12 +52,24 @@ export const StepServices = ({ offerId, requirements = [] }: StepServicesProps) 
     return groups;
   }, [activeServices]);
 
+  // Auto-sync: usługi PER_PERSON mają ilość = people_count
+  useEffect(() => {
+    if (!peopleCount || peopleCount < 1) return;
+    (offerServices ?? []).forEach((os) => {
+      if (os.services.price_type === 'PER_PERSON' && (os.quantity ?? 1) !== peopleCount) {
+        handleUpdate(os.services.id, 'quantity', peopleCount);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peopleCount]);
+
   const total = useMemo(() => {
     return (offerServices ?? []).reduce((sum, os) => {
       const price = os.custom_price ?? os.services.price;
-      return sum + price * (os.quantity ?? 1);
+      const qty = os.services.price_type === 'PER_PERSON' && peopleCount ? peopleCount : (os.quantity ?? 1);
+      return sum + price * qty;
     }, 0);
-  }, [offerServices]);
+  }, [offerServices, peopleCount]);
 
   const handleToggle = (service: Tables<'services'>, checked: boolean) => {
     if (!offerId) return;
@@ -132,16 +145,31 @@ export const StepServices = ({ offerId, requirements = [] }: StepServicesProps) 
                     {isSelected && (
                       <div className="ml-7 grid grid-cols-3 gap-3">
                         <div>
-                          <Label className="text-xs">Ilość</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={os.quantity ?? 1}
-                            onChange={(e) =>
-                              handleUpdate(service.id, 'quantity', Math.max(1, parseInt(e.target.value) || 1))
-                            }
-                            className="h-8"
-                          />
+                          {service.price_type === 'PER_PERSON' ? (
+                            <>
+                              <Label className="text-xs">Ilość (= liczba osób)</Label>
+                              <Input
+                                type="number"
+                                value={peopleCount ?? os.quantity ?? 1}
+                                disabled
+                                className="h-8 bg-muted"
+                              />
+                              <span className="text-xs text-muted-foreground">Auto: {peopleCount ?? '—'} os.</span>
+                            </>
+                          ) : (
+                            <>
+                              <Label className="text-xs">Ilość</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                value={os.quantity ?? 1}
+                                onChange={(e) =>
+                                  handleUpdate(service.id, 'quantity', Math.max(1, parseInt(e.target.value) || 1))
+                                }
+                                className="h-8"
+                              />
+                            </>
+                          )}
                         </div>
                         <div>
                           <Label className="text-xs">Cena (opcjonalnie)</Label>

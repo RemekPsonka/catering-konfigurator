@@ -335,7 +335,16 @@ export const StepCalculation = ({
                             const qty = item.quantity ?? 1;
                             return (
                               <TableRow key={item.id}>
-                                <TableCell>{item.custom_name || item.dishes.display_name}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <span>{item.custom_name || item.dishes.display_name}</span>
+                                    {item.selected_variant_option && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {item.selected_variant_option}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-right">{qty}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(price)}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(price * qty)}</TableCell>
@@ -389,7 +398,14 @@ export const StepCalculation = ({
                   const qty = os.quantity ?? 1;
                   return (
                     <TableRow key={os.id}>
-                      <TableCell>{os.services.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{os.services.name}</span>
+                          {os.services.price_type === 'PER_PERSON' && (
+                            <Badge variant="outline" className="text-xs">na osobę</Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">{qty}</TableCell>
                       <TableCell className="text-right">{formatCurrency(price)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(price * qty)}</TableCell>

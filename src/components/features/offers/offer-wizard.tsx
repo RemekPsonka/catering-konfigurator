@@ -143,7 +143,7 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
           />
         );
       case 3:
-        return <StepServices offerId={state.offerId} requirements={requirements} />;
+        return <StepServices offerId={state.offerId} requirements={requirements} peopleCount={state.stepData.eventData.people_count} />;
       case 4:
         return (
           <StepSettings
