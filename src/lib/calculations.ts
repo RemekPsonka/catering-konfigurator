@@ -2,13 +2,15 @@ import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
+const roundMoney = (n: number) => Math.round(n * 100) / 100;
+
 export const calculateTotalPrice = (items: { unit_price: number; quantity: number }[]): number => {
   return items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 };
 
 export const calculatePricePerPerson = (totalPrice: number, guestCount: number): number => {
   if (guestCount <= 0) return 0;
-  return Math.round((totalPrice / guestCount) * 100) / 100;
+  return roundMoney(totalPrice / guestCount);
 };
 
 export const formatCurrency = (amount: number): string => {
@@ -73,14 +75,14 @@ export const calculateOfferTotals = (
 
     let variantDiscount = 0;
     if (discountPercent > 0) {
-      variantDiscount = Math.round((total * discountPercent) / 100 * 100) / 100;
+      variantDiscount = roundMoney(total * discountPercent / 100);
     } else if (discountValue > 0) {
       variantDiscount = discountValue;
     }
     variantDiscount = Math.min(variantDiscount, total);
 
     const variantGrandTotal = Math.max(0, total - variantDiscount) + servicesTotalCalc + deliveryCost;
-    const variantPricePerPerson = Math.round((variantGrandTotal / safePeopleCount) * 100) / 100;
+    const variantPricePerPerson = roundMoney(variantGrandTotal / safePeopleCount);
 
     return {
       id: v.id,
@@ -99,7 +101,7 @@ export const calculateOfferTotals = (
 
   let discountAmount = 0;
   if (discountPercent > 0) {
-    discountAmount = Math.round((maxDishesTotal * discountPercent) / 100 * 100) / 100;
+    discountAmount = roundMoney(maxDishesTotal * discountPercent / 100);
   } else if (discountValue > 0) {
     discountAmount = discountValue;
   }
@@ -107,7 +109,7 @@ export const calculateOfferTotals = (
 
   const dishesAfterDiscount = Math.max(0, maxDishesTotal - discountAmount);
   const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost;
-  const pricePerPerson = Math.round((grandTotal / safePeopleCount) * 100) / 100;
+  const pricePerPerson = roundMoney(grandTotal / safePeopleCount);
 
   return {
     variantTotals,
