@@ -130,8 +130,8 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
 
   const offer = offerQuery.data;
   const theme = offer?.offer_themes;
-  const variants = variantsQuery.data ?? [];
-  const services = servicesQuery.data ?? [];
+  const variants = (variantsQuery.data ?? []) as VariantJoined[];
+  const services = (servicesQuery.data ?? []) as OfferServiceJoined[];
   const terms = termsQuery.data ?? [];
   const displayMode = offer?.price_display_mode ?? 'PER_PERSON_AND_TOTAL';
 
