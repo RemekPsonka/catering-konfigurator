@@ -42,7 +42,7 @@ export interface OfferTotals {
 export const calculateVariantDishesTotal = (variant: VariantWithItems): number => {
   return variant.variant_items.reduce((sum, item) => {
     const price = getItemPrice(item);
-    const qty = item.quantity ?? 1;
+    const qty = Math.max(0, Number(item.quantity) || 1);
     return sum + price * qty;
   }, 0);
 };
@@ -61,7 +61,7 @@ export const calculateOfferTotals = (
       const fallback = os.custom_price != null ? Number(os.custom_price) : 0;
       return sum + fallback * (os.quantity ?? 1);
     }
-    const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
+    const price = os.custom_price != null ? Number(os.custom_price) : (os.services?.price ?? 0);
     return sum + price * (os.quantity ?? 1);
   }, 0);
 
@@ -75,8 +75,9 @@ export const calculateOfferTotals = (
     } else if (discountValue > 0) {
       variantDiscount = discountValue;
     }
+    variantDiscount = Math.min(variantDiscount, total);
 
-    const variantGrandTotal = (total - variantDiscount) + servicesTotalCalc + deliveryCost;
+    const variantGrandTotal = Math.max(0, total - variantDiscount) + servicesTotalCalc + deliveryCost;
     const variantPricePerPerson = peopleCount > 0 ? Math.round((variantGrandTotal / peopleCount) * 100) / 100 : 0;
 
     return {
@@ -100,8 +101,9 @@ export const calculateOfferTotals = (
   } else if (discountValue > 0) {
     discountAmount = discountValue;
   }
+  discountAmount = Math.min(discountAmount, maxDishesTotal);
 
-  const dishesAfterDiscount = maxDishesTotal - discountAmount;
+  const dishesAfterDiscount = Math.max(0, maxDishesTotal - discountAmount);
   const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost;
   const pricePerPerson = peopleCount > 0 ? Math.round((grandTotal / peopleCount) * 100) / 100 : 0;
 

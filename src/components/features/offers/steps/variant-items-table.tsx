@@ -57,7 +57,7 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications }: 
   const subtotal = price * quantity;
 
   const modType = (() => {
-    const mods = (item.allowed_modifications ?? item.dishes.modifiable_items) as Record<string, unknown> | null;
+    const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as Record<string, unknown> | null;
     return mods?.type as string | undefined;
   })();
 
