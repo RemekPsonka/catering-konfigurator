@@ -577,7 +577,7 @@ const ProposalBubble = ({ item, offerId, offer, onEmailModal }: ProposalBubblePr
                 <span className="font-medium truncate">{proposedLabel}</span>
                 {pDiff !== 0 && (
                   <span className={`text-xs shrink-0 ${pDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {pDiff > 0 ? '+' : ''}{formatPLN(pDiff)}
+                    {pDiff > 0 ? '+' : ''}{formatCurrency(pDiff)}
                   </span>
                 )}
                 {isPending && currentStatus === 'pending' ? (
@@ -616,7 +616,7 @@ const ProposalBubble = ({ item, offerId, offer, onEmailModal }: ProposalBubblePr
           <div className="flex items-center justify-between text-sm px-2">
             <span className="text-muted-foreground">Wpływ cenowy:</span>
             <span className={`font-semibold ${priceDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {priceDiff > 0 ? '+' : ''}{formatPLN(priceDiff)}
+              {priceDiff > 0 ? '+' : ''}{formatCurrency(priceDiff)}
             </span>
           </div>
         )}
