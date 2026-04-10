@@ -93,6 +93,11 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications }: 
       <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{item.custom_name ?? item.dishes.display_name}</span>
+          {item.selected_variant_option && (
+            <span className="text-xs text-muted-foreground">
+              — {item.selected_variant_option}
+            </span>
+          )}
           {modType && item.is_client_editable && (
             <Badge variant="outline" className="text-xs">
               🔄 {modType === 'swap' ? 'SWAP' : modType === 'variant' ? 'VARIANT' : 'SPLIT'}
