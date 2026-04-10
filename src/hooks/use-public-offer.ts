@@ -136,7 +136,7 @@ export const useSubmitProposal = () => {
         } else if (mod.type === 'variant') {
           changeType = 'VARIANT_CHANGE';
           proposedPrice = Number(originalPrice) + (mod.variantPriceModifier ?? 0);
-          proposedVariantOption = mod.variantOptionIndex?.toString() ?? null;
+          proposedVariantOption = mod.variantOptionLabel ?? mod.variantOptionIndex?.toString() ?? null;
         } else if (mod.type === 'split') {
           changeType = 'SPLIT';
         }

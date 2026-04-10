@@ -11,6 +11,7 @@ export interface DishModification {
   swapDishPhoto?: string;
   swapPriceDiff?: number;
   variantOptionIndex?: number;
+  variantOptionLabel?: string;
   variantPriceModifier?: number;
   splitPercent?: number;
   splitDishId?: string;
@@ -217,6 +218,7 @@ const VariantPanel = ({
                   onChange({
                     type: 'variant',
                     variantOptionIndex: idx,
+                    variantOptionLabel: opt.label,
                     variantPriceModifier: opt.price_modifier,
                   });
                 }
