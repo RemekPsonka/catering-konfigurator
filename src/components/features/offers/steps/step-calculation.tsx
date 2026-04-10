@@ -144,6 +144,15 @@ export const StepCalculation = ({
     if (!offerId) return;
     const dp = discountType === 'percent' ? discountPercent : 0;
     const dv = discountType === 'value' ? discountValue : 0;
+
+    if (dv > 0) {
+      const maxTotal = Math.max(...totals.variantTotals.map(v => v.total), 0);
+      if (dv > maxTotal) {
+        toast.error(`Rabat (${dv} zł) nie może przekroczyć wartości dań (${maxTotal.toFixed(2)} zł)`);
+        return;
+      }
+    }
+
     saveMutation.mutate({
       discount_percent: dp,
       discount_value: dv,
@@ -452,6 +461,7 @@ export const StepCalculation = ({
                   value={discountValue || ''}
                   onChange={(e) => handleDiscountChange(Number(e.target.value))}
                   placeholder="0,00"
+                  className={discountValue > 0 && totals.maxDishesTotal > 0 && discountValue > totals.maxDishesTotal ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
               </div>
               <span className="text-sm text-muted-foreground">zł</span>

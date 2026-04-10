@@ -32,7 +32,7 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   } = offer;
 
   const [localPeopleCount, setLocalPeopleCount] = useState(people_count ?? 1);
-  const prevValidCount = useRef(people_count);
+  const prevValidCount = useRef(people_count ?? 1);
   const debouncedCount = useDebounce(localPeopleCount, 300);
 
   const variants = (offer_variants ?? []) as unknown as VariantWithItems[];
@@ -69,13 +69,19 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   useEffect(() => {
     if (!min_offer_price || min_offer_price <= 0) return;
     if (debouncedCount === prevValidCount.current) return;
-    if (totals.grandTotal < min_offer_price) {
+
+    const checkTotals = calculateOfferTotals(
+      pricing_mode, debouncedCount, adjustedVariants, services,
+      discount_percent ?? 0, discount_value ?? 0, delivery_cost ?? 0,
+    );
+
+    if (checkTotals.grandTotal < min_offer_price) {
       toast.error('Ta zmiana nie jest możliwa. Skontaktuj się z nami, aby omówić alternatywy.', { className: 'shake-toast' });
-      setLocalPeopleCount(prevValidCount.current);
+      setLocalPeopleCount(prevValidCount.current ?? people_count ?? 1);
     } else {
       prevValidCount.current = debouncedCount;
     }
-  }, [debouncedCount, totals.grandTotal, min_offer_price]);
+  }, [debouncedCount, pricing_mode, adjustedVariants, services, discount_percent, discount_value, delivery_cost, min_offer_price]);
 
   const handleIncrement = useCallback(() => setLocalPeopleCount((c) => c + 1), []);
   const handleDecrement = useCallback(() => setLocalPeopleCount((c) => Math.max(1, c - 1)), []);
