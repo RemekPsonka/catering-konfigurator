@@ -136,7 +136,7 @@ export const useSaveAsTemplate = () => {
           description: description || null,
           event_type: offer.event_type,
           pricing_mode: offer.pricing_mode,
-          template_data: templateData as Json,
+          template_data: JSON.parse(JSON.stringify(templateData)) as Json,
           created_by: user.id,
         })
         .select()
@@ -167,7 +167,7 @@ export const useCreateFromTemplate = () => {
         .single();
       if (tplErr) throw tplErr;
 
-      const td = template.template_data as TemplateData;
+      const td = template.template_data as unknown as TemplateData;
 
       // We need a client_id — create a placeholder by picking first client
       // Actually, template creates offer without client — user must fill in step 1
