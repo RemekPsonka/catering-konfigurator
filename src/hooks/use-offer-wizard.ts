@@ -201,7 +201,11 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
         })
         .select()
         .single();
-      if (nvErr || !newVar) continue;
+      if (nvErr || !newVar) {
+        console.error('Nie udało się skopiować wariantu z szablonu:', v.name, nvErr?.message);
+        failedVariants.push(v.name);
+        continue;
+      }
 
       if (v.items.length > 0) {
         await supabase.from('variant_items').insert(

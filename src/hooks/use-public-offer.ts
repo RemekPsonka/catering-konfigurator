@@ -144,7 +144,7 @@ export const useSubmitProposal = () => {
         return {
           proposal_id: proposal.id,
           variant_item_id: itemId,
-          original_dish_id: variantItem?.dishes?.id ?? itemId,
+          original_dish_id: variantItem?.dishes?.id ?? null,
           proposed_dish_id: proposedDishId,
           change_type: changeType,
           original_price: Number(originalPrice),

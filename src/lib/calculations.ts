@@ -56,6 +56,8 @@ export const calculateOfferTotals = (
   discountValue: number,
   deliveryCost: number,
 ): OfferTotals => {
+  const safePeopleCount = Math.max(1, Math.round(peopleCount));
+
   const servicesTotalCalc = services.reduce((sum, os) => {
     if (!os.services) {
       const fallback = os.custom_price != null ? Number(os.custom_price) : 0;
@@ -67,7 +69,7 @@ export const calculateOfferTotals = (
 
   const variantTotals: VariantTotal[] = variants.map((v) => {
     const perPerson = calculateVariantDishesTotal(v);
-    const total = pricingMode === 'PER_PERSON' ? perPerson * peopleCount : perPerson;
+    const total = pricingMode === 'PER_PERSON' ? perPerson * safePeopleCount : perPerson;
 
     let variantDiscount = 0;
     if (discountPercent > 0) {
@@ -78,7 +80,7 @@ export const calculateOfferTotals = (
     variantDiscount = Math.min(variantDiscount, total);
 
     const variantGrandTotal = Math.max(0, total - variantDiscount) + servicesTotalCalc + deliveryCost;
-    const variantPricePerPerson = peopleCount > 0 ? Math.round((variantGrandTotal / peopleCount) * 100) / 100 : 0;
+    const variantPricePerPerson = Math.round((variantGrandTotal / safePeopleCount) * 100) / 100;
 
     return {
       id: v.id,
@@ -105,7 +107,7 @@ export const calculateOfferTotals = (
 
   const dishesAfterDiscount = Math.max(0, maxDishesTotal - discountAmount);
   const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost;
-  const pricePerPerson = peopleCount > 0 ? Math.round((grandTotal / peopleCount) * 100) / 100 : 0;
+  const pricePerPerson = Math.round((grandTotal / safePeopleCount) * 100) / 100;
 
   return {
     variantTotals,
