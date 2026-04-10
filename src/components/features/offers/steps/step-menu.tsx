@@ -53,6 +53,15 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
   const [nameValue, setNameValue] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  const variantsList = variants ?? [];
+
+  // Set active tab to first variant if not set
+  useEffect(() => {
+    if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
+      setActiveTab(variantsList[0].id);
+    }
+  }, [variantsList, activeTab]);
+
   if (!offerId) {
     return (
       <Card>
@@ -64,15 +73,6 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
   }
 
   if (isLoading) return <LoadingSpinner />;
-
-  const variantsList = variants ?? [];
-
-  // Set active tab to first variant if not set
-  useEffect(() => {
-    if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
-      setActiveTab(variantsList[0].id);
-    }
-  }, [variantsList, activeTab]);
 
   const handleAddVariant = () => {
     if (variantsList.length >= MAX_VARIANTS) {
