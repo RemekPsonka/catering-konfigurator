@@ -1,79 +1,47 @@
 
 
-# Unified Chat View for Offer Communication
+# Inline akceptacja propozycji zmian w widoku komunikacji
 
 ## Problem
-Currently, offer communication is scattered across three separate views:
-- `/admin/offers/:id/messages` — questions and corrections (flat list of cards)
-- `/admin/offers/:id/proposals/:proposalId` — proposal diff (separate page per proposal)
-- `/admin/notifications` — all notifications mixed together across all offers
+1. Powiadomienie o propozycji zmian kieruje do `/admin/offers/:id/edit` — manager widzi konfigurator, nie widzi co się zmieniło
+2. Na stronie komunikacji propozycja pokazuje listę zmian, ale akceptacja wymaga przejścia na osobną stronę diff
+3. Manager chce: zobaczyć co klient zmienił → kliknąć akceptuj/odrzuć → gotowe
 
-When a manager clicks a notification, they land on the messages page but lose context of proposals. Proposals live on yet another page. It's fragmented.
+## Rozwiązanie
 
-## Solution
-Rebuild `offer-messages.tsx` into a single **chat-like timeline** that shows ALL communication for one offer: questions, corrections, AND proposals — chronologically, with inline statuses and inline actions.
-
-## Design
-
-```text
-┌─────────────────────────────────────────────┐
-│  ← Wróć   💬 Komunikacja — CS-2026-0001    │
-│            Małgorzata Nogieć · 150 os.      │
-├─────────────────────────────────────────────┤
-│                                             │
-│  ┌─ 📝 Korekta ──────────── 10.04, 09:15 ─┐│
-│  │ Małgorzata: "chce dodatkowo pizzę."     ││
-│  │                                          ││
-│  │  [Textarea: Twoja odpowiedź...]         ││
-│  │  [Odpowiedz]                            ││
-│  └──────────────────────────────────────────┘│
-│                                             │
-│  ┌─ 🔄 Propozycja zmian ──── 10.04, 08:30 ─┐
-│  │ "Proszę o zamianę rosołu na pomidorową" ││
-│  │                                          ││
-│  │  Rosół → Pomidorowa    ⏳ Oczekuje      ││
-│  │                                          ││
-│  │  [Przejdź do diff]  lub  inline accept  ││
-│  └──────────────────────────────────────────┘│
-│                                             │
-│  ┌─ 💬 Pytanie ──────────── 09.04, 14:00 ─┐│
-│  │ "Czy jest opcja wegańska?"              ││
-│  │                                          ││
-│  │  ✅ Odpowiedź (09.04, 15:30):           ││
-│  │  "Tak, możemy przygotować..."           ││
-│  └──────────────────────────────────────────┘│
-│                                             │
-└─────────────────────────────────────────────┘
+### 1. Naprawić link w powiadomieniu (`src/components/public/changes-panel.tsx`)
+Zmienić `link` w `fireNotification` z:
+```
+/admin/offers/${offer.id}/edit
+```
+na:
+```
+/admin/offers/${offer.id}/messages
 ```
 
-## Files to Change
+### 2. Dodać inline akceptację w `ProposalBubble` (`src/pages/admin/offer-messages.tsx`)
+- Przy każdej pozycji propozycji (SWAP, VARIANT, SPLIT, QUANTITY) dodać przyciski ✅ / ❌ (jak na stronie diff)
+- Użyć istniejących hooków `useUpdateProposalItem` i `useResolveProposal` z `use-proposal-diff.ts`
+- Po zaakceptowaniu/odrzuceniu wszystkich pozycji → pojawia się przycisk "Zatwierdź decyzje" z opcjonalną notatką
+- Po zatwierdzeniu → automatyczne rozpatrzenie propozycji (accepted / partially_accepted / rejected)
+- Dodać flash animację (zielony/czerwony) przy kliknięciu, jak na stronie diff
+- Pokazać wpływ cenowy per pozycja (oryginalna cena → proponowana)
 
-### 1. `src/pages/admin/offer-messages.tsx` — full rewrite
-- Fetch both `useAdminCorrections(id)` AND admin proposals (new query for `change_proposals` by offer_id)
-- Merge into single timeline sorted by `created_at` descending
-- Each item rendered as a chat bubble with:
-  - Type badge (Pytanie / Korekta / Propozycja zmian)
-  - Client message
-  - Status badge
-  - For questions/corrections: inline response textarea (if unresolved) or displayed response
-  - For proposals: summary of items (original → proposed), status per item, link to full diff page
-- Keep email modal for responses
-- Add offer context header (client name, offer number, event type)
+### 3. Wzbogacić dane w `useAdminProposals` (`src/hooks/use-offer-corrections.ts`)
+- Dodać pola `original_price`, `proposed_price`, `original_quantity`, `proposed_quantity` do query, żeby wyświetlać wpływ cenowy inline
 
-### 2. `src/hooks/use-offer-corrections.ts` — add admin proposals query
-- Add `useAdminProposals(offerId)` hook that fetches `change_proposals` with `proposal_items` for the offer
-- Reuse existing query pattern from `usePublicResolvedProposals` but include ALL statuses (pending, accepted, rejected, partially_accepted)
+### 4. Invalidacja query
+- Po aktualizacji proposal item → invalidować `['admin-proposals']` oprócz `['proposal-detail']`
+- Dodać w `useUpdateProposalItem` i `useResolveProposal`
 
-### 3. `src/pages/admin/notifications-list.tsx` — no structural changes
-- Notification links already point to `/admin/offers/:id/messages` — they will now land on the unified view
+## Efekt końcowy
+Manager klika powiadomienie → trafia do widoku komunikacji → widzi co klient chce zmienić z cenami → klika akceptuj/odrzuć per pozycja → zatwierdza → koniec. Bez przechodzenia na osobną stronę.
 
-### No routing changes needed
-- Route `/admin/offers/:id/messages` stays the same
-- Route `/admin/offers/:id/proposals/:proposalId` stays for detailed diff view (linked from the timeline)
+Strona diff (`/proposals/:proposalId`) zostaje jako backup dla skomplikowanych przypadków.
 
-## What stays the same
-- Public client-side `CommunicationSection` — unchanged
-- `ProposalDiffPage` — still accessible for detailed per-item accept/reject
-- All hooks and mutations — reused as-is
-- Email modal flow — unchanged
+## Pliki do zmiany
+- `src/components/public/changes-panel.tsx` — fix notification link
+- `src/pages/admin/offer-messages.tsx` — inline accept/reject w ProposalBubble
+- `src/hooks/use-offer-corrections.ts` — rozszerzyć query o ceny
+- `src/hooks/use-proposal-diff.ts` — dodać invalidację `admin-proposals`
 
