@@ -41,6 +41,14 @@ export interface TemplateData {
   pricing_mode: string;
 }
 
+function isTemplateData(data: unknown): data is TemplateData {
+  return data !== null && typeof data === 'object' && 'variants' in data && 'services' in data && 'settings' in data;
+}
+
+function toJson(data: TemplateData): Json {
+  return JSON.parse(JSON.stringify(data)) as Json;
+}
+
 export const useOfferTemplates = (filterEventType?: string) => {
   return useQuery({
     queryKey: ['offer-templates', filterEventType],
