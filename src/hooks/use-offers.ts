@@ -47,26 +47,26 @@ export const useOffers = (filters: OfferFilters) => {
 
       // If searching and no results by offer_number, also try client name filter in JS
       if (filters.search && results.length === 0) {
-        const fallbackQuery = supabase
+        let fallbackQuery = supabase
           .from('offers')
-          .select('*, clients(name)', { count: 'exact' })
+          .select('*, clients(name)')
           .order('created_at', { ascending: false });
 
         if (filters.status && filters.status !== 'all') {
-          fallbackQuery.eq('status', filters.status as Tables<'offers'>['status']);
+          fallbackQuery = fallbackQuery.eq('status', filters.status as Tables<'offers'>['status']);
         }
         if (filters.eventType && filters.eventType !== 'all') {
-          fallbackQuery.eq('event_type', filters.eventType as Tables<'offers'>['event_type']);
+          fallbackQuery = fallbackQuery.eq('event_type', filters.eventType as Tables<'offers'>['event_type']);
         }
 
         const { data: allData, error: fallbackError } = await fallbackQuery;
         if (fallbackError) throw fallbackError;
 
         const searchLower = filters.search.toLowerCase();
-        results = (allData as OfferWithClient[]).filter(
+        const filtered = (allData as OfferWithClient[]).filter(
           (o) => o.clients?.name?.toLowerCase().includes(searchLower)
         );
-        return { offers: results.slice(from, to + 1), total: results.length };
+        return { offers: filtered.slice(from, to + 1), total: filtered.length };
       }
 
       return { offers: results, total: count ?? 0 };
