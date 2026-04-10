@@ -208,7 +208,7 @@ export const OffersListPage = () => {
                             <ExternalLink className="mr-2 h-4 w-4" />Podgląd klienta
                           </DropdownMenuItem>
                         )}
-                        {offer.public_token && ['sent', 'viewed', 'revision', 'accepted'].includes(offer.status) && (
+                        {offer.public_token && (
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();

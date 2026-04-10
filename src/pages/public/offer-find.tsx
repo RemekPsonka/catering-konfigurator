@@ -79,12 +79,7 @@ export const OfferFindPage = () => {
         return;
       }
 
-      if (result.status === 'lost') {
-        setErrorMessage('Ta oferta wygasła. Skontaktuj się z nami w celu przygotowania nowej.');
-        return;
-      }
-
-      if (ACCESSIBLE_STATUSES.includes(result.status) && result.public_token) {
+      if (result.public_token) {
         toast.success(`Witaj! Oto Twoja oferta.`);
         navigate(`/offer/${result.public_token}`);
         return;
