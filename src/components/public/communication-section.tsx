@@ -103,6 +103,7 @@ export const CommunicationSection = ({ offerId, offerNumber, clientName, actions
         </h2>
 
         {/* ── Form tabs ── */}
+        {!actionsDisabled && (
         <Tabs defaultValue="question" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="question" className="gap-2">
