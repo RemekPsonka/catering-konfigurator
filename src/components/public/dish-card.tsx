@@ -100,7 +100,7 @@ export const DishCard = ({
       <div>
         <motion.div
           whileHover={{ y: -2, boxShadow: '0 30px 80px rgba(0,0,0,0.12)' }}
-          className="rounded-2xl p-4 shadow-premium transition-shadow"
+          className="rounded-xl p-2.5 shadow-premium transition-shadow"
           style={{
             backgroundColor: isModified
               ? 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, #FFFFF0)'
@@ -109,7 +109,7 @@ export const DishCard = ({
         >
           {/* Masonry gallery above content when multiple photos */}
           {hasMultiplePhotos && (
-            <div className="mb-3 max-h-[200px] overflow-hidden rounded-xl cursor-pointer">
+            <div className="mb-2 max-h-[140px] overflow-hidden rounded-xl cursor-pointer">
               <MasonryPhotoAlbum
                 photos={masonryPhotos}
                 columns={(containerWidth) => (containerWidth < 300 ? 2 : 3)}
@@ -119,11 +119,11 @@ export const DishCard = ({
             </div>
           )}
 
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3">
             {/* Single photo thumbnail (only when 0-1 photos) */}
             {!hasMultiplePhotos && (
               <div
-                className="relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-xl md:h-[120px] md:w-[120px]"
+                className="relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-lg md:h-[72px] md:w-[72px]"
                 onClick={() => allPhotos.length > 0 && handlePhotoClick(0)}
               >
                 <AnimatePresence mode="wait">
@@ -262,7 +262,7 @@ export const DishCard = ({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="overflow-hidden rounded-b-2xl px-4"
+              className="overflow-hidden rounded-b-xl px-4"
               style={{ backgroundColor: 'color-mix(in srgb, var(--theme-secondary, #e8e4dd) 40%, var(--theme-bg, #FAF7F2))' }}
             >
               <DishEditPanel
