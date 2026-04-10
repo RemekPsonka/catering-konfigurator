@@ -74,6 +74,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
 
   return (
     <motion.section
+      id="menu-section"
       variants={staggerContainer}
       initial="hidden"
       whileInView="visible"
