@@ -1,30 +1,44 @@
 
 
-# Usunięcie podwójnego wyboru wariantu
+# Naprawa dwóch bugów na stronie publicznej
 
-## Co się zmieni
+## BUG 1: Kolumna "Łącznie" = 0,00 zł
 
-1. **`src/pages/public/offer.tsx`** — usuń `VariantComparisonSection` (linie 571-580) i jego import
-2. **`src/components/public/menu-variants-section.tsx`** — wzbogać `VariantCard` o liczbę pozycji, liczbę do personalizacji i dynamiczną cenę/os.
+### Analiza
+W `calculation-section.tsx` linia 328 tabelka używa `<AnimatedPrice value={vt.grandTotal}>`. Komponent `AnimatedPrice` inicjalizuje `displayed = 0` i animuje count-up dopiero po `useInView`. Problem: jeśli animacja nie wystartuje poprawnie (race condition z `isInView`, `hasAnimated`, `key={value}`), wyświetla `formatCurrency(0)` = "0,00 zł".
 
-## Szczegóły techniczne
+Kolumna "Cena/os." (linia 326) używa zwykłego `formatCurrency(vt.pricePerPerson)` — dlatego działa poprawnie.
 
-### `offer.tsx`
-- Usuń import `VariantComparisonSection`
-- Usuń blok linii 571-580 (sekcja "Twoje warianty menu")
+### Naprawa w `src/components/public/calculation-section.tsx`
+- Linia 34: dodać fallback `useState(people_count ?? 1)` — zabezpieczenie przed null
+- Linia 328: zamienić `<AnimatedPrice value={vt.grandTotal}>` na zwykłe `<span>{formatCurrency(vt.grandTotal)}</span>` — identycznie jak kolumna "Cena/os.", bez animacji count-up, zawsze poprawna wartość
+- Opcjonalnie zachować AnimatedPrice w sekcji grand total na dole (linia 304) — tam jest tylko 1 wariant i działa
 
-### `menu-variants-section.tsx` — VariantCard (linie 216-270)
-Obecna karta pokazuje: nazwę, badge "Polecany", opis, "do personalizacji", cenę z DB.
+## BUG 2: Galeria zdjęć obcięta
 
-Nowa karta — kompaktowa, jednowierszowa informacja:
-- **Nazwa** · **badge Polecany** (jeśli is_recommended)
-- Wiersz info: `{itemCount} pozycji` · `{editableCount} do personalizacji` · `{cena}/os.`
-- Usuń opis (variant.description) — niepotrzebny przy tabach
-- Cenę obliczać dynamicznie przez `calculateVariantDishesTotal` (import z calculations.ts) zamiast czytać `price_per_person` z DB (które może być 0)
-- Zmniejszyć padding: `p-4` → `p-3`
+### Analiza
+W `dish-card.tsx` linia 112: kontener `max-h-[220px] overflow-hidden` + MasonryPhotoAlbum renderuje 421px → dolna połowa obcięta.
 
-Format w tabie: `Classic · 3 pozycji · 2 do personalizacji · 147,00 zł/os.`
+### Naprawa w `src/components/public/dish-card.tsx`
+- Usunąć import `MasonryPhotoAlbum` i `react-photo-album/masonry.css`
+- Zamienić blok masonry (linie 111-128) na prostą karuzelę:
+  ```
+  <div className="mb-2 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-2 px-2">
+    {allPhotos.map((photo, i) => (
+      <img
+        key={i}
+        src={photo.src}
+        onClick={() => handlePhotoClick(i)}
+        className="h-[180px] w-auto rounded-lg snap-center shrink-0 cursor-pointer"
+        loading="lazy"
+      />
+    ))}
+  </div>
+  ```
+- Usunąć `masonryPhotos` (linie 85-89) — niepotrzebne
+- Zachować lightbox (kliknięcie → `handlePhotoClick`)
 
-### Pliki bez zmian
-- `variant-comparison-section.tsx` — zostaje w repo, ale nie jest już importowany (dead code do późniejszego usunięcia)
+## Pliki do zmiany
+1. `src/components/public/calculation-section.tsx` — 2 zmiany (fallback + usunięcie AnimatedPrice z tabelki)
+2. `src/components/public/dish-card.tsx` — zamiana masonry na karuzelę
 
