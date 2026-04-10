@@ -1,46 +1,31 @@
 
 
-# Pobierz ofertę PDF — window.print() z @media print
+# Refaktor EmailTemplateModal — ujednolicenie props i dodanie mailto limit
 
-## Podejście
-Użycie `window.print()` z dedykowanym CSS `@media print`. Przycisk w hero i w sekcji kontakt. Dodatkowy header/footer widoczny tylko w druku.
+## Obecny stan
+Komponent istnieje i działa. Wymaga drobnych zmian w interfejsie props i dodania obsługi limitu mailto.
 
-## Pliki do zmiany
+## Zmiany w `src/components/common/email-template-modal.tsx`
 
-### 1. `src/index.css` — dodać blok `@media print`
-Reguły ukrywające elementy interaktywne, resetujące animacje, wymuszające A4 layout, otwierające accordion warunków, formatujące hero i galerię.
-
-### 2. `src/pages/public/offer.tsx` — 3 zmiany:
-- **Import** `FileDown` z lucide-react
-- **Przycisk w hero** (po offer_number, linia ~454): `<button className="no-print ..." onClick={handlePrint}>Pobierz ofertę PDF</button>`
-- **Print header** (przed hero, widoczny tylko @media print): div z logo, offer_number, client name, dates
-- **Print footer** (po footer, widoczny tylko @media print): dane kontaktowe + data generowania
-- **Funkcja `handlePrint`**: zmienia `document.title` na `Oferta_[numer]_Catering_Slaski`, wywołuje `window.print()`, przywraca tytuł
-- Dodać klasy `no-print` na: `OnboardingOverlay`, `EditableTooltip`, `ChangesPanel`, `AcceptanceSection`, `CommunicationSection`, przycisk hero
-
-### 3. `src/components/public/contact-section.tsx` — dodać przycisk "Pobierz ofertę PDF"
-Dodać opcjonalny prop `onPrint?: () => void`. Jeśli podany, renderować przycisk przed kartami kontaktowymi.
-
-## Kluczowe reguły @media print
-```css
-@media print {
-  .no-print, [data-no-print] { display: none !important; }
-  .print-only { display: block !important; }
-  * { animation: none !important; transition: none !important; 
-      opacity: 1 !important; transform: none !important; }
-  body { font-size: 11pt; color: #1A1A1A; background: white; }
-  section { page-break-inside: avoid; }
-  /* Hero: static, smaller */
-  /* Terms: all expanded */
-  /* Gallery: 3-col grid, smaller images */
+### Props — nowy interfejs
+```typescript
+interface EmailTemplateModalProps {
+  open: boolean;           // było: open
+  onClose: () => void;     // bez zmian
+  recipientEmail: string;  // było: clientEmail
+  subject: string;         // bez zmian
+  body: string;            // bez zmian
+  title?: string;          // NOWE (domyślnie "📧 Email do klienta")
 }
 ```
+Usunięte: `clientName`, `offerNumber` (nieużywane wewnętrznie).
 
-## Print-only header (ukryty na ekranie, widoczny w druku)
-```
-Catering Śląski — Oferta cateringowa
-[offer_number] | Dla: [client_name] | Data: [created_at] | Ważna do: [valid_until]
-```
+### Logika
+- Temat: readonly (nie edytowalny) — usunąć `onChange`, dodać `readOnly className="bg-muted"`
+- Treść: edytowalna (bez zmian)
+- Mailto limit: jeśli `encodeURIComponent(body).length > 1800` → wyłączyć przycisk mailto + info tekst "Treść zbyt długa dla mailto — użyj przycisku Kopiuj"
+- State `body` inicjalizowany z props — dodać `useEffect` sync gdy props się zmienią (re-open z inną treścią)
 
-## Brak zmian w bazie danych
+### Caller update
+- `src/pages/admin/offer-messages.tsx` — zmienić `clientEmail` → `recipientEmail`, usunąć `clientName`/`offerNumber`
 
