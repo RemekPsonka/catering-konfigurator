@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { DEV_MODE } from '@/lib/constants';
 import { Plus, MoreHorizontal, KeyRound, Lock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -51,15 +50,10 @@ const changePasswordSchema = z.object({
 type CreateAccountValues = z.infer<typeof createAccountSchema>;
 type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 
-const DEV_MOCK_USERS: UserAccount[] = [
-  { id: 'dev-user-id', email: 'dev@test.pl', role: 'admin', last_sign_in_at: null, created_at: new Date().toISOString() },
-];
-
 const useUsers = () => {
   return useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      if (DEV_MODE) return DEV_MOCK_USERS;
       const { data, error } = await supabase.functions.invoke('list-users', { method: 'GET' });
       if (error) throw error;
       return data as UserAccount[];
@@ -88,10 +82,6 @@ export const AccountsPage = () => {
 
   const createUser = useMutation({
     mutationFn: async (values: CreateAccountValues) => {
-      if (DEV_MODE) {
-        toast.info('Tworzenie kont wyłączone w trybie deweloperskim');
-        return { id: 'dev-new', email: values.email };
-      }
       const { data, error } = await supabase.functions.invoke('list-users', {
         method: 'POST',
         body: values,
