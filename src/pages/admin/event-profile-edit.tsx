@@ -278,7 +278,7 @@ export const EventProfileEditPage = () => {
       setDescLong(profile.description_long ?? '');
       setCtaText(profile.cta_text ?? '');
       setIsActive(profile.is_active ?? true);
-      setFeatures(Array.isArray(profile.features) ? (profile.features as unknown as Feature[]) : []);
+      setFeatures(Array.isArray(profile.features) ? (profile.features as Feature[]) : []);
       setTestimonialText(profile.testimonial_text ?? '');
       setTestimonialAuthor(profile.testimonial_author ?? '');
       setTestimonialEvent(profile.testimonial_event ?? '');
@@ -313,7 +313,7 @@ export const EventProfileEditPage = () => {
         description_long: descLong || null,
         cta_text: ctaText || null,
         is_active: isActive,
-        features: features as unknown as Tables<'event_type_profiles'>['features'],
+        features: features as Tables<'event_type_profiles'>['features'],
         testimonial_text: testimonialText || null,
         testimonial_author: testimonialAuthor || null,
         testimonial_event: testimonialEvent || null,

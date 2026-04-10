@@ -38,6 +38,16 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 
+type OfferServiceJoined = Tables<'offer_services'> & {
+  services: Tables<'services'>;
+};
+
+type VariantJoined = Tables<'offer_variants'> & {
+  variant_items: (Tables<'variant_items'> & {
+    dishes: { display_name: string; price_per_person: number | null; price_per_piece: number | null; price_per_kg: number | null; price_per_set: number | null; unit_type: string; is_modifiable: boolean | null };
+  })[];
+};
+
 export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep, isLocked = false }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -57,7 +67,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
         .eq('id', offerId)
         .single();
       if (error) throw error;
-      return data as unknown as FullOffer;
+      return data as FullOffer;
     },
     enabled: !!offerId,
   });

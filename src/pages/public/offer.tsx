@@ -123,8 +123,8 @@ export const PublicOfferPage = () => {
 
   const { originalTotal, proposedTotal } = useMemo(() => {
     if (!offer) return { originalTotal: 0, proposedTotal: 0 };
-    const variants = offer.offer_variants as unknown as VariantWithItems[];
-    const services = offer.offer_services as unknown as OfferServiceWithService[];
+    const variants = offer.offer_variants as VariantWithItems[];
+    const services = offer.offer_services as OfferServiceWithService[];
     const pc = offer.people_count ?? 1;
     const origTotals = calculateOfferTotals(
       offer.pricing_mode, pc, variants, services,
@@ -143,7 +143,7 @@ export const PublicOfferPage = () => {
         const basePrice = item.custom_price != null ? Number(item.custom_price) : getItemPrice(item as never);
         return { ...item, custom_price: basePrice + priceAdj };
       }),
-    })) as unknown as VariantWithItems[];
+    })) as VariantWithItems[];
 
     const propTotals = calculateOfferTotals(
       offer.pricing_mode, pc, adjustedVariants, services,

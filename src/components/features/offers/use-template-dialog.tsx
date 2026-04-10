@@ -27,7 +27,7 @@ export const UseTemplateDialog = ({ open, onOpenChange, onSelect }: UseTemplateD
   const activeTemplates = (templates ?? []).filter((t) => t.is_active);
 
   const handleSelect = (template: typeof activeTemplates[0]) => {
-    const td = template.template_data as unknown as TemplateData;
+    const td = template.template_data as TemplateData;
     onSelect?.(td, template.event_type, template.pricing_mode);
     onOpenChange(false);
   };
