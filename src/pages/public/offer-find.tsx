@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Search, AlertCircle } from 'lucide-react';
 
-const ACCESSIBLE_STATUSES = ['ready', 'sent', 'viewed', 'revision', 'accepted', 'won'];
-const PREPARING_STATUSES = ['draft', 'ready'];
+// All statuses with a public_token are now accessible
 
 const formatOfferNumber = (raw: string): string => {
   const cleaned = raw.trim().toUpperCase();
@@ -74,17 +73,8 @@ export const OfferFindPage = () => {
 
       const result = data[0];
 
-      if (PREPARING_STATUSES.includes(result.status)) {
-        setErrorMessage('Ta oferta jest w trakcie przygotowania. Skontaktujemy się z Tobą, gdy będzie gotowa.');
-        return;
-      }
 
-      if (result.status === 'lost') {
-        setErrorMessage('Ta oferta wygasła. Skontaktuj się z nami w celu przygotowania nowej.');
-        return;
-      }
-
-      if (ACCESSIBLE_STATUSES.includes(result.status) && result.public_token) {
+      if (result.public_token) {
         toast.success(`Witaj! Oto Twoja oferta.`);
         navigate(`/offer/${result.public_token}`);
         return;

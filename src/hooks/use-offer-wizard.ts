@@ -271,9 +271,11 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
       };
 
       if (state.offerId) {
+        // Don't reset status when editing an existing offer
+        const { status: _statusRemoved, ...updatePayload } = payload;
         const { data, error } = await supabase
           .from('offers')
-          .update(payload)
+          .update(updatePayload)
           .eq('id', state.offerId)
           .select()
           .single();
