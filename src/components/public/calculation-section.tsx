@@ -35,8 +35,8 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const prevValidCount = useRef(people_count);
   const debouncedCount = useDebounce(localPeopleCount, 300);
 
-  const variants = offer_variants as unknown as VariantWithItems[];
-  const services = offer_services as unknown as OfferServiceWithService[];
+  const variants = (offer_variants ?? []) as unknown as VariantWithItems[];
+  const services = (offer_services ?? []) as unknown as OfferServiceWithService[];
 
   const adjustedVariants = useMemo(() => {
     if (!modifications || modifications.size === 0) return variants;
@@ -79,6 +79,8 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
 
   const handleIncrement = useCallback(() => setLocalPeopleCount((c) => c + 1), []);
   const handleDecrement = useCallback(() => setLocalPeopleCount((c) => Math.max(1, c - 1)), []);
+
+  if (!offer_variants || offer_variants.length === 0) return null;
 
   if (price_display_mode === 'HIDDEN') {
     return (

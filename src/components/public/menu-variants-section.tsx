@@ -25,9 +25,10 @@ interface MenuVariantsSectionProps {
 }
 
 const groupByCategory = (items: Variant['variant_items']) => {
+  const validItems = items.filter(item => item.dishes != null);
   const groups = new Map<string, { name: string; icon: string | null; items: typeof items }>();
-  for (const item of items) {
-    const cat = item.dishes.dish_categories;
+  for (const item of validItems) {
+    const cat = item.dishes?.dish_categories;
     const catId = cat?.id ?? 'uncategorized';
     const existing = groups.get(catId);
     if (existing) {
