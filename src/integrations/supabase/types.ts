@@ -1241,6 +1241,7 @@ export type Database = {
       }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      reorder_variant_items: { Args: { items: Json }; Returns: undefined }
     }
     Enums: {
       activity_type:

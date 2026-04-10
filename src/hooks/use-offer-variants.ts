@@ -220,10 +220,10 @@ export const useReorderVariantItems = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ items, offer_id }: { items: Array<{ id: string; sort_order: number }>; offer_id: string }) => {
-      const promises = items.map(item =>
-        supabase.from('variant_items').update({ sort_order: item.sort_order }).eq('id', item.id)
-      );
-      await Promise.all(promises);
+      const { error } = await supabase.rpc('reorder_variant_items', {
+        items: JSON.stringify(items),
+      });
+      if (error) throw error;
       return { offer_id };
     },
     onSuccess: (result) => {
