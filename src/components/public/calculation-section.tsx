@@ -35,8 +35,6 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const prevValidCount = useRef(people_count);
   const debouncedCount = useDebounce(localPeopleCount, 300);
 
-  if (!offer_variants || offer_variants.length === 0) return null;
-
   const variants = (offer_variants ?? []) as unknown as VariantWithItems[];
   const services = (offer_services ?? []) as unknown as OfferServiceWithService[];
 
