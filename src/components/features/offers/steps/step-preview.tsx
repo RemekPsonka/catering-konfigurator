@@ -68,7 +68,7 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
       if (!offerId) return [];
       const { data, error } = await supabase
         .from('offer_variants')
-        .select('*, variant_items(*, dishes(display_name, price_per_person, price_per_piece, price_per_kg, price_per_set, unit_type, is_modifiable), selected_variant_option:selected_variant_option, custom_name:custom_name)')
+        .select('*, variant_items(*, dishes(display_name, price_per_person, price_per_piece, price_per_kg, price_per_set, unit_type, is_modifiable))')
         .eq('offer_id', offerId)
         .order('sort_order');
       if (error) throw error;
