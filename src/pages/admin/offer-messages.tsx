@@ -1,25 +1,98 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ArrowLeft, Send, MessageCircle, FileEdit } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  MessageCircle,
+  FileEdit,
+  RefreshCw,
+  Check,
+  X,
+  ExternalLink,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { EmptyState } from '@/components/common/empty-state';
 import { EmailTemplateModal } from '@/components/common/email-template-modal';
-import { useAdminCorrections, useRespondCorrection } from '@/hooks/use-offer-corrections';
+import {
+  useAdminCorrections,
+  useRespondCorrection,
+  useAdminProposals,
+} from '@/hooks/use-offer-corrections';
 import { fireNotification } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { buildPublicOfferUrl } from '@/lib/constants';
 
+// ── Timeline item types ──
+
+interface TimelineCorrection {
+  kind: 'correction';
+  id: string;
+  createdAt: string;
+  type: 'question' | 'correction';
+  message: string;
+  clientName: string | null;
+  status: string;
+  managerResponse: string | null;
+  respondedAt: string | null;
+}
+
+interface TimelineProposal {
+  kind: 'proposal';
+  id: string;
+  createdAt: string;
+  clientMessage: string | null;
+  clientName: string | null;
+  status: string;
+  items: Array<{
+    id: string;
+    changeType: string;
+    originalDish: string;
+    proposedDish: string | null;
+    proposedVariantOption: string | null;
+    status: string;
+  }>;
+}
+
+type TimelineItem = TimelineCorrection | TimelineProposal;
+
+// ── Status configs ──
+
+const PROPOSAL_STATUS: Record<string, { label: string; className: string }> = {
+  draft_client: { label: 'Szkic klienta', className: 'bg-muted text-muted-foreground' },
+  pending: { label: 'Oczekuje', className: 'bg-orange-100 text-orange-800' },
+  accepted: { label: 'Zaakceptowana', className: 'bg-green-100 text-green-800' },
+  partially_accepted: { label: 'Częściowo', className: 'bg-yellow-100 text-yellow-800' },
+  rejected: { label: 'Odrzucona', className: 'bg-red-100 text-red-800' },
+};
+
+const ITEM_STATUS: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Oczekuje', className: 'text-orange-700' },
+  accepted: { label: '✅', className: 'text-green-700' },
+  rejected: { label: '❌', className: 'text-red-700' },
+  invalidated: { label: '⚠️', className: 'text-yellow-700' },
+};
+
+const CHANGE_LABEL: Record<string, string> = {
+  SWAP: 'Zamiana',
+  VARIANT_CHANGE: 'Wariant',
+  SPLIT: 'Podział',
+  QUANTITY_CHANGE: 'Ilość',
+};
+
+// ── Page Component ──
+
 export const OfferMessagesPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { data: corrections, isLoading } = useAdminCorrections(id);
+  const { data: corrections, isLoading: loadingCorrections } = useAdminCorrections(id);
+  const { data: proposals, isLoading: loadingProposals } = useAdminProposals(id);
   const respondMutation = useRespondCorrection();
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [emailModal, setEmailModal] = useState<{
@@ -30,7 +103,6 @@ export const OfferMessagesPage = () => {
     clientName: string;
   } | null>(null);
 
-  // Fetch offer details for email template
   const { data: offer } = useQuery({
     queryKey: ['offer-for-messages', id],
     queryFn: async () => {
@@ -46,6 +118,48 @@ export const OfferMessagesPage = () => {
     enabled: !!id,
   });
 
+  // ── Build timeline ──
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = [];
+
+    (corrections ?? []).forEach((c) => {
+      items.push({
+        kind: 'correction',
+        id: c.id,
+        createdAt: c.created_at ?? '',
+        type: (c.type as 'question' | 'correction') ?? 'correction',
+        message: c.message,
+        clientName: c.client_name,
+        status: c.status,
+        managerResponse: c.manager_response,
+        respondedAt: c.responded_at,
+      });
+    });
+
+    (proposals ?? []).forEach((p: any) => {
+      items.push({
+        kind: 'proposal',
+        id: p.id,
+        createdAt: p.created_at ?? '',
+        clientMessage: p.client_message,
+        clientName: p.client_name,
+        status: p.status,
+        items: (p.proposal_items ?? []).map((pi: any) => ({
+          id: pi.id,
+          changeType: pi.change_type,
+          originalDish: pi.dishes?.display_name ?? '—',
+          proposedDish: pi.proposed_dish?.display_name ?? null,
+          proposedVariantOption: pi.proposed_variant_option,
+          status: pi.status,
+        })),
+      });
+    });
+
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return items;
+  }, [corrections, proposals]);
+
+  // ── Respond handler ──
   const handleRespond = (correctionId: string, type: string) => {
     const responseText = responses[correctionId]?.trim();
     if (!responseText) {
@@ -60,7 +174,6 @@ export const OfferMessagesPage = () => {
           toast.success('Odpowiedź zapisana');
           setResponses((prev) => ({ ...prev, [correctionId]: '' }));
 
-          // Fire notification
           if (id && offer) {
             fireNotification({
               offerId: id,
@@ -71,7 +184,6 @@ export const OfferMessagesPage = () => {
             });
           }
 
-          // Show email modal
           const client = offer?.clients as any;
           const clientEmail = client?.email ?? '';
           const clientName = client?.name ?? '';
@@ -96,96 +208,62 @@ export const OfferMessagesPage = () => {
     );
   };
 
+  const isLoading = loadingCorrections || loadingProposals;
   if (isLoading) return <LoadingSpinner />;
+
+  const client = offer?.clients as any;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link to={id ? `/admin/offers/${id}/edit` : '/admin/offers'}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">
-          💬 Komunikacja — {offer?.offer_number ?? 'Oferta'}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold">
+            💬 Komunikacja — {offer?.offer_number ?? 'Oferta'}
+          </h1>
+          {client && (
+            <p className="text-sm text-muted-foreground">
+              {client.name}
+              {offer?.people_count ? ` · ${offer.people_count} os.` : ''}
+            </p>
+          )}
+        </div>
       </div>
 
-      {!corrections?.length ? (
+      {/* Timeline */}
+      {!timeline.length ? (
         <EmptyState
           icon={MessageCircle}
           title="Brak wiadomości"
-          description="Klient nie wysłał jeszcze żadnych pytań ani korekt."
+          description="Klient nie wysłał jeszcze żadnych pytań, korekt ani propozycji zmian."
         />
       ) : (
-        <div className="space-y-4">
-          {corrections.map((c) => (
-            <Card key={c.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {c.type === 'question' ? (
-                    <Badge className="bg-blue-100 text-blue-800">💬 Pytanie</Badge>
-                  ) : (
-                    <Badge className="bg-orange-100 text-orange-800">📝 Korekta</Badge>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className={
-                      c.status === 'new'
-                        ? 'border-yellow-300 text-yellow-700'
-                        : c.status === 'resolved'
-                          ? 'border-green-300 text-green-700'
-                          : ''
-                    }
-                  >
-                    {c.status === 'new' ? '⏳ Nowe' : c.status === 'read' ? '👁 Przeczytane' : '✅ Rozwiązane'}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {c.created_at ? format(new Date(c.created_at), 'dd.MM.yyyy, HH:mm', { locale: pl }) : ''}
-                  </span>
-                  {c.client_name && (
-                    <span className="text-sm font-medium">— {c.client_name}</span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-lg bg-muted p-4 text-sm">{c.message}</div>
-
-                {c.status === 'resolved' && c.manager_response && (
-                  <div className="rounded-lg border-l-4 border-primary bg-primary/5 p-4 text-sm">
-                    <p className="mb-1 text-xs font-semibold text-muted-foreground">Twoja odpowiedź:</p>
-                    <p>{c.manager_response}</p>
-                    {c.responded_at && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {format(new Date(c.responded_at), 'dd.MM.yyyy, HH:mm', { locale: pl })}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {(c.status === 'new' || c.status === 'read') && (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={responses[c.id] ?? ''}
-                      onChange={(e) =>
-                        setResponses((prev) => ({ ...prev, [c.id]: e.target.value }))
-                      }
-                      placeholder="Twoja odpowiedź..."
-                      className="min-h-[80px]"
-                    />
-                    <Button
-                      onClick={() => handleRespond(c.id, c.type ?? 'correction')}
-                      disabled={respondMutation.isPending}
-                      className="gap-2"
-                    >
-                      <Send className="h-4 w-4" />
-                      {c.type === 'question' ? 'Odpowiedz' : 'Rozwiąż'}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-3">
+          {timeline.map((item) =>
+            item.kind === 'correction' ? (
+              <CorrectionBubble
+                key={`c-${item.id}`}
+                item={item}
+                responseText={responses[item.id] ?? ''}
+                onResponseChange={(val) =>
+                  setResponses((prev) => ({ ...prev, [item.id]: val }))
+                }
+                onRespond={() => handleRespond(item.id, item.type)}
+                isPending={respondMutation.isPending}
+              />
+            ) : (
+              <ProposalBubble
+                key={`p-${item.id}`}
+                item={item}
+                offerId={id!}
+              />
+            ),
+          )}
         </div>
       )}
 
@@ -200,5 +278,194 @@ export const OfferMessagesPage = () => {
         />
       )}
     </div>
+  );
+};
+
+// ── Correction / Question Bubble ──
+
+interface CorrectionBubbleProps {
+  item: TimelineCorrection;
+  responseText: string;
+  onResponseChange: (val: string) => void;
+  onRespond: () => void;
+  isPending: boolean;
+}
+
+const CorrectionBubble = ({
+  item,
+  responseText,
+  onResponseChange,
+  onRespond,
+  isPending,
+}: CorrectionBubbleProps) => {
+  const isQuestion = item.type === 'question';
+  const isResolved = item.status === 'resolved';
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        {/* Header row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {isQuestion ? (
+            <Badge className="bg-blue-100 text-blue-800 border-none">
+              <MessageCircle className="h-3 w-3 mr-1" />
+              Pytanie
+            </Badge>
+          ) : (
+            <Badge className="bg-orange-100 text-orange-800 border-none">
+              <FileEdit className="h-3 w-3 mr-1" />
+              Korekta
+            </Badge>
+          )}
+          <Badge
+            variant="outline"
+            className={
+              item.status === 'new'
+                ? 'border-yellow-300 text-yellow-700'
+                : isResolved
+                  ? 'border-green-300 text-green-700'
+                  : ''
+            }
+          >
+            {item.status === 'new' ? '⏳ Nowe' : item.status === 'read' ? '👁 Przeczytane' : '✅ Rozwiązane'}
+          </Badge>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {item.createdAt
+              ? format(new Date(item.createdAt), 'dd.MM.yyyy, HH:mm', { locale: pl })
+              : ''}
+          </span>
+        </div>
+
+        {/* Client name */}
+        {item.clientName && (
+          <p className="text-xs font-medium text-muted-foreground">{item.clientName}</p>
+        )}
+
+        {/* Client message */}
+        <div className="rounded-lg bg-muted p-3 text-sm">{item.message}</div>
+
+        {/* Manager response (if resolved) */}
+        {isResolved && item.managerResponse && (
+          <div className="rounded-lg border-l-4 border-primary bg-primary/5 p-3 text-sm">
+            <p className="mb-1 text-xs font-semibold text-muted-foreground">Twoja odpowiedź:</p>
+            <p>{item.managerResponse}</p>
+            {item.respondedAt && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {format(new Date(item.respondedAt), 'dd.MM.yyyy, HH:mm', { locale: pl })}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Response form (if not resolved) */}
+        {!isResolved && (
+          <div className="space-y-2">
+            <Textarea
+              value={responseText}
+              onChange={(e) => onResponseChange(e.target.value)}
+              placeholder="Twoja odpowiedź..."
+              className="min-h-[60px]"
+            />
+            <Button
+              onClick={onRespond}
+              disabled={isPending}
+              size="sm"
+              className="gap-2"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {isQuestion ? 'Odpowiedz' : 'Rozwiąż'}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ── Proposal Bubble ──
+
+interface ProposalBubbleProps {
+  item: TimelineProposal;
+  offerId: string;
+}
+
+const ProposalBubble = ({ item, offerId }: ProposalBubbleProps) => {
+  const statusConfig = PROPOSAL_STATUS[item.status] ?? PROPOSAL_STATUS.pending;
+  const pendingCount = item.items.filter((i) => i.status === 'pending').length;
+  const isResolved = ['accepted', 'partially_accepted', 'rejected'].includes(item.status);
+
+  return (
+    <Card className="overflow-hidden border-l-4 border-l-indigo-400">
+      <CardContent className="p-4 space-y-3">
+        {/* Header row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge className="bg-indigo-100 text-indigo-800 border-none">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Propozycja zmian
+          </Badge>
+          <Badge variant="outline" className={`${statusConfig.className} border-none`}>
+            {statusConfig.label}
+          </Badge>
+          {!isResolved && pendingCount > 0 && (
+            <span className="text-xs text-orange-600 font-medium">
+              {pendingCount} do rozpatrzenia
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground ml-auto">
+            {item.createdAt
+              ? format(new Date(item.createdAt), 'dd.MM.yyyy, HH:mm', { locale: pl })
+              : ''}
+          </span>
+        </div>
+
+        {/* Client name */}
+        {item.clientName && (
+          <p className="text-xs font-medium text-muted-foreground">{item.clientName}</p>
+        )}
+
+        {/* Client message */}
+        {item.clientMessage && (
+          <div className="rounded-lg bg-muted p-3 text-sm">{item.clientMessage}</div>
+        )}
+
+        {/* Items summary */}
+        <div className="space-y-1">
+          {item.items.map((pi) => {
+            const itemStatus = ITEM_STATUS[pi.status] ?? ITEM_STATUS.pending;
+            const proposedLabel =
+              pi.changeType === 'SWAP' && pi.proposedDish
+                ? pi.proposedDish
+                : pi.changeType === 'VARIANT_CHANGE' && pi.proposedVariantOption
+                  ? pi.proposedVariantOption
+                  : CHANGE_LABEL[pi.changeType] ?? pi.changeType;
+
+            return (
+              <div
+                key={pi.id}
+                className="flex items-center gap-2 text-sm rounded px-2 py-1 bg-muted/50"
+              >
+                <span className="text-xs text-muted-foreground w-16">
+                  {CHANGE_LABEL[pi.changeType] ?? pi.changeType}
+                </span>
+                <span className="font-medium">{pi.originalDish}</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="font-medium">{proposedLabel}</span>
+                <span className={`ml-auto text-xs font-medium ${itemStatus.className}`}>
+                  {itemStatus.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Link to full diff */}
+        <Button variant="outline" size="sm" asChild className="gap-2">
+          <Link to={`/admin/offers/${offerId}/proposals/${item.id}`}>
+            <ExternalLink className="h-3.5 w-3.5" />
+            {isResolved ? 'Zobacz szczegóły' : 'Rozpatrz propozycję'}
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
