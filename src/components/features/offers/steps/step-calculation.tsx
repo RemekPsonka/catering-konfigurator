@@ -336,12 +336,17 @@ export const StepCalculation = ({
                             return (
                               <TableRow key={item.id}>
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <span>{item.custom_name || item.dishes.display_name}</span>
-                                    {item.selected_variant_option && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        {item.selected_variant_option}
-                                      </Badge>
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                      <span>{item.custom_name || item.dishes.display_name}</span>
+                                      {item.selected_variant_option && (
+                                        <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                                          ✓ {item.selected_variant_option}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {item.custom_name && item.custom_name !== item.dishes.display_name && (
+                                      <span className="text-xs text-blue-600">zamiana z: {item.dishes.display_name}</span>
                                     )}
                                   </div>
                                 </TableCell>
