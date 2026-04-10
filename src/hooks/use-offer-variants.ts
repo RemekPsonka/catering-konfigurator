@@ -113,9 +113,27 @@ export const useAddVariantItem = () => {
   return useMutation({
     mutationFn: async (data: { variant_id: string; dish_id: string; sort_order: number; offer_id: string }) => {
       const { offer_id, ...insertData } = data;
+
+      // Fetch current dish price and freeze it as custom_price
+      const { data: dish } = await supabase
+        .from('dishes')
+        .select('unit_type, price_per_person, price_per_piece, price_per_kg, price_per_set')
+        .eq('id', data.dish_id)
+        .single();
+
+      let frozenPrice: number | null = null;
+      if (dish) {
+        switch (dish.unit_type) {
+          case 'PERSON': frozenPrice = dish.price_per_person; break;
+          case 'PIECE': frozenPrice = dish.price_per_piece; break;
+          case 'KG': frozenPrice = dish.price_per_kg; break;
+          case 'SET': frozenPrice = dish.price_per_set; break;
+        }
+      }
+
       const { data: result, error } = await supabase
         .from('variant_items')
-        .insert({ ...insertData, quantity: 1 })
+        .insert({ ...insertData, quantity: 1, custom_price: frozenPrice })
         .select()
         .single();
       if (error) throw error;

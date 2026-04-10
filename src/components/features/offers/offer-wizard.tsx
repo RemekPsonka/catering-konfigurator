@@ -189,10 +189,21 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
     warningSteps.push(1);
   }
 
+  const STATUS_LABELS: Record<string, string> = {
+    draft: 'szkic',
+    ready: 'gotowa',
+    sent: 'wysłana',
+    viewed: 'wyświetlona',
+    revision: 'rewizja',
+    accepted: 'zaakceptowana',
+    won: 'wygrana',
+    lost: 'przegrana',
+  };
+
   const offerTitle = isLocked
-    ? `Oferta ${state.offerNumber ?? ''} (${offerStatus === 'accepted' ? 'zaakceptowana' : 'wygrana'})`
+    ? `Oferta ${state.offerNumber ?? ''} (${STATUS_LABELS[offerStatus ?? ''] ?? offerStatus})`
     : state.offerNumber
-      ? `Oferta ${state.offerNumber} (szkic)`
+      ? `Oferta ${state.offerNumber} (${STATUS_LABELS[offerStatus ?? ''] ?? 'szkic'})`
       : offerId ? 'Edycja oferty' : 'Nowa oferta';
 
   return (
