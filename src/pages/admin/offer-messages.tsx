@@ -228,7 +228,7 @@ export const OfferMessagesPage = () => {
             subject: isQuestion
               ? `Odpowiedź na pytanie — oferta ${offerNumber}`
               : `Odpowiedź na korektę — oferta ${offerNumber}`,
-            body: `Szanowna/y ${clientName},\n\ndziękujemy za ${isQuestion ? 'pytanie' : 'uwagę'} dotyczące oferty ${offerNumber}.\n\n${responseText}\n\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\nCatering Śląski\ntel. +48 123 456 789 | zamowienia@cateringslaski.pl`,
+            body: `Szanowna/y ${clientName},\n\ndziękujemy za ${isQuestion ? 'pytanie' : 'uwagę'} dotyczące oferty ${offerNumber}.\n\n${responseText}\n\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\n${COMPANY.name}\ntel. ${COMPANY.phone} | ${COMPANY.email}`,
           });
         },
         onError: () => {
@@ -512,7 +512,7 @@ const ProposalBubble = ({ item, offerId, offer, onEmailModal }: ProposalBubblePr
                 clientEmail: client.email,
                 clientName: client.name ?? '',
                 subject: `Decyzja w sprawie propozycji zmian — oferta ${offer.offer_number ?? ''}`,
-                body: `Szanowna/y ${client.name ?? ''},\n\nrozpatrzyliśmy Twoją propozycję zmian do oferty ${offer.offer_number ?? ''}.\n\nStatus: ${PROPOSAL_STATUS[finalStatus]?.label ?? finalStatus}\n${managerNotes.trim() ? `\nUwagi: ${managerNotes.trim()}\n` : ''}\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\nCatering Śląski`,
+                body: `Szanowna/y ${client.name ?? ''},\n\nrozpatrzyliśmy Twoją propozycję zmian do oferty ${offer.offer_number ?? ''}.\n\nStatus: ${PROPOSAL_STATUS[finalStatus]?.label ?? finalStatus}\n${managerNotes.trim() ? `\nUwagi: ${managerNotes.trim()}\n` : ''}\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\n${COMPANY.name}`,
               });
             }
           }
