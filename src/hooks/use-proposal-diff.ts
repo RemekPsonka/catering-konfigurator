@@ -103,7 +103,23 @@ export const useResolveProposal = () => {
 
       if (error) throw error;
 
-      // 2. Fetch accepted proposal items to apply to variant_items
+      // 2. Fetch the proposal to get offer_id
+      const { data: proposalData } = await supabase
+        .from('change_proposals')
+        .select('offer_id')
+        .eq('id', proposalId)
+        .single();
+
+      // 3. If accepted/partially_accepted, update offer status to revision if currently sent/viewed
+      if (proposalData && (status === 'accepted' || status === 'partially_accepted')) {
+        await supabase
+          .from('offers')
+          .update({ status: 'revision' as const })
+          .eq('id', proposalData.offer_id)
+          .in('status', ['sent', 'viewed']);
+      }
+
+      // 4. Fetch accepted proposal items to apply to variant_items
       const { data: acceptedItems, error: fetchError } = await supabase
         .from('proposal_items')
         .select('*, proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(id, display_name)')
@@ -113,7 +129,7 @@ export const useResolveProposal = () => {
       if (fetchError) throw fetchError;
       if (!acceptedItems || acceptedItems.length === 0) return;
 
-      // 3. Apply each accepted change to variant_items
+      // 5. Apply each accepted change to variant_items
       const errors: string[] = [];
 
       for (const item of acceptedItems) {
