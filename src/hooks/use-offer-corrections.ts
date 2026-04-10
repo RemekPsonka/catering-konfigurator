@@ -102,6 +102,32 @@ export const useRespondCorrection = () => {
   });
 };
 
+// ── Admin: fetch proposals for an offer (all statuses) ──
+export const useAdminProposals = (offerId: string | undefined) => {
+  return useQuery({
+    queryKey: ['admin-proposals', offerId],
+    queryFn: async () => {
+      if (!offerId) return [];
+      const { data, error } = await supabase
+        .from('change_proposals')
+        .select(`
+          *,
+          proposal_items(
+            *,
+            dishes!proposal_items_original_dish_id_fkey(id, display_name),
+            proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(id, display_name)
+          )
+        `)
+        .eq('offer_id', offerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!offerId,
+  });
+};
+
 // ── Public: submit question or correction ──
 export const useSubmitMessage = () => {
   const queryClient = useQueryClient();
