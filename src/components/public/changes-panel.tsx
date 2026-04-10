@@ -122,7 +122,8 @@ export const ChangesPanel = ({
   const changesList = Array.from(modifications.entries()).map(([itemId, mod]) => {
     const vi = allVariantItems.find((v) => v.id === itemId);
     const dishName = vi?.dishes?.display_name ?? 'Pozycja';
-    return { itemId, mod, dishName };
+    const quantity = vi?.quantity ?? 1;
+    return { itemId, mod, dishName, quantity };
   });
 
   if (actionsDisabled) return null;
