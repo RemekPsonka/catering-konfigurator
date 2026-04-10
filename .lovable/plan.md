@@ -1,30 +1,36 @@
 
+# Naprawa kalkulacji w panelu "Moje zmiany"
 
-# Kompaktowe kafelki dań w sekcji Menu
+## Zmiany w `src/components/public/changes-panel.tsx`
 
-## Pliki do zmiany
+### 1. Wyciągnięcie danych do przeliczenia
+- `offer.pricing_mode` → decyduje czy "os." czy "szt."
+- `offer.people_count` → mnożnik
+- Dla każdej pozycji: pobrać `quantity` z `variant_items` (potrzebne w FIXED_QUANTITY)
 
-### 1. `src/components/public/dish-card.tsx`
+### 2. Każda pozycja na liście zmian — rozbudowa wyświetlania
+Obecny format: `Tarta cytrynowa z bezą  +4,00 zł`
 
-**Karta dania (linia 103)**:
-- `rounded-2xl p-4` → `rounded-xl p-2.5`
+Nowy format:
+- Jeśli `priceDiff !== 0` i tryb `PER_PERSON`: `+4,00 zł/os. × 90 os. = +360,00 zł`
+- Jeśli `priceDiff !== 0` i tryb `FIXED_QUANTITY`: `+4,00 zł/szt. × 5 szt. = +20,00 zł`
+- Jeśli `priceDiff === 0`: `+0,00 zł/os.` (bez mnożenia)
 
-**Masonry gallery (linia 112)**:
-- `mb-3 max-h-[200px]` → `mb-2 max-h-[140px]`
+Logika: oblicz `unitDiff` (swapPriceDiff lub variantPriceModifier), `multiplier` (people_count w PER_PERSON, quantity w FIXED_QUANTITY), `totalDiff = unitDiff × multiplier`.
 
-**Flex row (linia 122)**:
-- `gap-4` → `gap-3`
+### 3. Wiersz "Łączny wpływ" — dodanie kontekstu
+Obecny: `Łączny wpływ:`
+Nowy: `Łączny wpływ na cenę (przy {people_count} os.):` (lub "szt." w FIXED_QUANTITY)
 
-**Miniaturka (linia 126)**:
-- `h-20 w-20 ... rounded-xl md:h-[120px] md:w-[120px]` → `h-16 w-16 ... rounded-lg md:h-[72px] md:w-[72px]`
+### 4. Obliczanie multiplier per item
+- W `changesList` map: dodać `quantity` z `vi.quantity`
+- W PER_PERSON: multiplier = `offer.people_count`
+- W FIXED_QUANTITY: multiplier = `vi.quantity`
 
-**Edit panel container (linia 265)**:
-- `rounded-b-2xl` → `rounded-b-xl`
+## Plik do zmiany
+- `src/components/public/changes-panel.tsx`
 
-### 2. `src/components/public/menu-variants-section.tsx`
-
-Sekcja jest już kompaktowa z poprzednich zmian — `gap-2` między daniami i `mb-4` między kategoriami są OK. Bez zmian.
-
-## Efekt
-Karta dania zmniejszy się z ~152px do ~90-100px. Miniaturka 72x72 zamiast 120x120. Galeria max 140px zamiast 200px. Cały layout menu skróci się o ~30%.
-
+## Bez zmian
+- Logika submitowania propozycji
+- Style i animacje
+- Panel admina
