@@ -12,9 +12,10 @@ interface AcceptanceSectionProps {
   offer: PublicOffer;
   onAccepted: () => void;
   preSelectedVariantId?: string | null;
+  actionsDisabled?: boolean;
 }
 
-export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId }: AcceptanceSectionProps) => {
+export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId, actionsDisabled = false }: AcceptanceSectionProps) => {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     offer.offer_variants.length === 1 ? offer.offer_variants[0].id : null,
   );
@@ -28,7 +29,7 @@ export const AcceptanceSection = ({ offer, onAccepted, preSelectedVariantId }: A
     }
   }, [preSelectedVariantId]);
 
-  const isVisible = ['ready', 'sent', 'viewed', 'revision'].includes(offer.status) && !offer.accepted_at && !accepted;
+  const isVisible = ['sent', 'viewed', 'revision'].includes(offer.status) && !offer.accepted_at && !accepted && !actionsDisabled;
 
   if (!isVisible) return null;
 

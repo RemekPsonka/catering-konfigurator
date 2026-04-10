@@ -16,9 +16,10 @@ interface CommunicationSectionProps {
   offerId: string;
   offerNumber?: string | null;
   clientName?: string;
+  actionsDisabled?: boolean;
 }
 
-export const CommunicationSection = ({ offerId, offerNumber, clientName }: CommunicationSectionProps) => {
+export const CommunicationSection = ({ offerId, offerNumber, clientName, actionsDisabled = false }: CommunicationSectionProps) => {
   const [message, setMessage] = useState('');
   const [name, setName] = useState(clientName ?? '');
   const submitMessage = useSubmitMessage();
@@ -102,6 +103,7 @@ export const CommunicationSection = ({ offerId, offerNumber, clientName }: Commu
         </h2>
 
         {/* ── Form tabs ── */}
+        {!actionsDisabled && (
         <Tabs defaultValue="question" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="question" className="gap-2">
@@ -198,6 +200,7 @@ export const CommunicationSection = ({ offerId, offerNumber, clientName }: Commu
             </div>
           </TabsContent>
         </Tabs>
+        )}
 
         {/* ── Timeline ── */}
         {hasHistory && (

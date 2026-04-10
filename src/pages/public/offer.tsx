@@ -20,6 +20,7 @@ import {
   Mail,
   Search,
   FileDown,
+  Check,
 } from 'lucide-react';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
 import { ServicesSection } from '@/components/public/services-section';
@@ -304,26 +305,36 @@ export const PublicOfferPage = () => {
   // Status flags for conditional rendering
   const isDraft = offer?.status === 'draft';
   const isLost = offer?.status === 'lost';
+  const isAccepted = offer?.status === 'accepted';
+  const isWon = offer?.status === 'won';
 
-  // Draft — show "being prepared" page
+  // Actions are disabled for: draft, accepted, won, lost, expired
+  const actionsDisabled = isDraft || isLost || isAccepted || isWon || isExpired;
+
+  // Draft — show "being updated" page (no content)
   if (isDraft) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
           <Sparkles className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
-          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta jest przygotowywana</h1>
+          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Ta oferta jest w trakcie aktualizacji</h1>
           <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
-            Pracujemy nad Twoją ofertą. Wróć tutaj za chwilę — ten link będzie aktywny, gdy oferta będzie gotowa.
+            Wróć później lub skontaktuj się z nami.
           </p>
-          <a href="mailto:zamowienia@cateringslaski.pl" className="mt-8 inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
-            <Mail className="h-4 w-4" /> Skontaktuj się z nami
-          </a>
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <a href="tel:+48123456789" className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
+              <Phone className="h-4 w-4" /> +48 123 456 789
+            </a>
+            <a href="mailto:zamowienia@cateringslaski.pl" className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+              <Mail className="h-4 w-4" /> zamowienia@cateringslaski.pl
+            </a>
+          </div>
         </motion.div>
       </div>
     );
   }
 
-  // Lost — show "offer closed" page
+  // Lost — show "offer closed" page (no content)
   if (isLost) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
@@ -331,57 +342,14 @@ export const PublicOfferPage = () => {
           <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
           <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta zamknięta</h1>
           <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
-            Ta oferta została zamknięta. Skontaktuj się z nami, jeśli chcesz otrzymać nową propozycję.
+            Ta oferta została zamknięta. Jeśli chcesz wznowić rozmowę, skontaktuj się z nami.
           </p>
-          <a href="mailto:zamowienia@cateringslaski.pl" className="mt-8 inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
-            <Mail className="h-4 w-4" /> Skontaktuj się z nami
-          </a>
-        </motion.div>
-      </div>
-    );
-  }
-
-
-  // Expired
-  if (isExpired) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-lg text-center"
-        >
-          <Clock className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
-          <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">
-            Ta oferta wygasła
-          </h1>
-          <p className="mt-2 font-body text-charcoal/50">
-            {offer.valid_until &&
-              new Date(offer.valid_until).toLocaleDateString('pl-PL', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-          </p>
-          <p className="mt-6 font-body text-lg text-charcoal/60 leading-relaxed">
-            Skontaktuj się z nami, aby otrzymać aktualną propozycję.
-          </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <a
-              href="/offer/find"
-              className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all"
-              style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
-            >
-              <Search className="h-4 w-4" />
-              Szukaj oferty
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <a href="tel:+48123456789" className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
+              <Phone className="h-4 w-4" /> +48 123 456 789
             </a>
-            <a
-              href="mailto:zamowienia@cateringslaski.pl"
-              className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal"
-            >
-              <Mail className="h-4 w-4" />
-              Skontaktuj się z nami
+            <a href="mailto:zamowienia@cateringslaski.pl" className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+              <Mail className="h-4 w-4" /> zamowienia@cateringslaski.pl
             </a>
           </div>
         </motion.div>
@@ -441,6 +409,25 @@ export const PublicOfferPage = () => {
 
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
+      {/* Status banners */}
+      {isExpired && (
+        <div className="no-print sticky top-0 z-50 border-b px-4 py-3 text-center font-body text-sm" style={{ backgroundColor: '#fef3cd', borderColor: '#ffc107', color: '#856404' }}>
+          <Clock className="mr-2 inline h-4 w-4" />
+          Termin ważności oferty minął {offer.valid_until ? new Date(offer.valid_until).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}. Skontaktuj się z nami w celu przedłużenia.
+        </div>
+      )}
+      {isAccepted && (
+        <div className="no-print sticky top-0 z-50 border-b px-4 py-3 text-center font-body text-sm" style={{ backgroundColor: '#d4edda', borderColor: '#28a745', color: '#155724' }}>
+          <Check className="mr-2 inline h-4 w-4" />
+          Oferta zaakceptowana {offer.accepted_at ? new Date(offer.accepted_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+        </div>
+      )}
+      {isWon && (
+        <div className="no-print sticky top-0 z-50 border-b px-4 py-3 text-center font-body text-sm" style={{ backgroundColor: '#d4edda', borderColor: '#28a745', color: '#155724' }}>
+          <Check className="mr-2 inline h-4 w-4" />
+          Zamówienie potwierdzone
+        </div>
+      )}
       {/* Print-only header */}
       <div className="print-only hidden">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 0', borderBottom: '2px solid #1A1A1A', marginBottom: '20px' }}>
@@ -714,14 +701,14 @@ export const PublicOfferPage = () => {
 
       {/* 13. PYTANIA I UWAGI + HISTORIA KOMUNIKACJI */}
       <div className="no-print">
-        <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} />
+        <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} actionsDisabled={actionsDisabled} />
       </div>
 
       {/* 14. AKCEPTACJA OFERTY */}
       <div className="no-print">
         {!offerAccepted && (
           <div id="acceptance-section">
-            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} />
+            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} preSelectedVariantId={preSelectedVariantId} actionsDisabled={actionsDisabled} />
           </div>
         )}
       </div>
@@ -732,11 +719,12 @@ export const PublicOfferPage = () => {
       {/* Floating changes panel */}
       <div className="no-print">
         <ChangesPanel
-        modifications={modifications}
-        offer={offer}
-        onClearModifications={handleClearModifications}
+          modifications={modifications}
+          offer={offer}
+          onClearModifications={handleClearModifications}
           originalTotal={originalTotal}
           proposedTotal={proposedTotal}
+          actionsDisabled={actionsDisabled}
         />
       </div>
 
