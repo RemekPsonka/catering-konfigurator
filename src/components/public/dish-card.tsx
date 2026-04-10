@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UtensilsCrossed, RefreshCw, X } from 'lucide-react';
-import { MasonryPhotoAlbum } from 'react-photo-album';
-import 'react-photo-album/masonry.css';
 import { DishLightbox } from './dish-lightbox';
 import { DishEditPanel } from './dish-edit-panel';
 import type { DishModification } from './dish-edit-panel';
@@ -76,12 +74,6 @@ export const DishCard = ({
 
   const hasMultiplePhotos = allPhotos.length > 1;
 
-  // Masonry requires width/height — use 4:3 default
-  const masonryPhotos = allPhotos.map((p) => ({
-    src: p.src,
-    width: 400,
-    height: 300,
-  }));
 
   const displayName = modification?.swapDishName ?? item.custom_name ?? dish.display_name;
   const showPrice = priceDisplayMode !== 'HIDDEN';
@@ -109,22 +101,17 @@ export const DishCard = ({
         >
           {/* Masonry gallery above content when multiple photos */}
           {hasMultiplePhotos && (
-            <div className="mb-2 max-h-[220px] rounded-xl cursor-pointer bg-neutral-50 overflow-hidden">
-              <MasonryPhotoAlbum
-                photos={masonryPhotos}
-                columns={(containerWidth) => (containerWidth < 300 ? 2 : 3)}
-                spacing={4}
-                onClick={({ index }) => handlePhotoClick(index)}
-                render={{
-                  image: (props) => (
-                    <img
-                      {...props}
-                      style={{ ...props.style, objectFit: 'contain' }}
-                      className="rounded-lg bg-neutral-50"
-                    />
-                  ),
-                }}
-              />
+            <div className="mb-2 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-2 px-2">
+              {allPhotos.map((photo, i) => (
+                <img
+                  key={i}
+                  src={photo.src}
+                  alt={displayName}
+                  onClick={() => handlePhotoClick(i)}
+                  className="h-[180px] w-auto rounded-lg snap-center shrink-0 cursor-pointer bg-neutral-50"
+                  loading="lazy"
+                />
+              ))}
             </div>
           )}
 

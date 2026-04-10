@@ -31,7 +31,7 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
     min_offer_price,
   } = offer;
 
-  const [localPeopleCount, setLocalPeopleCount] = useState(people_count);
+  const [localPeopleCount, setLocalPeopleCount] = useState(people_count ?? 1);
   const prevValidCount = useRef(people_count);
   const debouncedCount = useDebounce(localPeopleCount, 300);
 
@@ -325,7 +325,7 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
                       <td className="px-4 py-1.5 font-display text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{vt.name}</td>
                       <td className="px-4 py-1.5 text-right font-body text-sm text-charcoal/60">{formatCurrency(vt.pricePerPerson)}</td>
                       <td className="px-4 py-1.5 text-right">
-                        <AnimatedPrice value={vt.grandTotal} className="font-display text-lg font-bold" />
+                        <span className="font-display text-lg font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{formatCurrency(vt.grandTotal)}</span>
                       </td>
                     </tr>
                   ))}
