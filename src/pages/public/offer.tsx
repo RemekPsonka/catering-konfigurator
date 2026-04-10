@@ -304,8 +304,6 @@ export const PublicOfferPage = () => {
   // Status flags for conditional rendering
   const isDraft = offer?.status === 'draft';
   const isLost = offer?.status === 'lost';
-  const isAccepted = offer?.status === 'accepted' || offer?.status === 'won';
-  const canInteract = !isDraft && !isLost && !isExpired;
 
   // Draft — show "being prepared" page
   if (isDraft) {
