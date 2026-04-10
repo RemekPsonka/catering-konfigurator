@@ -25,7 +25,7 @@ export const LoginPage = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  if (DEV_MODE) return <Navigate to="/admin/offers" replace />;
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
