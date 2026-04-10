@@ -114,7 +114,7 @@ export const useAdminProposals = (offerId: string | undefined) => {
           *,
           proposal_items(
             *,
-            dishes!proposal_items_original_dish_id_fkey(id, display_name),
+            dishes!proposal_items_original_dish_id_fkey(id, display_name, modifiable_items),
             proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(id, display_name)
           )
         `)
