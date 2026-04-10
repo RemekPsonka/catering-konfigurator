@@ -214,13 +214,13 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
       onSuccess: () => {
         const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === offer?.event_type)?.label ?? offer?.event_type ?? '—';
         const variantLines = variants.map((v) => {
-          const items = (v as { variant_items: Array<{ custom_name: string | null; dishes: { display_name: string } }> }).variant_items ?? [];
+          const items = v.variant_items ?? [];
           const dishNames = items.map((i) => i.custom_name || i.dishes.display_name).join(', ');
           return `- ${v.name} (${items.length} dań): ${dishNames}`;
         }).join('\n');
 
         const servicesText = services.length > 0
-          ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${(os as unknown as { services: { name: string } }).services.name} × ${os.quantity ?? 1}`).join('\n')}`
+          ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${os.services.name} × ${os.quantity ?? 1}`).join('\n')}`
           : '';
 
         const text = buildRichOfferEmail({
