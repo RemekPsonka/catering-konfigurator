@@ -46,6 +46,8 @@ export const ChangesPanel = ({
 
   const priceDiff = proposedTotal - originalTotal;
   const hasChanges = modifications.size > 0;
+  const isPP = offer.pricing_mode === 'PER_PERSON';
+  const unit = isPP ? 'os.' : 'szt.';
 
   // Collect all variant items for mapping
   const allVariantItems = offer.offer_variants.flatMap((v) =>
@@ -120,7 +122,8 @@ export const ChangesPanel = ({
   const changesList = Array.from(modifications.entries()).map(([itemId, mod]) => {
     const vi = allVariantItems.find((v) => v.id === itemId);
     const dishName = vi?.dishes?.display_name ?? 'Pozycja';
-    return { itemId, mod, dishName };
+    const quantity = vi?.quantity ?? 1;
+    return { itemId, mod, dishName, quantity };
   });
 
   if (actionsDisabled) return null;
@@ -232,32 +235,43 @@ export const ChangesPanel = ({
               <div className="p-5 space-y-4">
                 {/* Changes list */}
                 <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-2">
-                  {changesList.map(({ itemId, mod, dishName }) => (
-                    <motion.div
-                      key={itemId}
-                      variants={fadeInUp}
-                      className="flex items-center justify-between rounded-xl bg-ivory p-3 text-sm"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>{MOD_ICONS[mod.type] ?? '🔄'}</span>
-                        <span className="font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                          {dishName}
+                  {changesList.map(({ itemId, mod, dishName, quantity }) => {
+                    const unitDiff = mod.type === 'swap' ? (mod.swapPriceDiff ?? 0)
+                      : mod.type === 'variant' ? (mod.variantPriceModifier ?? 0)
+                      : 0;
+                    const multiplier = isPP ? (offer.people_count ?? 1) : quantity;
+                    const totalItemDiff = unitDiff * multiplier;
+                    const sign = unitDiff >= 0 ? '+' : '';
+
+                    return (
+                      <motion.div
+                        key={itemId}
+                        variants={fadeInUp}
+                        className="flex items-center justify-between rounded-xl bg-ivory p-3 text-sm gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="shrink-0">{MOD_ICONS[mod.type] ?? '🔄'}</span>
+                          <span className="font-medium truncate" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                            {dishName}
+                          </span>
+                        </div>
+                        <span className="text-xs font-semibold whitespace-nowrap" style={{ color: unitDiff >= 0 ? 'var(--theme-text, #1A1A1A)' : '#16a34a' }}>
+                          {unitDiff !== 0
+                            ? `${sign}${formatCurrency(unitDiff)}/${unit} × ${multiplier} ${unit} = ${sign}${formatCurrency(totalItemDiff)}`
+                            : `${sign}${formatCurrency(0)}/${unit}`}
                         </span>
-                      </div>
-                      <span className="text-xs font-semibold" style={{ color: (mod.swapPriceDiff ?? 0) >= 0 ? 'var(--theme-text, #1A1A1A)' : '#16a34a' }}>
-                        {mod.type === 'swap' && mod.swapPriceDiff != null
-                          ? (mod.swapPriceDiff >= 0 ? '+' : '') + formatCurrency(mod.swapPriceDiff)
-                          : mod.type === 'variant' && mod.variantPriceModifier != null
-                            ? (mod.variantPriceModifier >= 0 ? '+' : '') + formatCurrency(mod.variantPriceModifier)
-                            : '—'}
-                      </span>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
 
                 {/* Price impact */}
                 <div className="flex items-center justify-between rounded-xl p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, var(--theme-bg, #FAF7F2))' }}>
-                  <span className="font-body text-sm font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>Łączny wpływ:</span>
+                  <span className="font-body text-sm font-medium" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                    {isPP
+                      ? `Łączny wpływ na cenę (przy ${offer.people_count ?? '?'} os.):`
+                      : `Łączny wpływ na cenę:`}
+                  </span>
                   <AnimatedPrice
                     value={priceDiff}
                     className="font-display text-lg font-bold"
