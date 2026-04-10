@@ -1,31 +1,65 @@
 
 
-# Refaktor EmailTemplateModal — ujednolicenie props i dodanie mailto limit
+# Fix: Propozycja zmian nie wysyła się — blokada RLS
 
-## Obecny stan
-Komponent istnieje i działa. Wymaga drobnych zmian w interfejsie props i dodania obsługi limitu mailto.
+## Problem
+Polityka RLS `public_offer_accept` na tabeli `offers` pozwala publicznym użytkownikom aktualizować status **tylko na `accepted`**:
 
-## Zmiany w `src/components/common/email-template-modal.tsx`
-
-### Props — nowy interfejs
-```typescript
-interface EmailTemplateModalProps {
-  open: boolean;           // było: open
-  onClose: () => void;     // bez zmian
-  recipientEmail: string;  // było: clientEmail
-  subject: string;         // bez zmian
-  body: string;            // bez zmian
-  title?: string;          // NOWE (domyślnie "📧 Email do klienta")
-}
+```sql
+with_check: (public_token IS NOT NULL) AND (status = 'accepted')
 ```
-Usunięte: `clientName`, `offerNumber` (nieużywane wewnętrznie).
 
-### Logika
-- Temat: readonly (nie edytowalny) — usunąć `onChange`, dodać `readOnly className="bg-muted"`
-- Treść: edytowalna (bez zmian)
-- Mailto limit: jeśli `encodeURIComponent(body).length > 1800` → wyłączyć przycisk mailto + info tekst "Treść zbyt długa dla mailto — użyj przycisku Kopiuj"
-- State `body` inicjalizowany z props — dodać `useEffect` sync gdy props się zmienią (re-open z inną treścią)
+Gdy klient wysyła propozycję zmian, kod próbuje ustawić `status = 'revision'` — RLS blokuje to i zwraca błąd.
 
-### Caller update
-- `src/pages/admin/offer-messages.tsx` — zmienić `clientEmail` → `recipientEmail`, usunąć `clientName`/`offerNumber`
+## Rozwiązanie
+
+### 1. Nowa polityka RLS na tabeli `offers`
+Dodać politykę pozwalającą publicznym użytkownikom ustawić status na `revision`:
+
+```sql
+CREATE POLICY "public_offer_revision"
+ON public.offers
+FOR UPDATE
+USING (
+  public_token IS NOT NULL 
+  AND status IN ('sent', 'viewed', 'revision')
+)
+WITH CHECK (
+  public_token IS NOT NULL 
+  AND status = 'revision'
+);
+```
+
+Bezpieczne — klient może zmienić status tylko na `revision`, i tylko dla ofert z publicznym tokenem w statusach `sent`/`viewed`/`revision`.
+
+### 2. Dodatkowy fix — `useMarkOfferViewed`
+Sprawdzić czy `useMarkOfferViewed` (status → `viewed`) też ma problem. Jeśli tak, rozszerzyć istniejącą politykę `public_offer_accept` albo dodać kolejną.
+
+Sprawdzam: `useMarkOfferViewed` aktualizuje status na `viewed` — ta sama polityka blokuje to. Trzeba to też naprawić.
+
+Zamiast wielu małych polityk, zastąpić `public_offer_accept` jedną bardziej elastyczną:
+
+```sql
+-- Usunięcie starej
+DROP POLICY "public_offer_accept" ON public.offers;
+
+-- Nowa, obsługująca viewed, revision i accepted
+CREATE POLICY "public_offer_status_update"
+ON public.offers
+FOR UPDATE
+USING (
+  public_token IS NOT NULL
+  AND status IN ('ready', 'sent', 'viewed', 'revision')
+)
+WITH CHECK (
+  public_token IS NOT NULL
+  AND status IN ('viewed', 'revision', 'accepted')
+);
+```
+
+## Brak zmian w kodzie
+Cały problem jest w RLS — kod w `use-public-offer.ts` jest poprawny.
+
+## Podsumowanie
+Jedna migracja SQL — zamiana polityki RLS. Zero zmian w plikach TypeScript.
 
