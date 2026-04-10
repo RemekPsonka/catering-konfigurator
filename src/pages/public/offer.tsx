@@ -57,7 +57,7 @@ const isValidToken = (token: string | undefined): boolean => {
   return false;
 };
 
-const GREETING_WORD_LIMIT = 40;
+import { GREETING_WORD_LIMIT } from '@/lib/app-limits';
 
 const truncateText = (text: string, wordLimit: number) => {
   const words = text.split(/\s+/);

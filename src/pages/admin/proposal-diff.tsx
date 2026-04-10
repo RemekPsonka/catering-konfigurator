@@ -10,6 +10,7 @@ import { useProposalDetail, useUpdateProposalItem, useResolveProposal } from '@/
 import type { ProposalItemWithDishes } from '@/hooks/use-proposal-diff';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/calculations';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
@@ -43,8 +44,6 @@ const PROPOSAL_STATUS_BADGE: Record<string, { className: string; label: string }
   rejected: { className: 'bg-red-100 text-red-800', label: 'Odrzucona' },
 };
 
-const formatPLN = (value: number) =>
-  new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(value);
 
 interface DiffRowProps {
   item: ProposalItemWithDishes;
@@ -78,7 +77,7 @@ const DiffRow = ({ item, onAccept, onReject, flashState }: DiffRowProps) => {
         <div>
           <p className="font-medium">{item.dishes?.display_name ?? item.dishes?.name ?? '—'}</p>
           <p className="text-xs text-muted-foreground">
-            {item.original_quantity} szt. × {formatPLN(item.original_price)}
+            {item.original_quantity} szt. × {formatCurrency(item.original_price)}
           </p>
         </div>
       </TableCell>
@@ -97,14 +96,14 @@ const DiffRow = ({ item, onAccept, onReject, flashState }: DiffRowProps) => {
                     : '—'}
           </p>
           <p className="text-xs text-muted-foreground">
-            {item.proposed_quantity ?? item.original_quantity} szt. × {formatPLN(item.proposed_price)}
+            {item.proposed_quantity ?? item.original_quantity} szt. × {formatCurrency(item.proposed_price)}
           </p>
         </div>
       </TableCell>
 
       <TableCell>
         <span className={`font-semibold text-sm ${priceDiff > 0 ? 'text-red-600' : priceDiff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-          {priceDiff > 0 ? '+' : ''}{formatPLN(priceDiff)}
+          {priceDiff > 0 ? '+' : ''}{formatCurrency(priceDiff)}
         </span>
       </TableCell>
 
@@ -313,7 +312,7 @@ export const ProposalDiffPage = () => {
             <div className="flex justify-between text-sm">
               <span>Wpływ cenowy (zaakceptowane)</span>
               <span className={`font-semibold ${acceptedPriceDiff > 0 ? 'text-red-600' : acceptedPriceDiff < 0 ? 'text-green-600' : ''}`}>
-                {acceptedPriceDiff > 0 ? '+' : ''}{formatPLN(acceptedPriceDiff)}
+                {acceptedPriceDiff > 0 ? '+' : ''}{formatCurrency(acceptedPriceDiff)}
               </span>
             </div>
           </CardContent>

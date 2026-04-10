@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,30 +114,22 @@ export const StepCalculation = ({
     },
   });
 
-  const debouncedGreeting = useDebounce(greetingText, 800);
-  const debouncedAiSummary = useDebounce(aiSummary, 800);
-  const debouncedNotesClient = useDebounce(notesClient, 800);
-  const debouncedNotesInternal = useDebounce(notesInternal, 800);
+  const textFields = useMemo(() => ({
+    greeting_text: greetingText || null,
+    ai_summary: aiSummary || null,
+    notes_client: notesClient || null,
+    notes_internal: notesInternal || null,
+  }), [greetingText, aiSummary, notesClient, notesInternal]);
+
+  const debouncedTextFields = useDebounce(textFields, 800);
+  const prevTextRef = useRef(debouncedTextFields);
 
   useEffect(() => {
     if (!loaded || !offerId) return;
-    saveMutation.mutate({ greeting_text: debouncedGreeting || null });
-  }, [debouncedGreeting]);
-
-  useEffect(() => {
-    if (!loaded || !offerId) return;
-    saveMutation.mutate({ ai_summary: debouncedAiSummary || null });
-  }, [debouncedAiSummary]);
-
-  useEffect(() => {
-    if (!loaded || !offerId) return;
-    saveMutation.mutate({ notes_client: debouncedNotesClient || null });
-  }, [debouncedNotesClient]);
-
-  useEffect(() => {
-    if (!loaded || !offerId) return;
-    saveMutation.mutate({ notes_internal: debouncedNotesInternal || null });
-  }, [debouncedNotesInternal]);
+    if (prevTextRef.current === debouncedTextFields) return;
+    prevTextRef.current = debouncedTextFields;
+    saveMutation.mutate(debouncedTextFields);
+  }, [debouncedTextFields]);
 
   // Save financial data
   const saveFinancials = () => {
