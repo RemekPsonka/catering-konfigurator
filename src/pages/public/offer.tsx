@@ -38,6 +38,7 @@ import type { DishModification } from '@/components/public/dish-edit-panel';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
+import { COMPANY } from '@/lib/company-config';
 
 const loadGoogleFont = (fontFamily: string | null) => {
   if (!fontFamily) return;
@@ -266,7 +267,7 @@ export const PublicOfferPage = () => {
             <a href="/offer/find" className="inline-flex items-center gap-2 rounded-xl bg-charcoal px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all hover:bg-charcoal/90">
               <Search className="h-4 w-4" /> Szukaj oferty
             </a>
-            <a href="mailto:zamowienia@cateringslaski.pl" className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+            <a href={`mailto:${COMPANY.email}`} className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
               <Mail className="h-4 w-4" /> Skontaktuj się z nami
             </a>
           </div>
@@ -289,11 +290,11 @@ export const PublicOfferPage = () => {
           <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Ta oferta jest w trakcie aktualizacji</h1>
           <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Wróć później lub skontaktuj się z nami.</p>
           <div className="mt-8 flex flex-col items-center gap-4">
-            <a href="tel:+48123456789" className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
-              <Phone className="h-4 w-4" /> +48 123 456 789
+            <a href={`tel:${COMPANY.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
+              <Phone className="h-4 w-4" /> {COMPANY.phone}
             </a>
-            <a href="mailto:zamowienia@cateringslaski.pl" className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
-              <Mail className="h-4 w-4" /> zamowienia@cateringslaski.pl
+            <a href={`mailto:${COMPANY.email}`} className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+              <Mail className="h-4 w-4" /> {COMPANY.email}
             </a>
           </div>
         </motion.div>
@@ -309,11 +310,11 @@ export const PublicOfferPage = () => {
           <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta zamknięta</h1>
           <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Ta oferta została zamknięta. Jeśli chcesz wznowić rozmowę, skontaktuj się z nami.</p>
           <div className="mt-8 flex flex-col items-center gap-4">
-            <a href="tel:+48123456789" className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
-              <Phone className="h-4 w-4" /> +48 123 456 789
+            <a href={`tel:${COMPANY.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">
+              <Phone className="h-4 w-4" /> {COMPANY.phone}
             </a>
-            <a href="mailto:zamowienia@cateringslaski.pl" className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
-              <Mail className="h-4 w-4" /> zamowienia@cateringslaski.pl
+            <a href={`mailto:${COMPANY.email}`} className="inline-flex items-center gap-2 font-body text-charcoal/60 underline underline-offset-4 transition-colors hover:text-charcoal">
+              <Mail className="h-4 w-4" /> {COMPANY.email}
             </a>
           </div>
         </motion.div>
@@ -363,7 +364,7 @@ export const PublicOfferPage = () => {
       : null,
   ].filter(Boolean) as { icon: React.ElementType; label: string; value: string }[];
 
-  const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : 'Catering Śląski');
+  const heroHeadline = eventProfile?.headline || (eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : COMPANY.name);
 
   const showOnboarding = isFirstVisitRef.current === true && !onboardingDismissed;
 
@@ -397,7 +398,7 @@ export const PublicOfferPage = () => {
       <div className="print-only hidden">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 0', borderBottom: '2px solid #1A1A1A', marginBottom: '20px' }}>
           <div>
-            <h1 style={{ fontSize: '20pt', fontWeight: 'bold', margin: 0 }}>Catering Śląski</h1>
+            <h1 style={{ fontSize: '20pt', fontWeight: 'bold', margin: 0 }}>{COMPANY.name}</h1>
             <p style={{ fontSize: '11pt', color: '#666', margin: '4px 0 0 0' }}>Oferta cateringowa</p>
           </div>
           <div style={{ textAlign: 'right', fontSize: '10pt', color: '#444' }}>
@@ -456,7 +457,7 @@ export const PublicOfferPage = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <h1 className="font-display text-3xl font-bold text-ivory md:text-4xl">
-              Catering Śląski
+              {COMPANY.name}
             </h1>
           </motion.div>
 
@@ -629,13 +630,13 @@ export const PublicOfferPage = () => {
         style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
       >
         <p className="font-body text-sm text-ivory/60">
-          © {new Date().getFullYear()} Catering Śląski
+          © {new Date().getFullYear()} {COMPANY.name}
         </p>
       </footer>
 
       {/* Print-only footer */}
       <div className="print-only hidden" style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #ccc', marginTop: '20px', fontSize: '9pt', color: '#666' }}>
-        Catering Śląski | zamowienia@cateringslaski.pl | Wygenerowano: {new Date().toLocaleDateString('pl-PL')}
+        {COMPANY.name} | {COMPANY.email} | Wygenerowano: {new Date().toLocaleDateString('pl-PL')}
       </div>
     </div>
   );
