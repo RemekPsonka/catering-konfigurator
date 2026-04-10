@@ -80,6 +80,8 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
   const handleIncrement = useCallback(() => setLocalPeopleCount((c) => c + 1), []);
   const handleDecrement = useCallback(() => setLocalPeopleCount((c) => Math.max(1, c - 1)), []);
 
+  if (!offer_variants || offer_variants.length === 0) return null;
+
   if (price_display_mode === 'HIDDEN') {
     return (
       <motion.section
