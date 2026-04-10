@@ -16,9 +16,10 @@ interface CommunicationSectionProps {
   offerId: string;
   offerNumber?: string | null;
   clientName?: string;
+  actionsDisabled?: boolean;
 }
 
-export const CommunicationSection = ({ offerId, offerNumber, clientName }: CommunicationSectionProps) => {
+export const CommunicationSection = ({ offerId, offerNumber, clientName, actionsDisabled = false }: CommunicationSectionProps) => {
   const [message, setMessage] = useState('');
   const [name, setName] = useState(clientName ?? '');
   const submitMessage = useSubmitMessage();

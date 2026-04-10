@@ -17,6 +17,7 @@ interface ChangesPanelProps {
   onClearModifications: () => void;
   originalTotal: number;
   proposedTotal: number;
+  actionsDisabled?: boolean;
 }
 
 const MOD_ICONS: Record<string, string> = {
@@ -32,6 +33,7 @@ export const ChangesPanel = ({
   onClearModifications,
   originalTotal,
   proposedTotal,
+  actionsDisabled = false,
 }: ChangesPanelProps) => {
   const [expanded, setExpanded] = useState(false);
   const [comment, setComment] = useState('');

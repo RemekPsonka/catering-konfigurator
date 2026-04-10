@@ -138,6 +138,13 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
   if (isLoading) return <LoadingSpinner />;
 
   const handleSaveDraft = () => {
+    // If offer was already sent/viewed/etc, don't reset status — just navigate
+    const protectedStatuses = ['sent', 'viewed', 'revision', 'accepted', 'won'];
+    if (offer && protectedStatuses.includes(offer.status)) {
+      toast.success('Zmiany zapisane');
+      navigate('/admin/offers');
+      return;
+    }
     statusMutation.mutate({ status: 'draft' }, {
       onSuccess: () => { toast.success('Szkic zapisany'); navigate('/admin/offers'); },
     });
