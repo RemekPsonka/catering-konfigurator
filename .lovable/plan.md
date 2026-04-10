@@ -1,61 +1,66 @@
 
 
-# Naprawy bezpieczeństwa — RPC, .gitignore, DEV_MODE
+# Naprawy utrzymywalności — duplikacje, stałe, debounce
 
 ## Pliki do zmiany
 
-### 1. Migracja SQL — zabezpieczenie RPC `find_offer_by_email_and_number`
+### 1. `src/pages/admin/offer-messages.tsx` — usunięcie `formatPLN`
+- Usunąć linie 100-101 (`const formatPLN = ...`)
+- Dodać `import { formatCurrency } from '@/lib/calculations';`
+- Zamienić 3 wystąpienia `formatPLN(` na `formatCurrency(`
 
-Dodać walidację inputów w funkcji (minimalna długość email i numeru). Nie tworzę tabeli `offer_search_attempts` — rate-limiting jest już obsłużony w UI (cooldown 30s po 3 próbach). Dodaję tylko server-side input validation.
+### 2. `src/pages/admin/proposal-diff.tsx` — usunięcie `formatPLN`
+- Usunąć linie 46-47 (`const formatPLN = ...`)
+- Dodać `import { formatCurrency } from '@/lib/calculations';`
+- Zamienić 4 wystąpienia `formatPLN(` na `formatCurrency(`
 
-```sql
-CREATE OR REPLACE FUNCTION public.find_offer_by_email_and_number(p_email text, p_offer_number text)
-RETURNS TABLE(...) -- zachowaj istniejące kolumny
-LANGUAGE plpgsql SECURITY DEFINER
-AS $function$
-BEGIN
-  IF p_email IS NULL OR length(trim(p_email)) < 3 THEN
-    RAISE EXCEPTION 'Podaj prawidłowy adres email';
-  END IF;
-  IF p_offer_number IS NULL OR length(trim(p_offer_number)) < 2 THEN
-    RAISE EXCEPTION 'Podaj prawidłowy numer oferty';
-  END IF;
-  -- reszta query bez zmian, dodaj trim()
-END;
-$function$;
+### 3. Nowy plik `src/lib/app-limits.ts`
+Centralne stałe:
+```typescript
+export const MAX_DISH_PHOTOS = 5;
+export const MAX_EVENT_PHOTOS = 15;
+export const MAX_PHOTO_SIZE_MB = 10;
+export const DEBOUNCE_SAVE_MS = 800;
+export const DEBOUNCE_SEARCH_MS = 300;
+export const GREETING_WORD_LIMIT = 40;
+export const SEARCH_COOLDOWN_MS = 3000;
 ```
 
-### 2. `src/pages/public/offer-find.tsx` — cooldown po każdym wyszukiwaniu
+### 4. Aktualizacja importów stałych
+- `src/hooks/use-event-profiles.ts`: `MAX_PHOTOS` → `MAX_EVENT_PHOTOS` z app-limits
+- `src/pages/public/offer.tsx`: `GREETING_WORD_LIMIT = 40` → import z app-limits
 
-Dodać 3-sekundowy cooldown po KAŻDYM wyszukiwaniu (nie tylko po 3 nieudanych próbach). Zmiana w `handleSubmit`: po `finally` ustawić `setCooldownSeconds(3)`.
+### 5. `src/components/features/offers/steps/step-calculation.tsx` — konsolidacja debounce
+Zamienić 4 osobne `useDebounce` + 4 `useEffect` (linie 117-140) na jeden połączony obiekt:
+```typescript
+const textFields = useMemo(() => ({
+  greeting_text: greetingText || null,
+  ai_summary: aiSummary || null,
+  notes_client: notesClient || null,
+  notes_internal: notesInternal || null,
+}), [greetingText, aiSummary, notesClient, notesInternal]);
 
-### 3. `.gitignore` — dodać `.env` i warianty
+const debouncedTextFields = useDebounce(textFields, 800);
+const prevTextRef = useRef(debouncedTextFields);
 
-Dodać na końcu:
+useEffect(() => {
+  if (!loaded || !offerId) return;
+  if (prevTextRef.current === debouncedTextFields) return;
+  prevTextRef.current = debouncedTextFields;
+  saveMutation.mutate(debouncedTextFields);
+}, [debouncedTextFields]);
 ```
-# Environment variables
-.env
-.env.local
-.env.production
-```
 
-### 4. Usunięcie DEV_MODE — 6 plików
+### 6. `src/hooks/use-event-profiles.ts` — optymalizacja zapytania
+Zamienić dwa zapytania (profiles + all photos) na jedno z `select('*, event_type_photos(count)')`, usunąć drugie query i `countMap`.
 
-**`src/lib/constants.ts`**: Usunąć `export const DEV_MODE = false;`
-
-**`src/hooks/use-auth.tsx`**: Usunąć import DEV_MODE, DEV_USER, DEV_SESSION. Zamienić warunkowe wyrażenia na bezpośrednie wartości (`null`, `true`). Usunąć `if (DEV_MODE) return;` z signIn, signOut, useEffect.
-
-**`src/components/layout/auth-guard.tsx`**: Usunąć import i `if (DEV_MODE) return <>{children}</>;`
-
-**`src/components/layout/admin-layout.tsx`**: Usunąć import i cały blok `{DEV_MODE && (<div>⚠️ TRYB DEWELOPERSKI...</div>)}`
-
-**`src/pages/auth/login.tsx`**: Usunąć import i `if (DEV_MODE) return <Navigate to="/admin/offers" replace />;`
-
-**`src/components/features/settings/accounts-page.tsx`**: Usunąć import DEV_MODE, `DEV_MOCK_USERS`, i warunki `if (DEV_MODE)` w `useUsers` i `createUser`.
+## Nie zmieniam
+- `ITEMS_PER_PAGE` w `constants.ts` — re-export dodałby łamania importów bez zysku
+- `dish-photos-section.tsx` — tam limit 5 jest w hooku `use-dish-photos.ts`, nie w tym pliku bezpośrednio
 
 ## Efekt
-- RPC waliduje inputy server-side
-- 3s cooldown po każdym wyszukiwaniu w UI
-- `.env` nie będzie commitowany w przyszłości
-- Zero DEV_MODE w kodzie — brak możliwości bypass'u auth
+- 2 duplikacje `formatPLN` usunięte
+- Magic numbers scentralizowane
+- 4 requesty debounce → 1 request
+- 2 zapytania SQL → 1 zapytanie (event profiles)
 
