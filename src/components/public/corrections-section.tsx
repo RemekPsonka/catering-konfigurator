@@ -50,16 +50,16 @@ export const CorrectionsSection = ({ offerId, offerNumber, clientName }: Correct
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
-      className="py-16 md:py-24"
+      className="py-8 md:py-12"
     >
       <div className="mx-auto max-w-3xl px-6">
         <h2
-          className="mb-8 text-center font-display text-2xl font-bold md:text-3xl"
+          className="mb-4 text-center font-display text-xl font-bold"
           style={{ color: 'var(--theme-text, #1A1A1A)' }}
         >
           Uwagi i korekty
         </h2>
-        <p className="mb-6 text-center font-body text-charcoal/60">
+        <p className="mb-4 text-center font-body text-sm text-charcoal/60">
           Masz pytania lub uwagi do oferty? Napisz do nas.
         </p>
 
@@ -67,7 +67,7 @@ export const CorrectionsSection = ({ offerId, offerNumber, clientName }: Correct
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Opisz swoje uwagi..."
-          className="min-h-[120px] resize-none rounded-2xl border p-5 font-body text-base"
+          className="min-h-[80px] resize-none rounded-xl border p-4 font-body text-sm"
           style={{
             backgroundColor: 'var(--theme-bg, #FAF7F2)',
             borderColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 20%, transparent)',
@@ -75,13 +75,13 @@ export const CorrectionsSection = ({ offerId, offerNumber, clientName }: Correct
           }}
         />
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-3 flex justify-center">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             disabled={submitCorrection.isPending || !message.trim()}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-2 rounded-xl border-2 px-6 py-3 font-body font-semibold tracking-wide transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border-2 px-5 py-2.5 font-body text-sm font-semibold tracking-wide transition-all disabled:opacity-50"
             style={{
               borderColor: 'var(--theme-primary, #1A1A1A)',
               color: 'var(--theme-primary, #1A1A1A)',

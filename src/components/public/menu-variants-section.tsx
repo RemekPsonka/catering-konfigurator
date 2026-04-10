@@ -65,7 +65,6 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
   );
 
   const showVariantPrice = priceDisplayMode !== 'HIDDEN' && priceDisplayMode !== 'TOTAL_ONLY';
-
   const singleVariant = sorted.length <= 1;
 
   return (
@@ -74,12 +73,12 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
-      className="py-16 md:py-24"
+      className="py-8 md:py-12"
     >
       <div className="mx-auto max-w-5xl px-6">
         <motion.h2
           variants={fadeInUp}
-          className="mb-10 text-center font-display text-2xl font-bold md:text-3xl"
+          className="mb-6 text-center font-display text-xl font-bold"
           style={{ color: 'var(--theme-text, #1A1A1A)' }}
         >
           Menu
@@ -87,17 +86,13 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
 
         {/* Variant selector */}
         {!singleVariant && (
-          <motion.div variants={fadeInUp} className="mb-8">
+          <motion.div variants={fadeInUp} className="mb-6">
             {isMobile ? (
-              /* Mobile: Embla Carousel */
               <div>
                 <div className="overflow-hidden" ref={emblaRef}>
-                  <div className="flex gap-4">
+                  <div className="flex gap-3">
                     {sorted.map((v) => (
-                      <div
-                        key={v.id}
-                        className="min-w-0 flex-[0_0_85%]"
-                      >
+                      <div key={v.id} className="min-w-0 flex-[0_0_85%]">
                         <VariantCard
                           variant={v}
                           isActive={v.id === activeId}
@@ -114,8 +109,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                     ))}
                   </div>
                 </div>
-                {/* Dots */}
-                <div className="mt-4 flex justify-center gap-2">
+                <div className="mt-3 flex justify-center gap-2">
                   {sorted.map((_, i) => (
                     <button
                       key={i}
@@ -130,8 +124,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                 </div>
               </div>
             ) : (
-              /* Desktop: Grid */
-              <div className={`grid gap-4 ${sorted.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              <div className={`grid gap-3 ${sorted.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {sorted.map((v) => (
                   <VariantCard
                     key={v.id}
@@ -148,7 +141,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
           </motion.div>
         )}
 
-        {/* Dishes list with AnimatePresence */}
+        {/* Dishes list */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeId}
@@ -164,10 +157,10 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
-                className="mb-8"
+                className="mb-4"
               >
                 <h3
-                  className="mb-4 font-display text-lg font-semibold md:text-xl"
+                  className="mb-2 font-display text-base font-semibold"
                   style={{ color: 'var(--theme-text, #1A1A1A)' }}
                 >
                   {cat.icon && <span className="mr-2">{cat.icon}</span>}
@@ -177,7 +170,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                   variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
                   initial="hidden"
                   animate="visible"
-                  className="flex flex-col gap-3"
+                  className="flex flex-col gap-2"
                 >
                   {cat.items.map((item) => (
                     <motion.div key={item.id} variants={fadeInUp}>
@@ -218,35 +211,33 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -2 }}
       animate={isActive ? { scale: 1.02 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300 }}
-      className="w-full rounded-2xl p-5 text-left transition-all"
+      className="w-full rounded-xl p-4 text-left transition-all"
       style={{
         backgroundColor: 'var(--theme-bg, #FAF7F2)',
         border: isActive ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
-        boxShadow: isActive ? '0 0 40px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' : '0 20px 60px rgba(0,0,0,0.08)',
+        boxShadow: isActive ? '0 0 20px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' : '0 4px 12px rgba(0,0,0,0.06)',
       }}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-display text-lg font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+        <h3 className="font-display text-base font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
           {variant.name}
         </h3>
         {variant.is_recommended && (
-          <motion.span
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-ivory"
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory"
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
           >
             <Sparkles className="h-3 w-3" />
             Polecany
-          </motion.span>
+          </span>
         )}
       </div>
 
       {variant.description && (
-        <p className="mt-1 font-body text-sm leading-relaxed" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.7 }}>
+        <p className="mt-1 font-body text-xs leading-relaxed" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.7 }}>
           {variant.description}
         </p>
       )}
@@ -257,15 +248,15 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
           return item.is_client_editable && mods && typeof mods === 'object';
         });
         return editableItems.length > 0 ? (
-          <p className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          <p className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
             style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 10%, transparent)', color: 'var(--theme-primary, #1A1A1A)' }}>
-            🔄 {editableItems.length} pozycji do personalizacji
+            🔄 {editableItems.length} do personalizacji
           </p>
         ) : null;
       })()}
 
       {showPrice && variant.price_per_person != null && Number(variant.price_per_person) > 0 && (
-        <p className="mt-3 font-body text-base font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
+        <p className="mt-2 font-body text-sm font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
           {formatCurrency(Number(variant.price_per_person))}/os
         </p>
       )}

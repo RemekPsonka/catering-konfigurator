@@ -4,7 +4,6 @@ import { Truck, ChefHat, Phone } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { supabase } from '@/integrations/supabase/client';
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { Enums } from '@/integrations/supabase/types';
 
 interface LogisticsSectionProps {
   offer: PublicOffer;
@@ -43,102 +42,54 @@ export const LogisticsSection = ({ offer }: LogisticsSectionProps) => {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
-      className="py-16 md:py-24"
+      className="py-8 md:py-12"
     >
       <div className="mx-auto max-w-4xl px-6">
         <motion.h2
           variants={fadeInUp}
-          className="mb-10 text-center font-display text-2xl font-bold md:text-3xl"
+          className="mb-6 text-center font-display text-xl font-bold"
           style={{ color: 'var(--theme-text, #1A1A1A)' }}
         >
           Logistyka
         </motion.h2>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Card 1: Delivery type */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {deliveryInfo && (
-            <motion.div
-              variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className="rounded-2xl bg-ivory p-6 shadow-premium"
-            >
-              <div
-                className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}
-              >
-                <Truck className="h-6 w-6" />
+            <motion.div variants={fadeInUp} className="rounded-xl bg-ivory p-4 shadow-sm">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}>
+                <Truck className="h-4 w-4" />
               </div>
-              <h3 className="font-display text-lg font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                {deliveryInfo.label}
-              </h3>
-              <p className="mt-2 text-sm text-charcoal/60 font-body">
-                {deliveryInfo.description}
-              </p>
+              <h3 className="font-display text-base font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{deliveryInfo.label}</h3>
+              <p className="mt-1 text-xs text-charcoal/60 font-body">{deliveryInfo.description}</p>
             </motion.div>
           )}
 
-          {/* Card 2: Additional services */}
           {validServices.length > 0 && (
-            <motion.div
-              variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className="rounded-2xl bg-ivory p-6 shadow-premium"
-            >
-              <div
-                className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}
-              >
-                <ChefHat className="h-6 w-6" />
+            <motion.div variants={fadeInUp} className="rounded-xl bg-ivory p-4 shadow-sm">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}>
+                <ChefHat className="h-4 w-4" />
               </div>
-              <h3 className="mb-3 font-display text-lg font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                Usługi dodatkowe
-              </h3>
-              <ul className="space-y-1.5">
+              <h3 className="mb-2 font-display text-base font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>Usługi dodatkowe</h3>
+              <ul className="space-y-1">
                 {validServices.map((os) => (
-                  <li key={os.id} className="text-sm text-charcoal/70 font-body">
+                  <li key={os.id} className="text-xs text-charcoal/70 font-body">
                     {os.services.name}
-                    {(os.quantity ?? 1) > 1 && (
-                      <span className="text-charcoal/40 ml-1">×{os.quantity}</span>
-                    )}
+                    {(os.quantity ?? 1) > 1 && <span className="text-charcoal/40 ml-1">×{os.quantity}</span>}
                   </li>
                 ))}
               </ul>
             </motion.div>
           )}
 
-          {/* Card 3: Contact */}
           {hasContact && (
-            <motion.div
-              variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className="rounded-2xl bg-ivory p-6 shadow-premium"
-            >
-              <div
-                className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}
-              >
-                <Phone className="h-6 w-6" />
+            <motion.div variants={fadeInUp} className="rounded-xl bg-ivory p-4 shadow-sm">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)', color: '#FAF7F2' }}>
+                <Phone className="h-4 w-4" />
               </div>
-              <h3 className="font-display text-lg font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                Kontakt na dzień eventu
-              </h3>
-              <p className="mt-2 text-sm text-charcoal/60 font-body">
-                W dniu wydarzenia kontakt:
-              </p>
-              {managerName && (
-                <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                  {managerName}
-                </p>
-              )}
+              <h3 className="font-display text-base font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>Kontakt na dzień eventu</h3>
+              {managerName && <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{managerName}</p>}
               {managerPhone && (
-                <a
-                  href={`tel:${managerPhone}`}
-                  className="mt-1 inline-block text-sm font-medium"
-                  style={{ color: 'var(--theme-primary, #1A1A1A)' }}
-                >
+                <a href={`tel:${managerPhone}`} className="mt-0.5 inline-block text-sm font-medium" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
                   {managerPhone}
                 </a>
               )}
