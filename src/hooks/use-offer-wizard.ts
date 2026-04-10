@@ -188,6 +188,7 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
       delivery_cost: td.settings.delivery_cost,
     }).eq('id', newOfferId);
 
+    const failedVariants: string[] = [];
     // Create variants + items
     for (const v of td.variants) {
       const { data: newVar, error: nvErr } = await supabase
@@ -222,6 +223,10 @@ export const useOfferWizard = (offerId?: string, templateData?: TemplateData, te
           }))
         );
       }
+    }
+
+    if (failedVariants.length > 0) {
+      toast.warning(`Nie udało się skopiować wariantów: ${failedVariants.join(', ')}. Dodaj je ręcznie.`);
     }
 
     // Create services
