@@ -21,7 +21,7 @@ export const useEventProfiles = () =>
 
       return (data ?? []).map((p) => ({
         ...p,
-        photo_count: (p.event_type_photos as unknown as { count: number }[])?.[0]?.count ?? 0,
+        photo_count: ((p.event_type_photos as Array<{ count: number }>)?.[0]?.count ?? 0),
       })) as EventProfile[];
     },
   });

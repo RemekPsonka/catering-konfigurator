@@ -47,7 +47,7 @@ export const usePublicOffer = (publicToken: string | undefined) => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as unknown as PublicOffer | null;
+      return data as PublicOffer | null;
     },
     enabled: !!publicToken,
   });
