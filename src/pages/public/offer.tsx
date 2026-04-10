@@ -33,7 +33,7 @@ import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
-import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
+
 import type { DishModification } from '@/components/public/dish-edit-panel';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
@@ -568,18 +568,7 @@ export const PublicOfferPage = () => {
         </div>
       </motion.section>
 
-      {/* 4. VARIANT COMPARISON — compact cards above menu */}
-      {offer.offer_variants.length >= 2 && (
-        <VariantComparisonSection
-          variants={offer.offer_variants}
-          pricingMode={offer.pricing_mode}
-          peopleCount={offer.people_count ?? 1}
-          priceDisplayMode={offer.price_display_mode}
-          onSelectVariant={setActiveVariantId}
-        />
-      )}
-
-      {/* 5. MENU */}
+      {/* 4. MENU */}
       {offer.offer_variants.length > 0 && (
         <MenuVariantsSection
           variants={offer.offer_variants}
