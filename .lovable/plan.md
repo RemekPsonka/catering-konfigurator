@@ -1,65 +1,79 @@
 
 
-# Fix: Propozycja zmian nie wysyła się — blokada RLS
+# Unified Chat View for Offer Communication
 
 ## Problem
-Polityka RLS `public_offer_accept` na tabeli `offers` pozwala publicznym użytkownikom aktualizować status **tylko na `accepted`**:
+Currently, offer communication is scattered across three separate views:
+- `/admin/offers/:id/messages` — questions and corrections (flat list of cards)
+- `/admin/offers/:id/proposals/:proposalId` — proposal diff (separate page per proposal)
+- `/admin/notifications` — all notifications mixed together across all offers
 
-```sql
-with_check: (public_token IS NOT NULL) AND (status = 'accepted')
+When a manager clicks a notification, they land on the messages page but lose context of proposals. Proposals live on yet another page. It's fragmented.
+
+## Solution
+Rebuild `offer-messages.tsx` into a single **chat-like timeline** that shows ALL communication for one offer: questions, corrections, AND proposals — chronologically, with inline statuses and inline actions.
+
+## Design
+
+```text
+┌─────────────────────────────────────────────┐
+│  ← Wróć   💬 Komunikacja — CS-2026-0001    │
+│            Małgorzata Nogieć · 150 os.      │
+├─────────────────────────────────────────────┤
+│                                             │
+│  ┌─ 📝 Korekta ──────────── 10.04, 09:15 ─┐│
+│  │ Małgorzata: "chce dodatkowo pizzę."     ││
+│  │                                          ││
+│  │  [Textarea: Twoja odpowiedź...]         ││
+│  │  [Odpowiedz]                            ││
+│  └──────────────────────────────────────────┘│
+│                                             │
+│  ┌─ 🔄 Propozycja zmian ──── 10.04, 08:30 ─┐
+│  │ "Proszę o zamianę rosołu na pomidorową" ││
+│  │                                          ││
+│  │  Rosół → Pomidorowa    ⏳ Oczekuje      ││
+│  │                                          ││
+│  │  [Przejdź do diff]  lub  inline accept  ││
+│  └──────────────────────────────────────────┘│
+│                                             │
+│  ┌─ 💬 Pytanie ──────────── 09.04, 14:00 ─┐│
+│  │ "Czy jest opcja wegańska?"              ││
+│  │                                          ││
+│  │  ✅ Odpowiedź (09.04, 15:30):           ││
+│  │  "Tak, możemy przygotować..."           ││
+│  └──────────────────────────────────────────┘│
+│                                             │
+└─────────────────────────────────────────────┘
 ```
 
-Gdy klient wysyła propozycję zmian, kod próbuje ustawić `status = 'revision'` — RLS blokuje to i zwraca błąd.
+## Files to Change
 
-## Rozwiązanie
+### 1. `src/pages/admin/offer-messages.tsx` — full rewrite
+- Fetch both `useAdminCorrections(id)` AND admin proposals (new query for `change_proposals` by offer_id)
+- Merge into single timeline sorted by `created_at` descending
+- Each item rendered as a chat bubble with:
+  - Type badge (Pytanie / Korekta / Propozycja zmian)
+  - Client message
+  - Status badge
+  - For questions/corrections: inline response textarea (if unresolved) or displayed response
+  - For proposals: summary of items (original → proposed), status per item, link to full diff page
+- Keep email modal for responses
+- Add offer context header (client name, offer number, event type)
 
-### 1. Nowa polityka RLS na tabeli `offers`
-Dodać politykę pozwalającą publicznym użytkownikom ustawić status na `revision`:
+### 2. `src/hooks/use-offer-corrections.ts` — add admin proposals query
+- Add `useAdminProposals(offerId)` hook that fetches `change_proposals` with `proposal_items` for the offer
+- Reuse existing query pattern from `usePublicResolvedProposals` but include ALL statuses (pending, accepted, rejected, partially_accepted)
 
-```sql
-CREATE POLICY "public_offer_revision"
-ON public.offers
-FOR UPDATE
-USING (
-  public_token IS NOT NULL 
-  AND status IN ('sent', 'viewed', 'revision')
-)
-WITH CHECK (
-  public_token IS NOT NULL 
-  AND status = 'revision'
-);
-```
+### 3. `src/pages/admin/notifications-list.tsx` — no structural changes
+- Notification links already point to `/admin/offers/:id/messages` — they will now land on the unified view
 
-Bezpieczne — klient może zmienić status tylko na `revision`, i tylko dla ofert z publicznym tokenem w statusach `sent`/`viewed`/`revision`.
+### No routing changes needed
+- Route `/admin/offers/:id/messages` stays the same
+- Route `/admin/offers/:id/proposals/:proposalId` stays for detailed diff view (linked from the timeline)
 
-### 2. Dodatkowy fix — `useMarkOfferViewed`
-Sprawdzić czy `useMarkOfferViewed` (status → `viewed`) też ma problem. Jeśli tak, rozszerzyć istniejącą politykę `public_offer_accept` albo dodać kolejną.
-
-Sprawdzam: `useMarkOfferViewed` aktualizuje status na `viewed` — ta sama polityka blokuje to. Trzeba to też naprawić.
-
-Zamiast wielu małych polityk, zastąpić `public_offer_accept` jedną bardziej elastyczną:
-
-```sql
--- Usunięcie starej
-DROP POLICY "public_offer_accept" ON public.offers;
-
--- Nowa, obsługująca viewed, revision i accepted
-CREATE POLICY "public_offer_status_update"
-ON public.offers
-FOR UPDATE
-USING (
-  public_token IS NOT NULL
-  AND status IN ('ready', 'sent', 'viewed', 'revision')
-)
-WITH CHECK (
-  public_token IS NOT NULL
-  AND status IN ('viewed', 'revision', 'accepted')
-);
-```
-
-## Brak zmian w kodzie
-Cały problem jest w RLS — kod w `use-public-offer.ts` jest poprawny.
-
-## Podsumowanie
-Jedna migracja SQL — zamiana polityki RLS. Zero zmian w plikach TypeScript.
+## What stays the same
+- Public client-side `CommunicationSection` — unchanged
+- `ProposalDiffPage` — still accessible for detailed per-item accept/reject
+- All hooks and mutations — reused as-is
+- Email modal flow — unchanged
 
