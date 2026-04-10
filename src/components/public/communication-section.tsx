@@ -200,6 +200,7 @@ export const CommunicationSection = ({ offerId, offerNumber, clientName, actions
             </div>
           </TabsContent>
         </Tabs>
+        )}
 
         {/* ── Timeline ── */}
         {hasHistory && (
