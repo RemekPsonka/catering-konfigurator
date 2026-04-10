@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail } from 'lucide-react';
+import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -30,6 +30,7 @@ interface StepPreviewProps {
   requirements?: ClientRequirement[];
   inquiryText?: string;
   onGoToStep?: (step: number) => void;
+  isLocked?: boolean;
 }
 
 type FullOffer = Tables<'offers'> & {
@@ -37,7 +38,7 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 
-export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep }: StepPreviewProps) => {
+export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = [], inquiryText = '', onGoToStep, isLocked = false }: StepPreviewProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -415,58 +416,65 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
             Zapisz jako szablon
           </Button>
         )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  variant="outline"
-                  disabled={!offer?.public_token}
-                  onClick={() => {
-                    if (offer?.public_token) {
-                      window.open(buildPublicOfferUrl(offer.public_token), '_blank');
-                    }
-                  }}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Podgląd klienta
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!offer?.public_token && (
-              <TooltipContent>Zapisz ofertę, aby zobaczyć podgląd klienta</TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-        <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
-          <Save className="mr-2 h-4 w-4" />
-          Zapisz szkic
-        </Button>
-        <Button variant="secondary" onClick={handleSaveAndShowLink} disabled={statusMutation.isPending}>
-          <Link2 className="mr-2 h-4 w-4" />
-          Zapisz i pokaż link
-        </Button>
-        <Button variant="secondary" onClick={handleMarkReady} disabled={statusMutation.isPending}>
-          <CheckCircle className="mr-2 h-4 w-4" />
-          Oznacz jako gotowa
-        </Button>
-        <Button onClick={handleGenerateEmail} disabled={statusMutation.isPending}>
-          <Mail className="mr-2 h-4 w-4" />
-          Wygeneruj treść emaila
-        </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button disabled className="opacity-50">
-                  <Send className="mr-2 h-4 w-4" />
-                  Wyślij do klienta
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Funkcja w przygotowaniu</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+
+        {isLocked ? (
+          <LockedActions offer={offer} queryClient={queryClient} offerId={offerId} />
+        ) : (
+          <>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      disabled={!offer?.public_token}
+                      onClick={() => {
+                        if (offer?.public_token) {
+                          window.open(buildPublicOfferUrl(offer.public_token), '_blank');
+                        }
+                      }}
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Podgląd klienta
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!offer?.public_token && (
+                  <TooltipContent>Zapisz ofertę, aby zobaczyć podgląd klienta</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <Button variant="outline" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
+              <Save className="mr-2 h-4 w-4" />
+              Zapisz szkic
+            </Button>
+            <Button variant="secondary" onClick={handleSaveAndShowLink} disabled={statusMutation.isPending}>
+              <Link2 className="mr-2 h-4 w-4" />
+              Zapisz i pokaż link
+            </Button>
+            <Button variant="secondary" onClick={handleMarkReady} disabled={statusMutation.isPending}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Oznacz jako gotowa
+            </Button>
+            <Button onClick={handleGenerateEmail} disabled={statusMutation.isPending}>
+              <Mail className="mr-2 h-4 w-4" />
+              Wygeneruj treść emaila
+            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button disabled className="opacity-50">
+                      <Send className="mr-2 h-4 w-4" />
+                      Wyślij do klienta
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Funkcja w przygotowaniu</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </>
+        )}
       </div>
 
       {offerId && (
@@ -541,5 +549,117 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+/* ── Locked offer actions ── */
+
+import { useState as useLockedState } from 'react';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import type { QueryClient } from '@tanstack/react-query';
+
+const LockedActions = ({ offer, queryClient, offerId }: { offer: FullOffer | null | undefined; queryClient: QueryClient; offerId: string | null }) => {
+  const [confirmStatus, setConfirmStatus] = useLockedState<'won' | 'lost' | null>(null);
+  const [unlockOpen, setUnlockOpen] = useLockedState(false);
+
+  const handleStatusChange = async (newStatus: 'won' | 'lost') => {
+    if (!offerId) return;
+    const { error } = await supabase
+      .from('offers')
+      .update({ status: newStatus })
+      .eq('id', offerId);
+    if (error) {
+      toast.error('Nie udało się zmienić statusu');
+      return;
+    }
+    toast.success(newStatus === 'won' ? 'Oferta oznaczona jako wygrana!' : 'Oferta oznaczona jako przegrana');
+    queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offer', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offers'] });
+    setConfirmStatus(null);
+  };
+
+  const handleUnlock = async () => {
+    if (!offerId) return;
+    const { error } = await supabase
+      .from('offers')
+      .update({ status: 'revision' as const })
+      .eq('id', offerId);
+    if (error) {
+      toast.error('Nie udało się odblokować oferty');
+      return;
+    }
+    toast.success('Oferta odblokowana do edycji');
+    queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offer', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offers'] });
+    setUnlockOpen(false);
+  };
+
+  return (
+    <>
+      {offer?.status === 'accepted' && (
+        <>
+          <Button
+            onClick={() => setConfirmStatus('won')}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Trophy className="h-4 w-4 mr-2" />
+            Oznacz jako wygrana
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setConfirmStatus('lost')}
+          >
+            <XCircle className="h-4 w-4 mr-2" />
+            Oznacz jako przegrana
+          </Button>
+        </>
+      )}
+      {offer?.status === 'won' && (
+        <Badge className="bg-emerald-100 text-emerald-900 text-sm px-4 py-2">
+          <Trophy className="h-4 w-4 mr-2" />
+          Oferta wygrana
+        </Badge>
+      )}
+      <Button variant="outline" onClick={() => setUnlockOpen(true)}>
+        <Unlock className="h-4 w-4 mr-2" />
+        Odblokuj do edycji
+      </Button>
+      {offer?.public_token && (
+        <Button variant="ghost" onClick={() => window.open(buildPublicOfferUrl(offer.public_token!), '_blank')}>
+          <Eye className="h-4 w-4 mr-2" />
+          Podgląd klienta
+        </Button>
+      )}
+
+      <ConfirmDialog
+        open={confirmStatus === 'won'}
+        onOpenChange={(open) => !open && setConfirmStatus(null)}
+        title="Oznacz jako wygrana?"
+        description="Oferta zostanie oznaczona jako wygrana. Edycja pozostanie zablokowana."
+        confirmLabel="Oznacz jako wygrana"
+        onConfirm={() => handleStatusChange('won')}
+        variant="default"
+      />
+      <ConfirmDialog
+        open={confirmStatus === 'lost'}
+        onOpenChange={(open) => !open && setConfirmStatus(null)}
+        title="Oznacz jako przegrana?"
+        description="Oferta zostanie oznaczona jako przegrana."
+        confirmLabel="Oznacz jako przegrana"
+        onConfirm={() => handleStatusChange('lost')}
+        variant="destructive"
+      />
+      <ConfirmDialog
+        open={unlockOpen}
+        onOpenChange={setUnlockOpen}
+        title="Odblokować ofertę?"
+        description={'Status zostanie zmieniony na „Rewizja" i oferta będzie ponownie edytowalna.'}
+        confirmLabel="Odblokuj"
+        onConfirm={handleUnlock}
+        variant="default"
+      />
+    </>
   );
 };

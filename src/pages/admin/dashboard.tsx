@@ -13,6 +13,7 @@ import {
   Plus,
   BarChart3,
   Users,
+  Trophy,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ export const DashboardPage = () => {
       </div>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard
           label="Szkice"
           icon={<FileText className="h-5 w-5 text-muted-foreground" />}
@@ -90,6 +91,14 @@ export const DashboardPage = () => {
           loading={kpiLoading}
           className="border-l-4 border-l-green-600"
           onClick={() => navigate('/admin/offers?status=accepted')}
+        />
+        <KpiCard
+          label="Wygrane"
+          icon={<Trophy className="h-5 w-5 text-emerald-600" />}
+          value={kpi?.won}
+          loading={kpiLoading}
+          className="border-l-4 border-l-emerald-600"
+          onClick={() => navigate('/admin/offers?status=won')}
         />
       </div>
 

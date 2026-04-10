@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -148,7 +148,12 @@ export const OffersListPage = () => {
                   onClick={() => navigate(`/admin/offers/${offer.id}/edit`)}
                 >
                   <TableCell className="font-mono text-sm">
-                    {offer.offer_number ?? '—'}
+                    <span className="inline-flex items-center gap-1.5">
+                      {['accepted', 'won'].includes(offer.status) && (
+                        <Lock className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                      )}
+                      {offer.offer_number ?? '—'}
+                    </span>
                   </TableCell>
                   <TableCell>{offer.clients?.name ?? '—'}</TableCell>
                   <TableCell>
