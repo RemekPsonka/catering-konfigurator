@@ -50,7 +50,7 @@ export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsD
 
   const handleConfirm = () => {
     acceptOffer.mutate(
-      { offerId: offer.id, variantId: selectedVariantId ?? null },
+      { offerId: offer.id, variantId: selectedVariantId ?? null, peopleCount: offer.people_count ?? undefined },
       {
         onSuccess: () => {
           setShowConfirm(false);
