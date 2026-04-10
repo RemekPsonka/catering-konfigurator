@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, RefreshCw } from 'lucide-react';
 import { DishCard } from './dish-card';
 import type { DishModification } from './dish-edit-panel';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateVariantDishesTotal } from '@/lib/calculations';
+import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { PublicOffer } from '@/hooks/use-public-offer';
@@ -214,26 +215,33 @@ interface VariantCardProps {
 }
 
 const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount }: VariantCardProps) => {
+  const itemCount = variant.variant_items.length;
+  const editableCount = variant.variant_items.filter((item) => {
+    const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
+    return item.is_client_editable && mods && typeof mods === 'object';
+  }).length;
+  const perPerson = calculateVariantDishesTotal(variant as unknown as VariantWithItems);
+
   return (
     <motion.button
       onClick={onClick}
       whileHover={{ y: -2 }}
       animate={isActive ? { scale: 1.02 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300 }}
-      className="w-full rounded-xl p-4 text-left transition-all"
+      className="w-full rounded-xl p-3 text-left transition-all"
       style={{
         backgroundColor: 'var(--theme-bg, #FAF7F2)',
         border: isActive ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
         boxShadow: isActive ? '0 0 20px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' : '0 4px 12px rgba(0,0,0,0.06)',
       }}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="font-display text-base font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
           {variant.name}
         </h3>
         {variant.is_recommended && (
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory shrink-0"
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
           >
             <Sparkles className="h-3 w-3" />
@@ -242,30 +250,23 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
         )}
       </div>
 
-      {variant.description && (
-        <p className="mt-1 font-body text-xs leading-relaxed" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.7 }}>
-          {variant.description}
-        </p>
-      )}
-
-      {(() => {
-        const editableItems = variant.variant_items.filter((item) => {
-          const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
-          return item.is_client_editable && mods && typeof mods === 'object';
-        });
-        return editableItems.length > 0 ? (
-          <p className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 10%, transparent)', color: 'var(--theme-primary, #1A1A1A)' }}>
-            🔄 {editableItems.length} do personalizacji
-          </p>
-        ) : null;
-      })()}
-
-      {showPrice && variant.price_per_person != null && Number(variant.price_per_person) > 0 && (
-        <p className="mt-2 font-body text-sm font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-          {formatCurrency(Number(variant.price_per_person))}/os
-        </p>
-      )}
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.7 }}>
+        <span className="inline-flex items-center gap-1">
+          <UtensilsCrossed className="h-3 w-3" />
+          {itemCount} pozycji
+        </span>
+        {editableCount > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <RefreshCw className="h-3 w-3" />
+            {editableCount} do personalizacji
+          </span>
+        )}
+        {showPrice && perPerson > 0 && (
+          <span className="font-semibold" style={{ color: 'var(--theme-primary, #1A1A1A)', opacity: 1 }}>
+            {formatCurrency(perPerson)}/os.
+          </span>
+        )}
+      </div>
     </motion.button>
   );
 };
