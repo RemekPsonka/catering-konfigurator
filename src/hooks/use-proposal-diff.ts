@@ -70,6 +70,7 @@ export const useUpdateProposalItem = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-proposals'] });
     },
   });
 };
@@ -103,6 +104,7 @@ export const useResolveProposal = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-proposals'] });
     },
   });
 };

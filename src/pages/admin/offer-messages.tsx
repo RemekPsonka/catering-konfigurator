@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
@@ -25,6 +25,10 @@ import {
   useRespondCorrection,
   useAdminProposals,
 } from '@/hooks/use-offer-corrections';
+import {
+  useUpdateProposalItem,
+  useResolveProposal,
+} from '@/hooks/use-proposal-diff';
 import { fireNotification } from '@/hooks/use-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -44,6 +48,19 @@ interface TimelineCorrection {
   respondedAt: string | null;
 }
 
+interface ProposalItemData {
+  id: string;
+  changeType: string;
+  originalDish: string;
+  proposedDish: string | null;
+  proposedVariantOption: string | null;
+  status: string;
+  originalPrice: number;
+  proposedPrice: number;
+  originalQuantity: number;
+  proposedQuantity: number | null;
+}
+
 interface TimelineProposal {
   kind: 'proposal';
   id: string;
@@ -51,14 +68,7 @@ interface TimelineProposal {
   clientMessage: string | null;
   clientName: string | null;
   status: string;
-  items: Array<{
-    id: string;
-    changeType: string;
-    originalDish: string;
-    proposedDish: string | null;
-    proposedVariantOption: string | null;
-    status: string;
-  }>;
+  items: ProposalItemData[];
 }
 
 type TimelineItem = TimelineCorrection | TimelineProposal;
@@ -86,6 +96,9 @@ const CHANGE_LABEL: Record<string, string> = {
   SPLIT: 'Podział',
   QUANTITY_CHANGE: 'Ilość',
 };
+
+const formatPLN = (v: number) =>
+  v.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', minimumFractionDigits: 2 });
 
 // ── Page Component ──
 
@@ -151,6 +164,10 @@ export const OfferMessagesPage = () => {
           proposedDish: pi.proposed_dish?.display_name ?? null,
           proposedVariantOption: pi.proposed_variant_option,
           status: pi.status,
+          originalPrice: pi.original_price ?? 0,
+          proposedPrice: pi.proposed_price ?? 0,
+          originalQuantity: pi.original_quantity ?? 0,
+          proposedQuantity: pi.proposed_quantity,
         })),
       });
     });
@@ -261,6 +278,8 @@ export const OfferMessagesPage = () => {
                 key={`p-${item.id}`}
                 item={item}
                 offerId={id!}
+                offer={offer}
+                onEmailModal={setEmailModal}
               />
             ),
           )}
@@ -387,12 +406,112 @@ const CorrectionBubble = ({
 interface ProposalBubbleProps {
   item: TimelineProposal;
   offerId: string;
+  offer: any;
+  onEmailModal: (modal: {
+    open: boolean;
+    subject: string;
+    body: string;
+    clientEmail: string;
+    clientName: string;
+  }) => void;
 }
 
-const ProposalBubble = ({ item, offerId }: ProposalBubbleProps) => {
+const ProposalBubble = ({ item, offerId, offer, onEmailModal }: ProposalBubbleProps) => {
   const statusConfig = PROPOSAL_STATUS[item.status] ?? PROPOSAL_STATUS.pending;
-  const pendingCount = item.items.filter((i) => i.status === 'pending').length;
+  const isPending = item.status === 'pending';
   const isResolved = ['accepted', 'partially_accepted', 'rejected'].includes(item.status);
+  const [flashStates, setFlashStates] = useState<Record<string, 'green' | 'red' | null>>({});
+  const [managerNotes, setManagerNotes] = useState('');
+
+  const updateItemMutation = useUpdateProposalItem();
+  const resolveMutation = useResolveProposal();
+
+  // Track local overrides for optimistic UI
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+
+  const getItemStatus = (pi: ProposalItemData) => localStatuses[pi.id] ?? pi.status;
+  const pendingCount = item.items.filter((i) => getItemStatus(i) === 'pending').length;
+  const allDecided = isPending && pendingCount === 0 && item.items.length > 0;
+
+  const handleItemAction = useCallback(
+    async (itemId: string, status: 'accepted' | 'rejected') => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      setFlashStates((prev) => ({ ...prev, [itemId]: status === 'accepted' ? 'green' : 'red' }));
+      setTimeout(() => setFlashStates((prev) => ({ ...prev, [itemId]: null })), 600);
+
+      setLocalStatuses((prev) => ({ ...prev, [itemId]: status }));
+
+      updateItemMutation.mutate(
+        { itemId, status, decidedBy: user?.id ?? '' },
+        {
+          onError: () => {
+            setLocalStatuses((prev) => {
+              const copy = { ...prev };
+              delete copy[itemId];
+              return copy;
+            });
+            toast.error('Nie udało się zaktualizować pozycji.');
+          },
+        },
+      );
+    },
+    [updateItemMutation],
+  );
+
+  const handleResolve = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const acceptedCount = item.items.filter((i) => getItemStatus(i) === 'accepted').length;
+    const rejectedCount = item.items.filter((i) => getItemStatus(i) === 'rejected').length;
+    const total = item.items.length;
+
+    let finalStatus: 'accepted' | 'partially_accepted' | 'rejected';
+    if (acceptedCount === total) finalStatus = 'accepted';
+    else if (rejectedCount === total) finalStatus = 'rejected';
+    else finalStatus = 'partially_accepted';
+
+    resolveMutation.mutate(
+      {
+        proposalId: item.id,
+        status: finalStatus,
+        managerNotes: managerNotes.trim() || undefined,
+        resolvedBy: user?.id ?? '',
+      },
+      {
+        onSuccess: () => {
+          toast.success('Propozycja rozpatrzona');
+
+          if (offer) {
+            fireNotification({
+              offerId,
+              eventType: 'proposal_resolved',
+              title: `📋 Propozycja rozpatrzona — ${offer.offer_number ?? ''}`,
+              body: `Status: ${PROPOSAL_STATUS[finalStatus]?.label ?? finalStatus}`,
+              link: `/admin/offers/${offerId}/messages`,
+            });
+
+            const client = offer.clients as any;
+            if (client?.email) {
+              const publicToken = offer.public_token ?? '';
+              onEmailModal({
+                open: true,
+                clientEmail: client.email,
+                clientName: client.name ?? '',
+                subject: `Decyzja w sprawie propozycji zmian — oferta ${offer.offer_number ?? ''}`,
+                body: `Szanowna/y ${client.name ?? ''},\n\nrozpatrzyliśmy Twoją propozycję zmian do oferty ${offer.offer_number ?? ''}.\n\nStatus: ${PROPOSAL_STATUS[finalStatus]?.label ?? finalStatus}\n${managerNotes.trim() ? `\nUwagi: ${managerNotes.trim()}\n` : ''}\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\nCatering Śląski`,
+              });
+            }
+          }
+        },
+        onError: () => {
+          toast.error('Nie udało się rozpatrzyć propozycji.');
+        },
+      },
+    );
+  }, [item, managerNotes, resolveMutation, offerId, offer, onEmailModal, localStatuses]);
+
+  const priceDiff = item.items.reduce((sum, pi) => sum + (pi.proposedPrice - pi.originalPrice), 0);
 
   return (
     <Card className="overflow-hidden border-l-4 border-l-indigo-400">
@@ -406,7 +525,7 @@ const ProposalBubble = ({ item, offerId }: ProposalBubbleProps) => {
           <Badge variant="outline" className={`${statusConfig.className} border-none`}>
             {statusConfig.label}
           </Badge>
-          {!isResolved && pendingCount > 0 && (
+          {isPending && pendingCount > 0 && (
             <span className="text-xs text-orange-600 font-medium">
               {pendingCount} do rozpatrzenia
             </span>
@@ -418,20 +537,20 @@ const ProposalBubble = ({ item, offerId }: ProposalBubbleProps) => {
           </span>
         </div>
 
-        {/* Client name */}
+        {/* Client name + message */}
         {item.clientName && (
           <p className="text-xs font-medium text-muted-foreground">{item.clientName}</p>
         )}
-
-        {/* Client message */}
         {item.clientMessage && (
           <div className="rounded-lg bg-muted p-3 text-sm">{item.clientMessage}</div>
         )}
 
-        {/* Items summary */}
+        {/* Items with inline actions */}
         <div className="space-y-1">
           {item.items.map((pi) => {
-            const itemStatus = ITEM_STATUS[pi.status] ?? ITEM_STATUS.pending;
+            const currentStatus = getItemStatus(pi);
+            const itemStatusConf = ITEM_STATUS[currentStatus] ?? ITEM_STATUS.pending;
+            const flash = flashStates[pi.id];
             const proposedLabel =
               pi.changeType === 'SWAP' && pi.proposedDish
                 ? pi.proposedDish
@@ -439,32 +558,100 @@ const ProposalBubble = ({ item, offerId }: ProposalBubbleProps) => {
                   ? pi.proposedVariantOption
                   : CHANGE_LABEL[pi.changeType] ?? pi.changeType;
 
+            const pDiff = pi.proposedPrice - pi.originalPrice;
+
             return (
               <div
                 key={pi.id}
-                className="flex items-center gap-2 text-sm rounded px-2 py-1 bg-muted/50"
+                className={`flex items-center gap-2 text-sm rounded px-2 py-1.5 transition-colors duration-300 ${
+                  flash === 'green'
+                    ? 'bg-green-100'
+                    : flash === 'red'
+                      ? 'bg-red-100'
+                      : 'bg-muted/50'
+                }`}
               >
-                <span className="text-xs text-muted-foreground w-16">
+                <span className="text-xs text-muted-foreground w-16 shrink-0">
                   {CHANGE_LABEL[pi.changeType] ?? pi.changeType}
                 </span>
-                <span className="font-medium">{pi.originalDish}</span>
-                <span className="text-muted-foreground">→</span>
-                <span className="font-medium">{proposedLabel}</span>
-                <span className={`ml-auto text-xs font-medium ${itemStatus.className}`}>
-                  {itemStatus.label}
-                </span>
+                <span className="font-medium truncate">{pi.originalDish}</span>
+                <span className="text-muted-foreground shrink-0">→</span>
+                <span className="font-medium truncate">{proposedLabel}</span>
+                {pDiff !== 0 && (
+                  <span className={`text-xs shrink-0 ${pDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {pDiff > 0 ? '+' : ''}{formatPLN(pDiff)}
+                  </span>
+                )}
+                {isPending && currentStatus === 'pending' ? (
+                  <div className="ml-auto flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-green-700 hover:bg-green-100"
+                      onClick={() => handleItemAction(pi.id, 'accepted')}
+                      disabled={updateItemMutation.isPending}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-700 hover:bg-red-100"
+                      onClick={() => handleItemAction(pi.id, 'rejected')}
+                      disabled={updateItemMutation.isPending}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span className={`ml-auto text-xs font-medium shrink-0 ${itemStatusConf.className}`}>
+                    {itemStatusConf.label}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Link to full diff */}
-        <Button variant="outline" size="sm" asChild className="gap-2">
-          <Link to={`/admin/offers/${offerId}/proposals/${item.id}`}>
-            <ExternalLink className="h-3.5 w-3.5" />
-            {isResolved ? 'Zobacz szczegóły' : 'Rozpatrz propozycję'}
-          </Link>
-        </Button>
+        {/* Price diff summary */}
+        {priceDiff !== 0 && (
+          <div className="flex items-center justify-between text-sm px-2">
+            <span className="text-muted-foreground">Wpływ cenowy:</span>
+            <span className={`font-semibold ${priceDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {priceDiff > 0 ? '+' : ''}{formatPLN(priceDiff)}
+            </span>
+          </div>
+        )}
+
+        {/* Resolve section — shown when all items decided */}
+        {isPending && allDecided && (
+          <div className="space-y-2 border-t pt-3">
+            <Textarea
+              value={managerNotes}
+              onChange={(e) => setManagerNotes(e.target.value)}
+              placeholder="Notatka do decyzji (opcjonalnie)..."
+              className="min-h-[50px]"
+            />
+            <Button
+              onClick={handleResolve}
+              disabled={resolveMutation.isPending}
+              className="gap-2"
+            >
+              <Check className="h-4 w-4" />
+              Zatwierdź decyzje
+            </Button>
+          </div>
+        )}
+
+        {/* Link to full diff for resolved or complex cases */}
+        {isResolved && (
+          <Button variant="outline" size="sm" asChild className="gap-2">
+            <Link to={`/admin/offers/${offerId}/proposals/${item.id}`}>
+              <ExternalLink className="h-3.5 w-3.5" />
+              Zobacz szczegóły
+            </Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
