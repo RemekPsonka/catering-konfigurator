@@ -551,3 +551,115 @@ export const StepPreview = ({ offerId, pricingMode, peopleCount, requirements = 
     </div>
   );
 };
+
+/* ── Locked offer actions ── */
+
+import { useState as useLockedState } from 'react';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import type { QueryClient } from '@tanstack/react-query';
+
+const LockedActions = ({ offer, queryClient, offerId }: { offer: FullOffer | null | undefined; queryClient: QueryClient; offerId: string | null }) => {
+  const [confirmStatus, setConfirmStatus] = useLockedState<'won' | 'lost' | null>(null);
+  const [unlockOpen, setUnlockOpen] = useLockedState(false);
+
+  const handleStatusChange = async (newStatus: 'won' | 'lost') => {
+    if (!offerId) return;
+    const { error } = await supabase
+      .from('offers')
+      .update({ status: newStatus })
+      .eq('id', offerId);
+    if (error) {
+      toast.error('Nie udało się zmienić statusu');
+      return;
+    }
+    toast.success(newStatus === 'won' ? 'Oferta oznaczona jako wygrana!' : 'Oferta oznaczona jako przegrana');
+    queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offer', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offers'] });
+    setConfirmStatus(null);
+  };
+
+  const handleUnlock = async () => {
+    if (!offerId) return;
+    const { error } = await supabase
+      .from('offers')
+      .update({ status: 'revision' as const })
+      .eq('id', offerId);
+    if (error) {
+      toast.error('Nie udało się odblokować oferty');
+      return;
+    }
+    toast.success('Oferta odblokowana do edycji');
+    queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offer', offerId] });
+    queryClient.invalidateQueries({ queryKey: ['offers'] });
+    setUnlockOpen(false);
+  };
+
+  return (
+    <>
+      {offer?.status === 'accepted' && (
+        <>
+          <Button
+            onClick={() => setConfirmStatus('won')}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Trophy className="h-4 w-4 mr-2" />
+            Oznacz jako wygrana
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setConfirmStatus('lost')}
+          >
+            <XCircle className="h-4 w-4 mr-2" />
+            Oznacz jako przegrana
+          </Button>
+        </>
+      )}
+      {offer?.status === 'won' && (
+        <Badge className="bg-emerald-100 text-emerald-900 text-sm px-4 py-2">
+          <Trophy className="h-4 w-4 mr-2" />
+          Oferta wygrana
+        </Badge>
+      )}
+      <Button variant="outline" onClick={() => setUnlockOpen(true)}>
+        <Unlock className="h-4 w-4 mr-2" />
+        Odblokuj do edycji
+      </Button>
+      {offer?.public_token && (
+        <Button variant="ghost" onClick={() => window.open(buildPublicOfferUrl(offer.public_token!), '_blank')}>
+          <Eye className="h-4 w-4 mr-2" />
+          Podgląd klienta
+        </Button>
+      )}
+
+      <ConfirmDialog
+        open={confirmStatus === 'won'}
+        onOpenChange={(open) => !open && setConfirmStatus(null)}
+        title="Oznacz jako wygrana?"
+        description="Oferta zostanie oznaczona jako wygrana. Edycja pozostanie zablokowana."
+        confirmLabel="Oznacz jako wygrana"
+        onConfirm={() => handleStatusChange('won')}
+        variant="default"
+      />
+      <ConfirmDialog
+        open={confirmStatus === 'lost'}
+        onOpenChange={(open) => !open && setConfirmStatus(null)}
+        title="Oznacz jako przegrana?"
+        description="Oferta zostanie oznaczona jako przegrana."
+        confirmLabel="Oznacz jako przegrana"
+        onConfirm={() => handleStatusChange('lost')}
+        variant="destructive"
+      />
+      <ConfirmDialog
+        open={unlockOpen}
+        onOpenChange={setUnlockOpen}
+        title="Odblokować ofertę?"
+        description={'Status zostanie zmieniony na „Rewizja" i oferta będzie ponownie edytowalna.'}
+        confirmLabel="Odblokuj"
+        onConfirm={handleUnlock}
+        variant="default"
+      />
+    </>
+  );
+};
