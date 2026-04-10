@@ -1,95 +1,61 @@
 
 
-# Naprawy wysokie — dish ID, race condition, walidacja rabatu
+# Naprawy bezpieczeństwa — RPC, .gitignore, DEV_MODE
 
 ## Pliki do zmiany
 
-### 1. `src/hooks/use-public-offer.ts` — linia 147
+### 1. Migracja SQL — zabezpieczenie RPC `find_offer_by_email_and_number`
 
-Zmiana fallbacku `?? itemId` na `?? null`:
-```typescript
-original_dish_id: variantItem?.dishes?.id ?? null,
+Dodać walidację inputów w funkcji (minimalna długość email i numeru). Nie tworzę tabeli `offer_search_attempts` — rate-limiting jest już obsłużony w UI (cooldown 30s po 3 próbach). Dodaję tylko server-side input validation.
+
+```sql
+CREATE OR REPLACE FUNCTION public.find_offer_by_email_and_number(p_email text, p_offer_number text)
+RETURNS TABLE(...) -- zachowaj istniejące kolumny
+LANGUAGE plpgsql SECURITY DEFINER
+AS $function$
+BEGIN
+  IF p_email IS NULL OR length(trim(p_email)) < 3 THEN
+    RAISE EXCEPTION 'Podaj prawidłowy adres email';
+  END IF;
+  IF p_offer_number IS NULL OR length(trim(p_offer_number)) < 2 THEN
+    RAISE EXCEPTION 'Podaj prawidłowy numer oferty';
+  END IF;
+  -- reszta query bez zmian, dodaj trim()
+END;
+$function$;
 ```
 
-### 2. `src/components/public/calculation-section.tsx` — linie 35, 69-78
+### 2. `src/pages/public/offer-find.tsx` — cooldown po każdym wyszukiwaniu
 
-**Linia 35:** Zabezpieczenie ref przed null:
-```typescript
-const prevValidCount = useRef(people_count ?? 1);
+Dodać 3-sekundowy cooldown po KAŻDYM wyszukiwaniu (nie tylko po 3 nieudanych próbach). Zmiana w `handleSubmit`: po `finally` ustawić `setCooldownSeconds(3)`.
+
+### 3. `.gitignore` — dodać `.env` i warianty
+
+Dodać na końcu:
+```
+# Environment variables
+.env
+.env.local
+.env.production
 ```
 
-**Linie 69-78:** Zamiana useEffect — synchroniczne obliczanie totals zamiast polegania na useMemo:
-```typescript
-useEffect(() => {
-  if (!min_offer_price || min_offer_price <= 0) return;
-  if (debouncedCount === prevValidCount.current) return;
+### 4. Usunięcie DEV_MODE — 6 plików
 
-  const checkTotals = calculateOfferTotals(
-    pricing_mode, debouncedCount, adjustedVariants, services,
-    discount_percent ?? 0, discount_value ?? 0, delivery_cost ?? 0,
-  );
+**`src/lib/constants.ts`**: Usunąć `export const DEV_MODE = false;`
 
-  if (checkTotals.grandTotal < min_offer_price) {
-    toast.error('Ta zmiana nie jest możliwa. Skontaktuj się z nami, aby omówić alternatywy.', { className: 'shake-toast' });
-    setLocalPeopleCount(prevValidCount.current ?? people_count ?? 1);
-  } else {
-    prevValidCount.current = debouncedCount;
-  }
-}, [debouncedCount, pricing_mode, adjustedVariants, services, discount_percent, discount_value, delivery_cost, min_offer_price]);
-```
+**`src/hooks/use-auth.tsx`**: Usunąć import DEV_MODE, DEV_USER, DEV_SESSION. Zamienić warunkowe wyrażenia na bezpośrednie wartości (`null`, `true`). Usunąć `if (DEV_MODE) return;` z signIn, signOut, useEffect.
 
-### 3. `src/components/features/offers/steps/step-calculation.tsx` — linie 143, 165, ~451
+**`src/components/layout/auth-guard.tsx`**: Usunąć import i `if (DEV_MODE) return <>{children}</>;`
 
-**saveFinancials (linia 143):** Dodać walidację przed mutacją:
-```typescript
-const saveFinancials = () => {
-  if (!offerId) return;
-  const dp = discountType === 'percent' ? discountPercent : 0;
-  const dv = discountType === 'value' ? discountValue : 0;
+**`src/components/layout/admin-layout.tsx`**: Usunąć import i cały blok `{DEV_MODE && (<div>⚠️ TRYB DEWELOPERSKI...</div>)}`
 
-  if (dv > 0) {
-    const maxTotal = Math.max(...totals.variantTotals.map(v => v.total), 0);
-    if (dv > maxTotal) {
-      toast.error(`Rabat (${dv} zł) nie może przekroczyć wartości dań (${maxTotal.toFixed(2)} zł)`);
-      return;
-    }
-  }
+**`src/pages/auth/login.tsx`**: Usunąć import i `if (DEV_MODE) return <Navigate to="/admin/offers" replace />;`
 
-  saveMutation.mutate({ ... });
-};
-```
-
-**Input rabatu kwotowego (~linia 451):** Dodać warunkowy czerwony border gdy `discountValue > totals.maxDishesTotal`.
-
-### 4. `src/lib/calculations.ts` — linia 58
-
-Na początku `calculateOfferTotals`, wymuszenie minimum 1 osoby:
-```typescript
-const safePeopleCount = Math.max(1, Math.round(peopleCount));
-```
-Zamiana wszystkich `peopleCount` wewnątrz funkcji na `safePeopleCount` (linie 70, 81, 107).
-
-### 5. `src/hooks/use-offer-wizard.ts` — linie 192-204
-
-Dodać tracking nieudanych wariantów:
-```typescript
-const failedVariants: string[] = [];
-// w pętli:
-if (nvErr || !newVar) {
-  console.error('Nie udało się skopiować wariantu:', v.name, nvErr?.message);
-  failedVariants.push(v.name);
-  continue;
-}
-// po pętli:
-if (failedVariants.length > 0) {
-  toast.warning(`Nie udało się skopiować wariantów: ${failedVariants.join(', ')}. Dodaj je ręcznie.`);
-}
-```
+**`src/components/features/settings/accounts-page.tsx`**: Usunąć import DEV_MODE, `DEV_MOCK_USERS`, i warunki `if (DEV_MODE)` w `useUsers` i `createUser`.
 
 ## Efekt
-- Propozycje klienta zapisują poprawny dish ID lub null (nie item ID)
-- Race condition przy zmianie gości wyeliminowany — synchroniczne obliczanie
-- Admin widzi błąd przy za dużym rabacie + czerwony border
-- peopleCount zawsze >= 1 w obliczeniach
-- Nieudane kopiowanie wariantów z szablonu zgłaszane użytkownikowi
+- RPC waliduje inputy server-side
+- 3s cooldown po każdym wyszukiwaniu w UI
+- `.env` nie będzie commitowany w przyszłości
+- Zero DEV_MODE w kodzie — brak możliwości bypass'u auth
 
