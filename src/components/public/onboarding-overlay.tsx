@@ -20,8 +20,8 @@ const STEPS = [
     title: '🔄 Personalizuj',
     getDescription: (editableCount: number) =>
       editableCount > 0
-        ? `${editableCount} ${editableCount === 1 ? 'pozycja jest' : editableCount < 5 ? 'pozycje są' : 'pozycji jest'} do personalizacji — kliknij ikonę 🔄 przy daniu, aby zobaczyć alternatywy.`
-        : 'Przy daniach oznaczonych ikoną 🔄 możesz wybrać alternatywę.',
+        ? `${editableCount} ${editableCount === 1 ? 'pozycja jest' : editableCount < 5 ? 'pozycje są' : 'pozycji jest'} do personalizacji — kliknij «wymień na inne» przy daniu, aby zobaczyć alternatywy.`
+        : 'Przy daniach oznaczonych przyciskiem «wymień na inne» możesz wybrać alternatywę.',
   },
   {
     icon: CheckCircle,
