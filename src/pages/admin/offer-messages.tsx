@@ -156,18 +156,32 @@ export const OfferMessagesPage = () => {
         clientMessage: p.client_message,
         clientName: p.client_name,
         status: p.status,
-        items: (p.proposal_items ?? []).map((pi: any) => ({
-          id: pi.id,
-          changeType: pi.change_type,
-          originalDish: pi.dishes?.display_name ?? '—',
-          proposedDish: pi.proposed_dish?.display_name ?? null,
-          proposedVariantOption: pi.proposed_variant_option,
-          status: pi.status,
-          originalPrice: pi.original_price ?? 0,
-          proposedPrice: pi.proposed_price ?? 0,
-          originalQuantity: pi.original_quantity ?? 0,
-          proposedQuantity: pi.proposed_quantity,
-        })),
+        items: (p.proposal_items ?? []).map((pi: any) => {
+          // Resolve numeric variant option to label from dish's modifiable_items
+          let variantOption = pi.proposed_variant_option as string | null;
+          if (variantOption && /^\d+$/.test(variantOption) && pi.dishes?.modifiable_items) {
+            const mods = pi.dishes.modifiable_items;
+            if (mods && typeof mods === 'object' && 'type' in mods && mods.type === 'variant') {
+              const options = (mods as any).options as { label?: string }[] | undefined;
+              const idx = parseInt(variantOption, 10);
+              if (options && options[idx]?.label) {
+                variantOption = options[idx].label;
+              }
+            }
+          }
+          return {
+            id: pi.id,
+            changeType: pi.change_type,
+            originalDish: pi.dishes?.display_name ?? '—',
+            proposedDish: pi.proposed_dish?.display_name ?? null,
+            proposedVariantOption: variantOption,
+            status: pi.status,
+            originalPrice: pi.original_price ?? 0,
+            proposedPrice: pi.proposed_price ?? 0,
+            originalQuantity: pi.original_quantity ?? 0,
+            proposedQuantity: pi.proposed_quantity,
+          };
+        }),
       });
     });
 
