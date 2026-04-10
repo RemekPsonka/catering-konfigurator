@@ -46,6 +46,8 @@ export const ChangesPanel = ({
 
   const priceDiff = proposedTotal - originalTotal;
   const hasChanges = modifications.size > 0;
+  const isPP = offer.pricing_mode === 'PER_PERSON';
+  const unit = isPP ? 'os.' : 'szt.';
 
   // Collect all variant items for mapping
   const allVariantItems = offer.offer_variants.flatMap((v) =>
