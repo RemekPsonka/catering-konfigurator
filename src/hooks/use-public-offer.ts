@@ -184,17 +184,14 @@ export const useAcceptOffer = () => {
 
   return useMutation({
     mutationFn: async ({ offerId, variantId, peopleCount }: { offerId: string; variantId: string | null; peopleCount?: number }) => {
-      const updateData: Record<string, unknown> = {
-        accepted_at: new Date().toISOString(),
-        status: 'accepted' as const,
-        accepted_variant_id: variantId,
-      };
-      if (peopleCount != null && peopleCount >= 1) {
-        updateData.people_count = peopleCount;
-      }
       const { error } = await supabase
         .from('offers')
-        .update(updateData)
+        .update({
+          accepted_at: new Date().toISOString(),
+          status: 'accepted' as const,
+          accepted_variant_id: variantId,
+          ...(peopleCount != null && peopleCount >= 1 ? { people_count: peopleCount } : {}),
+        })
         .eq('id', offerId);
 
       if (error) throw error;
