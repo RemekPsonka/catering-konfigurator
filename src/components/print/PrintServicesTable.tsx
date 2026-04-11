@@ -1,6 +1,7 @@
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { Tables } from '@/integrations/supabase/types';
-import { formatCurrency, calculateBlockPrice } from '@/lib/calculations';
+import { formatCurrency } from '@/lib/calculations';
+import { calculateBlockTotal } from '@/lib/service-constants';
 
 interface PrintServicesTableProps {
   offer: PublicOffer;
@@ -41,7 +42,7 @@ export const PrintServicesTable = ({ offer, upsellSelections }: PrintServicesTab
             const qty = os.quantity ?? 1;
             const isBlock = os.services?.price_type === 'PER_BLOCK';
             const total = isBlock
-              ? calculateBlockPrice(price, os.services?.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
+              ? calculateBlockTotal(price, os.services?.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
               : price * qty;
             servicesTotal += total;
             return (

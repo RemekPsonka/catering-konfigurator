@@ -13,8 +13,7 @@ import {
   useRemoveOfferService,
   type OfferServiceWithService,
 } from '@/hooks/use-offer-services';
-import { SERVICE_TYPE_LABELS, PRICE_TYPE_LABELS } from '@/lib/service-constants';
-import { calculateBlockPrice } from '@/lib/calculations';
+import { SERVICE_TYPE_LABELS, PRICE_TYPE_LABELS, calculateBlockTotal, formatBlockLabel } from '@/lib/service-constants';
 import { RequirementHints } from '../requirement-hints';
 import type { ClientRequirement } from '../requirements-sidebar';
 import type { Tables } from '@/integrations/supabase/types';
@@ -70,7 +69,7 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
       const qty = os.services.price_type === 'PER_PERSON' && peopleCount ? peopleCount : (os.quantity ?? 1);
       if (os.services.price_type === 'PER_BLOCK') {
         const extraPrice = os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null;
-        return sum + calculateBlockPrice(price, extraPrice, qty);
+        return sum + calculateBlockTotal(price, extraPrice, qty);
       }
       return sum + price * qty;
     }, 0);
@@ -174,7 +173,7 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
                             <>
                               <Label className="text-xs">
                                 {service.price_type === 'PER_BLOCK'
-                                  ? `Liczba ${service.block_unit_label || 'bloków'}`
+                                  ? `Bloki (1 blok = ${service.block_duration_hours ?? '?'}h, 1 ${service.block_unit_label || 'jednostka'})`
                                   : 'Ilość'}
                               </Label>
                               <Input
@@ -186,9 +185,12 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
                                 }
                                 className="h-8"
                               />
-                              {service.price_type === 'PER_BLOCK' && service.block_duration_hours && (
+                              {service.price_type === 'PER_BLOCK' && (
                                 <span className="text-xs text-muted-foreground">
-                                  {(os.quantity ?? 1)} × {service.block_duration_hours}h
+                                  = {formatBlockLabel(os.quantity ?? 1, service.block_unit_label, service.block_duration_hours)}
+                                  {service.extra_block_price != null && Number(service.extra_block_price) !== service.price && (
+                                    <> · Pierwszy: {formatPrice(service.price)}, kolejny: {formatPrice(Number(service.extra_block_price))}</>
+                                  )}
                                 </span>
                               )}
                             </>

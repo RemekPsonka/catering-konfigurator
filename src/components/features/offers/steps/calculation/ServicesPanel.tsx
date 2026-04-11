@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, calculateBlockPrice } from '@/lib/calculations';
+import { formatCurrency } from '@/lib/calculations';
+import { calculateBlockTotal } from '@/lib/service-constants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 interface ServicesPanelProps {
@@ -33,7 +34,7 @@ export const ServicesPanel = ({ offerServices, servicesTotal }: ServicesPanelPro
               const qty = os.quantity ?? 1;
               const isBlock = os.services.price_type === 'PER_BLOCK';
               const lineTotal = isBlock
-                ? calculateBlockPrice(price, os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
+                ? calculateBlockTotal(price, os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
                 : price * qty;
               return (
                 <TableRow key={os.id}>
