@@ -58,6 +58,7 @@ export const calculateOfferTotals = (
   discountPercent: number,
   discountValue: number,
   deliveryCost: number,
+  upsellTotal: number = 0,
 ): OfferTotals => {
   const safePeopleCount = Math.max(1, Math.round(peopleCount));
 
