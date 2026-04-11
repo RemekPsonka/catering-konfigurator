@@ -138,7 +138,12 @@ export const useResolveProposal = () => {
       // 4. Fetch accepted proposal items to apply to variant_items
       const { data: acceptedItems, error: fetchError } = await supabase
         .from('proposal_items')
-        .select('*, proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(id, display_name)')
+        .select(`*, 
+          proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(id, display_name),
+          variant_item:variant_items!proposal_items_variant_item_id_fkey(
+            id, dish:dishes(modifiable_items)
+          )
+        `)
         .eq('proposal_id', proposalId)
         .eq('status', 'accepted');
 
@@ -166,7 +171,20 @@ export const useResolveProposal = () => {
             updateData.custom_name = (item.proposed_dish as { display_name: string }).display_name;
           }
         } else if (item.change_type === 'VARIANT_CHANGE') {
-          updateData.selected_variant_option = item.proposed_variant_option ?? undefined;
+          // Resolve variant index to label before saving
+          let resolvedOption = item.proposed_variant_option;
+          const vi = item.variant_item as { id: string; dish: { modifiable_items: Json | null } | null } | null;
+          const modItems = vi?.dish?.modifiable_items as Record<string, unknown> | null;
+          if (resolvedOption && modItems?.type === 'variant') {
+            const options = modItems.options as Array<{ label: string; price_modifier: number }> | undefined;
+            if (options) {
+              const idx = parseInt(resolvedOption, 10);
+              if (!isNaN(idx) && idx >= 0 && idx < options.length) {
+                resolvedOption = options[idx].label;
+              }
+            }
+          }
+          updateData.selected_variant_option = resolvedOption ?? undefined;
           updateData.custom_price = item.proposed_price;
         } else if (item.change_type === 'QUANTITY_CHANGE') {
           updateData.quantity = item.proposed_quantity ?? undefined;
@@ -192,6 +210,8 @@ export const useResolveProposal = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-detail'] });
       queryClient.invalidateQueries({ queryKey: ['admin-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['offer-variants'] });
       queryClient.invalidateQueries({ queryKey: ['public-offer'] });
       queryClient.invalidateQueries({ queryKey: ['offer'] });
     },
