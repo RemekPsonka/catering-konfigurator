@@ -14,6 +14,7 @@ import {
   type OfferServiceWithService,
 } from '@/hooks/use-offer-services';
 import { SERVICE_TYPE_LABELS, PRICE_TYPE_LABELS } from '@/lib/service-constants';
+import { calculateBlockPrice } from '@/lib/calculations';
 import { RequirementHints } from '../requirement-hints';
 import type { ClientRequirement } from '../requirements-sidebar';
 import type { Tables } from '@/integrations/supabase/types';
@@ -65,8 +66,12 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
 
   const total = useMemo(() => {
     return (offerServices ?? []).reduce((sum, os) => {
-      const price = os.custom_price ?? os.services.price;
+      const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
       const qty = os.services.price_type === 'PER_PERSON' && peopleCount ? peopleCount : (os.quantity ?? 1);
+      if (os.services.price_type === 'PER_BLOCK') {
+        const extraPrice = os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null;
+        return sum + calculateBlockPrice(price, extraPrice, qty);
+      }
       return sum + price * qty;
     }, 0);
   }, [offerServices, peopleCount]);
@@ -132,12 +137,21 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
                       <div className="flex-1 flex items-center gap-2">
                         <span className="font-medium">{service.name}</span>
                         <Badge variant="outline" className="text-xs">
-                          {PRICE_TYPE_LABELS[service.price_type]}
+                          {service.price_type === 'PER_BLOCK' && service.block_duration_hours
+                            ? `Za blok (${service.block_duration_hours}h)`
+                            : PRICE_TYPE_LABELS[service.price_type]}
                         </Badge>
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        {formatPrice(service.price)}
-                      </span>
+                      <div className="text-right">
+                        <span className="text-sm text-muted-foreground">
+                          {formatPrice(service.price)}
+                        </span>
+                        {service.price_type === 'PER_BLOCK' && service.extra_block_price != null && Number(service.extra_block_price) !== service.price && (
+                          <div className="text-xs text-muted-foreground">
+                            kolejny: {formatPrice(Number(service.extra_block_price))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {service.description && (
                       <p className="text-sm text-muted-foreground ml-7">{service.description}</p>
@@ -145,7 +159,7 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
                     {isSelected && (
                       <div className="ml-7 grid grid-cols-3 gap-3">
                         <div>
-                          {service.price_type === 'PER_PERSON' ? (
+                         {service.price_type === 'PER_PERSON' ? (
                             <>
                               <Label className="text-xs">Ilość (= liczba osób)</Label>
                               <Input
@@ -158,7 +172,11 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
                             </>
                           ) : (
                             <>
-                              <Label className="text-xs">Ilość</Label>
+                              <Label className="text-xs">
+                                {service.price_type === 'PER_BLOCK'
+                                  ? `Liczba ${service.block_unit_label || 'bloków'}`
+                                  : 'Ilość'}
+                              </Label>
                               <Input
                                 type="number"
                                 min={1}
@@ -168,6 +186,11 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
                                 }
                                 className="h-8"
                               />
+                              {service.price_type === 'PER_BLOCK' && service.block_duration_hours && (
+                                <span className="text-xs text-muted-foreground">
+                                  {(os.quantity ?? 1)} × {service.block_duration_hours}h
+                                </span>
+                              )}
                             </>
                           )}
                         </div>

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateBlockPrice } from '@/lib/calculations';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 interface ServicesPanelProps {
@@ -31,6 +31,10 @@ export const ServicesPanel = ({ offerServices, servicesTotal }: ServicesPanelPro
             {offerServices.map((os) => {
               const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
               const qty = os.quantity ?? 1;
+              const isBlock = os.services.price_type === 'PER_BLOCK';
+              const lineTotal = isBlock
+                ? calculateBlockPrice(price, os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
+                : price * qty;
               return (
                 <TableRow key={os.id}>
                   <TableCell>
@@ -39,11 +43,18 @@ export const ServicesPanel = ({ offerServices, servicesTotal }: ServicesPanelPro
                       {os.services.price_type === 'PER_PERSON' && (
                         <Badge variant="outline" className="text-xs">na osobę</Badge>
                       )}
+                      {isBlock && os.services.block_duration_hours && (
+                        <Badge variant="outline" className="text-xs">blok {os.services.block_duration_hours}h</Badge>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">{qty}</TableCell>
+                  <TableCell className="text-right">
+                    {isBlock && os.services.block_unit_label
+                      ? `${qty} × ${os.services.block_unit_label}`
+                      : qty}
+                  </TableCell>
                   <TableCell className="text-right">{formatCurrency(price)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(price * qty)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(lineTotal)}</TableCell>
                 </TableRow>
               );
             })}
