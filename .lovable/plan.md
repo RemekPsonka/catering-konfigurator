@@ -1,65 +1,34 @@
 
-## Audyt: problem nie jest już w `calculateOfferTotals()`, tylko w zduplikowanej logice wyświetlania usług
 
-### Co już jest poprawne
-- `src/lib/calculations.ts` — `PER_PERSON` liczy się już z `peopleCount`
-- `src/components/public/calculation-section.tsx` — sekcja „Podsumowanie kosztów” używa już `debouncedCount`
+## Plan: Napraw generowanie linku publicznego dla nowych ofert
 
-### Gdzie nadal jest błąd
-1. `src/components/public/services-logistics-section.tsx`
-   - nadal używa `const qty = s.quantity ?? 1`
-   - więc publiczna sekcja „Usługi i logistyka” może pokazywać kelnerów / porcelanę jako ×1 albo ze starą ilością
+### Problem
+`handleSaveAndShowLink` ustawia status na `'ready'`, ale trigger `generate_public_token()` generuje token tylko przy `status = 'sent'`. Więc `public_token` zostaje `NULL` → link wychodzi jako `/offer/` (pusty).
 
-2. `src/components/print/PrintServicesTable.tsx`
-   - nadal używa `const qty = os.quantity ?? 1`
-   - więc PDF / wydruk może mieć błędne ilości i wartości dla `PER_PERSON`
+Ten sam problem dotyczy `handleGenerateEmail` — też ustawia `'ready'` i czyta `offer?.public_token` z cache'u.
 
-3. `src/components/features/offers/steps/calculation/ServicesPanel.tsx`
-   - też ma starą logikę `os.quantity ?? 1`
-   - wygląda na komponent nieużywany, ale jest niespójny i stanowi źródło kolejnych regresji
+### Rozwiązanie
 
-### Prawdziwa przyczyna
-Ten sam algorytm liczenia usług jest skopiowany w kilku miejscach. Jedno miejsce zostało naprawione, ale inne renderery nadal liczą lokalnie po staremu.
+**1. Zmiana triggera w bazie** — generuj token także dla `'ready'`:
+```sql
+IF NEW.status IN ('sent', 'ready') AND NEW.public_token IS NULL THEN
+```
 
-## Plan naprawy
+**2. Refetch oferty po mutacji** — w `handleSaveAndShowLink` i `handleGenerateEmail` po ustawieniu statusu trzeba odświeżyć dane oferty, żeby pobrać nowo wygenerowany token, zanim zbudujemy link.
 
-### 1. Ujednolicić logikę usług w jednym helperze
-W `src/lib/calculations.ts` dodać wspólne helpery, np.:
-- wyliczenie ilości usługi zależnie od `price_type`
-- wyliczenie wartości pozycji usługi zależnie od `price_type` i `peopleCount`
+W `statusMutation.onSuccess` już jest `invalidateQueries(['offers'])`, ale brakuje `invalidateQueries(['offer', offerId])` — więc `offer` w komponencie nie odświeża się.
 
-Zasada:
-- `PER_PERSON` → zawsze `peopleCount`
-- `PER_BLOCK` → `calculateBlockTotal(...)`
-- pozostałe typy → `os.quantity ?? 1`
+Konkretnie w `handleSaveAndShowLink`:
+- Po mutacji: refetch oferty → odczytaj nowy `public_token` → dopiero wtedy `setPublicLink(...)`.
 
-### 2. Podpiąć helper w publicznym widoku usług
-Zrefaktoryzować `src/components/public/services-logistics-section.tsx`, żeby:
-- nie używał już lokalnego `qty = s.quantity ?? 1`
-- dla `PER_PERSON` pokazywał aktualną liczbę osób i poprawną kwotę
+**3. Analogicznie w `handleGenerateEmail`** — po refetch użyj świeżego tokenu w emailu.
 
-### 3. Podpiąć helper w wydruku / PDF
-Zrefaktoryzować `src/components/print/PrintServicesTable.tsx`, żeby:
-- PDF liczył `PER_PERSON` z `offer.people_count`
-- ilość i wartość były zgodne z ekranem klienta
+### Pliki do zmiany
+1. **Migracja SQL** — rozszerzenie triggera `generate_public_token()` o status `'ready'`
+2. **`src/components/features/offers/steps/step-preview-send.tsx`** — refetch oferty w `onSuccess` obu handlerów, budowanie linku z odświeżonego tokenu
 
-### 4. Domknąć niespójności w starym panelu
-Zaktualizować `src/components/features/offers/steps/calculation/ServicesPanel.tsx` do tej samej logiki albo oznaczyć go do usunięcia później, bo dziś jest martwy i mylący.
+### Efekt
+- "Zapisz i pokaż link" → token generowany natychmiast → poprawny link
+- "Wygeneruj email" → email zawiera poprawny link publiczny
+- Istniejące oferty ze statusem `sent` → bez zmian (trigger i tak działa)
 
-## Efekt po wdrożeniu
-- kelnerzy / porcelana / sztućce będą zawsze liczone jako `cena × liczba osób`
-- publiczny widok, podsumowanie i PDF będą zgodne
-- zniknie ryzyko, że jedna sekcja pokazuje poprawnie, a inna nadal ×1
-
-## Pliki do zmiany
-- `src/lib/calculations.ts`
-- `src/components/public/services-logistics-section.tsx`
-- `src/components/print/PrintServicesTable.tsx`
-- opcjonalnie porządkowo: `src/components/features/offers/steps/calculation/ServicesPanel.tsx`
-
-## Weryfikacja po wdrożeniu
-1. 16 osób + kelner 50 zł `PER_PERSON` → 800 zł
-2. 16 osób + porcelana 15 zł `PER_PERSON` → 240 zł
-3. zmiana liczby osób → poprawia kwoty w sekcji „Usługi i logistyka”
-4. PDF pokazuje te same wartości co ekran
-5. `PER_BLOCK` i `PER_EVENT` pozostają bez zmian
