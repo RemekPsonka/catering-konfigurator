@@ -161,7 +161,7 @@ export const PublicOfferPage = () => {
       </div>
 
       {offer.offer_variants.length > 0 && (
-        <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={setActiveVariantId} modifications={modifications} onModificationChange={handleModificationChange} />
+        <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={setActiveVariantId} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} />
       )}
 
       <ServicesLogisticsSection offer={offer} priceDisplayMode={offer.price_display_mode} />
