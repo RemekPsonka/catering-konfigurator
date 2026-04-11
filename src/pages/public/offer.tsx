@@ -25,6 +25,11 @@ import { SocialProofStats } from '@/components/public/social-proof-stats';
 import { ShareOffer } from '@/components/public/share-offer';
 import { FaqSection } from '@/components/public/faq-section';
 import { TestimonialsCarousel } from '@/components/public/testimonials-carousel';
+import { AboutCateringSection } from '@/components/public/about-catering-section';
+import { FeaturesSection } from '@/components/public/features-section';
+import { TestimonialSection } from '@/components/public/testimonial-section';
+import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
+import { Button } from '@/components/ui/button';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
@@ -37,6 +42,8 @@ import { CountdownTimer } from '@/components/public/countdown-timer';
 import { OfferTracker } from '@/components/public/offer-tracker';
 import { trackOfferEvent } from '@/lib/tracking';
 
+type Feature = { icon: string; title: string; text: string };
+
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
   const tokenValid = isValidToken(publicToken);
@@ -48,6 +55,7 @@ export const PublicOfferPage = () => {
   const [offerAccepted, setOfferAccepted] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
   const isFirstVisitRef = useRef<boolean | null>(null);
   const lastVariantTrackRef = useRef<number>(0);
 
@@ -65,7 +73,7 @@ export const PublicOfferPage = () => {
   const { data: libraryPhotos } = usePhotoLibrary(offer?.event_type);
   const { data: libraryHero } = useHeroPhoto(offer?.event_type);
   const { data: legacyEventPhotos } = usePublicEventPhotos(offer?.event_type);
-  usePublicEventProfile(offer?.event_type);
+  const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
 
   // Use photo_library with fallback to legacy event_type_photos
   const galleryPhotos = useMemo(() => {
@@ -200,9 +208,31 @@ export const PublicOfferPage = () => {
         <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
       </div>
 
+      {eventProfile?.description_long && (
+        <div className="no-print">
+          <AboutCateringSection descriptionLong={eventProfile.description_long} />
+        </div>
+      )}
+
+      {eventProfile?.features && Array.isArray(eventProfile.features) && (eventProfile.features as Feature[]).length > 0 && (
+        <div className="no-print">
+          <FeaturesSection features={eventProfile.features as Feature[]} />
+        </div>
+      )}
+
       {offer.offer_variants.length > 0 && (
         <div data-track-section="menu">
           <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={handleVariantChange} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} />
+          {offer.offer_variants.length >= 2 && (
+            <div className="no-print text-center py-4">
+              <Button variant="outline" onClick={() => setShowComparison((v) => !v)} style={{ borderColor: 'var(--theme-primary, #1A1A1A)', color: 'var(--theme-primary, #1A1A1A)' }}>
+                {showComparison ? 'Ukryj porównanie' : 'Porównaj warianty'}
+              </Button>
+            </div>
+          )}
+          {showComparison && (
+            <VariantComparisonSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} onSelectVariant={handleVariantChange} acceptedVariantId={offer.accepted_variant_id} />
+          )}
         </div>
       )}
 
@@ -235,6 +265,12 @@ export const PublicOfferPage = () => {
           actionsDisabled={actionsDisabled}
         />
       </div>
+
+      {eventProfile?.testimonial_text && (
+        <div className="no-print">
+          <TestimonialSection text={eventProfile.testimonial_text} author={eventProfile.testimonial_author} event={eventProfile.testimonial_event} />
+        </div>
+      )}
 
       <div className="no-print">
         <SocialProofStats />
