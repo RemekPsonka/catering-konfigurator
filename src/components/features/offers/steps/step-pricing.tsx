@@ -70,12 +70,14 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peopleCount]);
+  }, [peopleCount, offerServices]);
 
   const handleServiceToggle = (service: Tables<'services'>, checked: boolean) => {
     if (!offerId) return;
-    if (checked) addService.mutate({ offerId, serviceId: service.id });
-    else {
+    if (checked) {
+      const qty = service.price_type === 'PER_PERSON' && peopleCount > 0 ? peopleCount : 1;
+      addService.mutate({ offerId, serviceId: service.id, quantity: qty });
+    } else {
       const os = offerServiceMap.get(service.id);
       if (os) removeService.mutate({ id: os.id, offerId });
     }
