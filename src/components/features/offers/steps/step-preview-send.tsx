@@ -439,7 +439,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                               {item.selected_variant_option && <span className="text-xs text-emerald-600 ml-1">✓ {item.selected_variant_option}</span>}
                               {item.dishes.is_modifiable && ' 🔄'}
                             </span>
-                            {showDetailed && <span className="text-xs opacity-60">× {item.quantity ?? 1} — {formatCurrency(getItemPrice(item as never))}</span>}
+                            {showDetailed && <span className="text-xs opacity-60">× {item.quantity ?? 1} — {formatCurrency(getItemPrice(item as Parameters<typeof getItemPrice>[0]))}</span>}
                           </div>
                         ))}
                       </div>
