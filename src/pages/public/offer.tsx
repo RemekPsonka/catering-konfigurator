@@ -55,6 +55,7 @@ export const PublicOfferPage = () => {
   const [offerAccepted, setOfferAccepted] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
   const isFirstVisitRef = useRef<boolean | null>(null);
   const lastVariantTrackRef = useRef<number>(0);
 
