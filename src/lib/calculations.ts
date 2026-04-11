@@ -48,6 +48,28 @@ const roundMoney = (n: number) => Math.round(n * 100) / 100;
 /** @deprecated Use calculateBlockTotal from service-constants instead */
 export const calculateBlockPrice = calculateBlockTotal;
 
+// ── Service line helpers (single source of truth) ──
+
+export const getServiceEffectiveQty = (
+  priceType: string,
+  storedQty: number | null,
+  peopleCount: number,
+): number => (priceType === 'PER_PERSON' ? Math.max(1, peopleCount) : (storedQty ?? 1));
+
+export const getServiceLineTotal = (
+  price: number,
+  priceType: string,
+  storedQty: number | null,
+  peopleCount: number,
+  extraBlockPrice: number | null,
+): number => {
+  const qty = getServiceEffectiveQty(priceType, storedQty, peopleCount);
+  if (priceType === 'PER_BLOCK') {
+    return calculateBlockTotal(price, extraBlockPrice, qty);
+  }
+  return price * qty;
+};
+
 export const calculateTotalPrice = (items: { unit_price: number; quantity: number }[]): number => {
   return items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 };

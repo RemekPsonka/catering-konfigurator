@@ -1,7 +1,6 @@
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { Tables } from '@/integrations/supabase/types';
-import { formatCurrency } from '@/lib/calculations';
-import { calculateBlockTotal } from '@/lib/service-constants';
+import { formatCurrency, getServiceEffectiveQty, getServiceLineTotal } from '@/lib/calculations';
 
 interface PrintServicesTableProps {
   offer: PublicOffer;
@@ -39,11 +38,12 @@ export const PrintServicesTable = ({ offer, upsellSelections }: PrintServicesTab
           {services.map((os) => {
             const name = os.services?.name ?? 'Usługa';
             const price = os.custom_price != null ? Number(os.custom_price) : Number(os.services?.price ?? 0);
-            const qty = os.quantity ?? 1;
-            const isBlock = os.services?.price_type === 'PER_BLOCK';
-            const total = isBlock
-              ? calculateBlockTotal(price, os.services?.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
-              : price * qty;
+            const priceType = os.services?.price_type ?? 'PER_EVENT';
+            const peopleCount = offer.people_count ?? 1;
+            const qty = getServiceEffectiveQty(priceType, os.quantity, peopleCount);
+            const isBlock = priceType === 'PER_BLOCK';
+            const extraBlock = os.services?.extra_block_price != null ? Number(os.services.extra_block_price) : null;
+            const total = getServiceLineTotal(price, priceType, os.quantity, peopleCount, extraBlock);
             servicesTotal += total;
             return (
               <tr key={os.id}>
