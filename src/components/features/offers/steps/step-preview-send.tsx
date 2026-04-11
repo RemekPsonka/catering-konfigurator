@@ -256,7 +256,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
       const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === offer?.event_type)?.label ?? offer?.event_type;
       const pricingModeLabel = pricingMode === 'PER_PERSON' ? 'per person' : 'ilości stałe';
       const variantsSummary = variants.map((v) => {
-        const dishes = v.variant_items.map((item) => `${item.custom_name || item.dishes?.display_name || '?'} (${getItemPrice(item)} zł)`).join(', ');
+        const dishes = v.variant_items.map((item) => `${item.custom_name || item.dishes?.display_name || '?'} (${getPreviewItemPrice(item)} zł)`).join(', ');
         return `${v.name}: ${dishes || 'brak dań'}`;
       }).join(' | ');
       const servicesSummary = services.map((os) => `${os.services.name} (${os.custom_price ?? os.services.price} zł × ${os.quantity ?? 1})`).join(', ');
@@ -471,7 +471,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                               {item.selected_variant_option && <span className="text-xs text-emerald-600 ml-1">✓ {item.selected_variant_option}</span>}
                               {item.dishes.is_modifiable && ' 🔄'}
                             </span>
-                            {showDetailed && <span className="text-xs opacity-60">× {item.quantity ?? 1} — {formatCurrency(getItemPrice(item as never))}</span>}
+                            {showDetailed && <span className="text-xs opacity-60">× {item.quantity ?? 1} — {formatCurrency(getPreviewItemPrice(item))}</span>}
                           </div>
                         ))}
                       </div>
