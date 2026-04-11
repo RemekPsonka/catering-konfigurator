@@ -1,26 +1,65 @@
 
+## Audyt: problem nie jest już w `calculateOfferTotals()`, tylko w zduplikowanej logice wyświetlania usług
 
-## Plan: Napraw wyświetlanie nazw produktów w panelu "Moje zmiany"
+### Co już jest poprawne
+- `src/lib/calculations.ts` — `PER_PERSON` liczy się już z `peopleCount`
+- `src/components/public/calculation-section.tsx` — sekcja „Podsumowanie kosztów” używa już `debouncedCount`
 
-### Problem
-Panel upsell pokazuje "Dodatek" zamiast prawdziwych nazw produktów (np. "Piramidka makaroników", "Patera owoców sezonowych", "Lemoniadowy bar").
+### Gdzie nadal jest błąd
+1. `src/components/public/services-logistics-section.tsx`
+   - nadal używa `const qty = s.quantity ?? 1`
+   - więc publiczna sekcja „Usługi i logistyka” może pokazywać kelnerów / porcelanę jako ×1 albo ze starą ilością
 
-### Przyczyna
-Tabela `offer_upsell_selections` nie ma klucza obcego (FK) do `upsell_items` na kolumnie `upsell_item_id`. Bez FK Supabase PostgREST nie potrafi wykonać joina `.select('*, upsell_items(name, emoji)')` — zwraca null, co powoduje fallback na tekst "Dodatek".
+2. `src/components/print/PrintServicesTable.tsx`
+   - nadal używa `const qty = os.quantity ?? 1`
+   - więc PDF / wydruk może mieć błędne ilości i wartości dla `PER_PERSON`
 
-### Rozwiązanie
+3. `src/components/features/offers/steps/calculation/ServicesPanel.tsx`
+   - też ma starą logikę `os.quantity ?? 1`
+   - wygląda na komponent nieużywany, ale jest niespójny i stanowi źródło kolejnych regresji
 
-**1. Migracja SQL** — dodaj brakujący FK:
-```sql
-ALTER TABLE public.offer_upsell_selections
-  ADD CONSTRAINT offer_upsell_selections_upsell_item_id_fkey
-  FOREIGN KEY (upsell_item_id) REFERENCES public.upsell_items(id) ON DELETE CASCADE;
-```
+### Prawdziwa przyczyna
+Ten sam algorytm liczenia usług jest skopiowany w kilku miejscach. Jedno miejsce zostało naprawione, ale inne renderery nadal liczą lokalnie po staremu.
 
-Po tej jednej zmianie join zacznie działać i nazwy produktów pojawią się automatycznie we wszystkich 3 miejscach w kodzie (changes-panel, step-pricing, step-preview-send).
+## Plan naprawy
 
-**2. Bez zmian w kodzie** — logika `{item?.name ?? 'Dodatek'}` jest poprawna — po dodaniu FK `item?.name` przestanie być null.
+### 1. Ujednolicić logikę usług w jednym helperze
+W `src/lib/calculations.ts` dodać wspólne helpery, np.:
+- wyliczenie ilości usługi zależnie od `price_type`
+- wyliczenie wartości pozycji usługi zależnie od `price_type` i `peopleCount`
 
-### Weryfikacja
-- Panel "Moje zmiany" pokaże: "🎂 Piramidka makaroników 400,00 zł" zamiast "🛒 Dodatek 400,00 zł"
+Zasada:
+- `PER_PERSON` → zawsze `peopleCount`
+- `PER_BLOCK` → `calculateBlockTotal(...)`
+- pozostałe typy → `os.quantity ?? 1`
 
+### 2. Podpiąć helper w publicznym widoku usług
+Zrefaktoryzować `src/components/public/services-logistics-section.tsx`, żeby:
+- nie używał już lokalnego `qty = s.quantity ?? 1`
+- dla `PER_PERSON` pokazywał aktualną liczbę osób i poprawną kwotę
+
+### 3. Podpiąć helper w wydruku / PDF
+Zrefaktoryzować `src/components/print/PrintServicesTable.tsx`, żeby:
+- PDF liczył `PER_PERSON` z `offer.people_count`
+- ilość i wartość były zgodne z ekranem klienta
+
+### 4. Domknąć niespójności w starym panelu
+Zaktualizować `src/components/features/offers/steps/calculation/ServicesPanel.tsx` do tej samej logiki albo oznaczyć go do usunięcia później, bo dziś jest martwy i mylący.
+
+## Efekt po wdrożeniu
+- kelnerzy / porcelana / sztućce będą zawsze liczone jako `cena × liczba osób`
+- publiczny widok, podsumowanie i PDF będą zgodne
+- zniknie ryzyko, że jedna sekcja pokazuje poprawnie, a inna nadal ×1
+
+## Pliki do zmiany
+- `src/lib/calculations.ts`
+- `src/components/public/services-logistics-section.tsx`
+- `src/components/print/PrintServicesTable.tsx`
+- opcjonalnie porządkowo: `src/components/features/offers/steps/calculation/ServicesPanel.tsx`
+
+## Weryfikacja po wdrożeniu
+1. 16 osób + kelner 50 zł `PER_PERSON` → 800 zł
+2. 16 osób + porcelana 15 zł `PER_PERSON` → 240 zł
+3. zmiana liczby osób → poprawia kwoty w sekcji „Usługi i logistyka”
+4. PDF pokazuje te same wartości co ekran
+5. `PER_BLOCK` i `PER_EVENT` pozostają bez zmian
