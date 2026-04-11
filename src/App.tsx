@@ -25,6 +25,7 @@ import { LeadsListPage } from "@/pages/admin/leads-list";
 import { LeadDetailPage } from "@/pages/admin/lead-detail";
 import { SettingsPage } from "@/pages/admin/settings";
 import { NotificationsListPage } from "@/pages/admin/notifications-list";
+import { SocialProofPage } from "@/pages/admin/social-proof";
 import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
 import { EventProfileEditPage } from "@/pages/admin/event-profile-edit";
 import { PublicOfferPage } from "@/pages/public/offer";
@@ -79,6 +80,7 @@ const App = () => (
                 <Route path="leads/:id" element={<LeadDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="notifications" element={<NotificationsListPage />} />
+                <Route path="social-proof" element={<SocialProofPage />} />
                 <Route path="settings/event-profiles" element={<EventProfilesListPage />} />
                 <Route path="settings/event-profiles/:eventTypeId" element={<EventProfileEditPage />} />
               </Route>

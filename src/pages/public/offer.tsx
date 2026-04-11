@@ -20,6 +20,8 @@ import { EditableTooltip } from '@/components/public/editable-tooltip';
 import { UpsellSection } from '@/components/public/upsell-section';
 import { SuggestedServicesSection } from '@/components/public/suggested-services-section';
 import { COMPANY } from '@/lib/company-config';
+import { SocialProofStats } from '@/components/public/social-proof-stats';
+import { TestimonialsCarousel } from '@/components/public/testimonials-carousel';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
@@ -188,6 +190,11 @@ export const PublicOfferPage = () => {
           upsellEnabled={offer.upsell_enabled ?? true}
           actionsDisabled={actionsDisabled}
         />
+      </div>
+
+      <div className="no-print">
+        <SocialProofStats />
+        <TestimonialsCarousel eventType={offer.event_type} />
       </div>
 
       <TermsSection />
