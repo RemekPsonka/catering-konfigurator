@@ -1,71 +1,32 @@
 
 
-## Plan: Floating panel dosprzedaży + kalkulacja łączna [CS-030]
+## Plan: Badge dosprzedaży na liście ofert [CS-031]
 
-### 1. Rozszerz `calculateOfferTotals` w `src/lib/calculations.ts`
+### 1. Badge pod wartością oferty w `src/pages/admin/offers-list.tsx`
 
-- Dodaj opcjonalny parametr `upsellTotal: number = 0`
-- Dodaj `upsellTotal` do `OfferTotals` interface
-- W `grandTotal`: `dishesAfterDiscount + servicesTotalCalc + deliveryCost + upsellTotal`
-- W każdym `variantGrandTotal`: dodaj `+ upsellTotal`
-- Przelicz `pricePerPerson` z nowym `grandTotal`
-- Rabat NIE dotyczy upsellTotal — dodawany po rabacie
+W komórce "Wartość" (linie 163-165), pod kwotą `formatCurrency(offer.total_value)`, dodaj warunkowo:
 
-### 2. Zaktualizuj wszystkie wywołania `calculateOfferTotals`
+```
+{offer.upsell_total > 0 && (
+  <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-[10px] mt-0.5">
+    +{formatCurrency(offer.upsell_total)} dosprzedaż
+  </Badge>
+)}
+```
 
-Dodaj `0` jako ostatni argument (domyślny upsellTotal) w:
-- `src/pages/public/offer.tsx` (2 wywołania)
-- `src/components/public/calculation-section.tsx` (2 wywołania)
-- `src/components/public/acceptance-section.tsx` (1 wywołanie)
-- `src/components/features/offers/steps/step-pricing.tsx` (1 wywołanie)
-- `src/components/features/offers/steps/step-preview-send.tsx` (1 wywołanie)
-- `src/hooks/use-calculation-state.ts` (1 wywołanie)
+Import `Badge` z `@/components/ui/badge`. Dane `upsell_total` są już w tabeli `offers` i pobierane przez `useOffers` hook (select `*`).
 
-Dzięki default value `= 0` nie trzeba nic zmieniać, ale dla czytelności zaktualizuję `offer.tsx` i `calculation-section.tsx` żeby przekazywały `offer.upsell_total ?? 0`.
+### 2. Powiadomienie — już zaimplementowane
 
-### 3. Rozszerz `changes-panel.tsx`
+Notyfikacja `upsell_confirmed` jest już wysyłana w `changes-panel.tsx` (linia 115-120) przez `fireNotification`. System powiadomień (`notifications` table + Realtime + `NotificationBell`) automatycznie pokaże to managerowi. Nie wymaga zmian.
 
-**Nowe dane:**
-- Dodaj query `offer_upsell_selections` WHERE `offer_id` AND `status='active'`, join `upsell_items(name, emoji)`
-- Dodaj mutation `confirmUpsells`: UPDATE `offer_upsell_selections` SET `confirmed_at=now()` + UPDATE `offers` SET `upsell_total=SUM`
-- Dodaj state `upsellConfirmed`
+### 3. Panel w step-preview-send.tsx — już zaimplementowane
 
-**Nowe props:**
-- `upsellTotal: number` (suma aktywnych selekcji, obliczona w offer.tsx)
-
-**Zmiana widoczności panelu:**
-- Panel widoczny gdy `hasChanges || hasUpsellSelections || pendingProposals`
-- Collapsed bar: "Masz X zmian i Y dodatków — zobacz"
-
-**UI — nowa sekcja "Twoje dodatki" pod listą zmian dań:**
-- Lista: emoji + nazwa + kwota + przycisk [×] do usunięcia (mutation: SET status='removed')
-- Suma dodatków
-- Separator
-- Podsumowanie: "Oferta bazowa: X zł" / "Dodatki: Y zł" / "RAZEM: Z zł"
-
-**Przycisk [Zatwierdź dodatki]:**
-- Batch update `confirmed_at = now()` na aktywnych selekcjach
-- Update `offers.upsell_total` = suma `total_price`
-- Toast: "Dodatki zatwierdzone! Manager został powiadomiony."
-- Fire notification z event_type `upsell_confirmed`
-- Przycisk → "✓ Dodatki zatwierdzone" (disabled)
-
-**Istniejący flow propozycji dań nie zmienia się** — przycisk "Wyślij propozycję zmian" dotyczy tylko modyfikacji dań.
-
-### 4. Przekaż upsellTotal do `ChangesPanel` z `offer.tsx`
-
-- W `offer.tsx`: query `offer_upsell_selections` lub użyj `offer.upsell_total` do przekazania
-- Alternatywnie: changes-panel sam fetchuje dane (prostsze, mniej propsów)
-
-**Decyzja:** changes-panel sam fetchuje `offer_upsell_selections` — ma pełną kontrolę nad danymi i mutacjami.
+Panel "Dosprzedaż klienta" z CS-027 używa `useQuery` z kluczem opartym na `offerId` — automatycznie pokaże aktualne dane po odświeżeniu strony. Nie wymaga zmian.
 
 ### Pliki modyfikowane
-1. `src/lib/calculations.ts` — dodanie `upsellTotal` parametru
-2. `src/components/public/changes-panel.tsx` — sekcja dodatków + przycisk zatwierdzenia
-3. `src/pages/public/offer.tsx` — przekazanie upsellTotal do kalkulacji
+- `src/pages/admin/offers-list.tsx` — jedyny plik (dodanie Badge)
 
 ### Nie ruszam
-- Logika modyfikacji dań w changes-panel (istniejący flow propozycji)
-- step-pricing.tsx, step-event-data.tsx, step-menu.tsx
-- upsell-section.tsx, suggested-services-section.tsx
+public/offer.tsx, upsell-section.tsx, changes-panel.tsx, step-preview-send.tsx
 
