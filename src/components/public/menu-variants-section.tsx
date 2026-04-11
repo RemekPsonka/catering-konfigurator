@@ -22,6 +22,7 @@ interface MenuVariantsSectionProps {
   onActiveVariantChange?: (id: string) => void;
   modifications?: Map<string, DishModification>;
   onModificationChange?: (itemId: string, mod: DishModification | undefined) => void;
+  acceptedVariantId?: string | null;
 }
 
 const groupByCategory = (items: Variant['variant_items']) => {
@@ -40,7 +41,7 @@ const groupByCategory = (items: Variant['variant_items']) => {
   return Array.from(groups.values());
 };
 
-export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange }: MenuVariantsSectionProps) => {
+export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange, acceptedVariantId }: MenuVariantsSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const activeId = controlledId ?? sorted[0]?.id ?? '';
   const setActiveId = (id: string) => {
@@ -112,6 +113,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                           showPrice={showVariantPrice}
                           pricingMode={pricingMode}
                           peopleCount={peopleCount}
+                          acceptedVariantId={acceptedVariantId}
                         />
                       </div>
                     ))}
@@ -142,6 +144,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                     showPrice={showVariantPrice}
                     pricingMode={pricingMode}
                     peopleCount={peopleCount}
+                    acceptedVariantId={acceptedVariantId}
                   />
                 ))}
               </div>
@@ -213,34 +216,44 @@ interface VariantCardProps {
   showPrice: boolean;
   pricingMode: Enums<'pricing_mode'>;
   peopleCount: number;
+  acceptedVariantId?: string | null;
 }
 
-const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount }: VariantCardProps) => {
+const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount, acceptedVariantId }: VariantCardProps) => {
   const itemCount = variant.variant_items.length;
   const editableCount = variant.variant_items.filter((item) => {
     const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
     return item.is_client_editable && mods && typeof mods === 'object';
   }).length;
   const perPerson = calculateVariantDishesTotal(variant as VariantWithItems);
+  const isChosen = variant.id === acceptedVariantId;
+  const hasAccepted = !!acceptedVariantId;
+  const isDimmed = hasAccepted && !isChosen;
 
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ y: -2 }}
+      whileHover={hasAccepted ? {} : { y: -2 }}
       animate={isActive ? { scale: 1.02 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300 }}
       className="w-full rounded-xl p-3 text-left transition-all"
       style={{
         backgroundColor: 'var(--theme-bg, #FAF7F2)',
-        border: isActive ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
+        border: isChosen ? '2px solid #16a34a' : isActive ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
         boxShadow: isActive ? '0 0 20px rgba(var(--theme-primary-rgb, 26,26,26), 0.15)' : '0 4px 12px rgba(0,0,0,0.06)',
+        opacity: isDimmed ? 0.45 : 1,
       }}
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-display text-base font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
           {variant.name}
         </h3>
-        {variant.is_recommended && (
+        {isChosen && (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white shrink-0 bg-green-600">
+            ✓ Twój wybór
+          </span>
+        )}
+        {!isChosen && variant.is_recommended && (
           <span
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory shrink-0"
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}

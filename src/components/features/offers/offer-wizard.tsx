@@ -110,7 +110,7 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
   const renderStep = () => {
     switch (currentStep) {
       case 1: return <StepEventData data={state.stepData.eventData} onSubmit={handleStep1Submit} />;
-      case 2: return <StepMenu offerId={state.offerId} pricingMode={state.stepData.eventData.pricing_mode} peopleCount={state.stepData.eventData.people_count} requirements={requirements} />;
+      case 2: return <StepMenu offerId={state.offerId} pricingMode={state.stepData.eventData.pricing_mode} peopleCount={state.stepData.eventData.people_count} requirements={requirements} acceptedVariantId={offerQuery.data?.accepted_variant_id} />;
       case 3: return <StepPricing offerId={state.offerId} pricingMode={state.stepData.eventData.pricing_mode || 'PER_PERSON'} peopleCount={state.stepData.eventData.people_count || 0} requirements={requirements} inquiryText={state.stepData.eventData.inquiry_text} />;
       case 4: return <StepPreviewSend offerId={state.offerId} pricingMode={state.stepData.eventData.pricing_mode || 'PER_PERSON'} peopleCount={state.stepData.eventData.people_count || 0} requirements={requirements} inquiryText={state.stepData.eventData.inquiry_text} onGoToStep={isLocked ? undefined : goToStep} isLocked={isLocked} />;
       default: return null;

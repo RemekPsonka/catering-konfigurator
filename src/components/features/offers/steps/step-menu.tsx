@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,11 +38,12 @@ interface StepMenuProps {
   pricingMode: string;
   peopleCount: number;
   requirements?: ClientRequirement[];
+  acceptedVariantId?: string | null;
 }
 
 const DEFAULT_VARIANT_NAMES = ['Classic', 'Premium', 'De Luxe'];
 
-export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] }: StepMenuProps) => {
+export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [], acceptedVariantId }: StepMenuProps) => {
   const { data: variants, isLoading } = useOfferVariants(offerId);
   const { data: pendingData } = useAdminPendingProposals(offerId);
   const { user } = useAuth();
@@ -242,6 +244,9 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
                       <span onDoubleClick={() => startRename(v)}>{v.name}</span>
                     )}
                     {v.is_recommended && <span className="text-xs">⭐</span>}
+                    {v.id === acceptedVariantId && (
+                      <Badge className="bg-green-100 text-green-800 text-[10px] ml-1">✓ Wybrany</Badge>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -259,6 +264,9 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <CardTitle className="text-base">{v.name}</CardTitle>
+                        {v.id === acceptedVariantId && (
+                          <Badge className="bg-green-100 text-green-800 text-xs">✓ Wybrany przez klienta</Badge>
+                        )}
                         <div className="flex items-center gap-1.5">
                           <Checkbox
                             id={`rec-${v.id}`}

@@ -17,6 +17,7 @@ interface VariantComparisonSectionProps {
   peopleCount: number;
   priceDisplayMode: Enums<'price_display_mode'>;
   onSelectVariant: (variantId: string) => void;
+  acceptedVariantId?: string | null;
 }
 
 const getEditableCount = (variant: Variant): number =>
@@ -26,7 +27,7 @@ const getEditableCount = (variant: Variant): number =>
   }).length;
 
 export const VariantComparisonSection = ({
-  variants, pricingMode, peopleCount, priceDisplayMode, onSelectVariant,
+  variants, pricingMode, peopleCount, priceDisplayMode, onSelectVariant, acceptedVariantId,
 }: VariantComparisonSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const isMobile = useIsMobile();
@@ -44,27 +45,36 @@ export const VariantComparisonSection = ({
 
   if (sorted.length < 2) return null;
   const showPrice = priceDisplayMode !== 'HIDDEN';
+  const hasAccepted = !!acceptedVariantId;
 
   const renderCard = (v: Variant) => {
     const editableCount = getEditableCount(v);
     const perPerson = calculateVariantDishesTotal(v as VariantWithItems);
+    const isChosen = v.id === acceptedVariantId;
+    const isDimmed = hasAccepted && !isChosen;
 
     return (
       <motion.button
         key={v.id}
         variants={fadeInUp}
-        whileHover={{ y: -2 }}
+        whileHover={hasAccepted ? {} : { y: -2 }}
         transition={{ type: 'spring', stiffness: 300 }}
         onClick={() => handleSelect(v.id)}
         className="flex flex-col rounded-xl p-4 shadow-sm overflow-hidden text-left w-full transition-all cursor-pointer"
         style={{
           backgroundColor: 'var(--theme-bg, #FAF7F2)',
-          border: v.is_recommended ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
+          border: isChosen ? '2px solid #16a34a' : v.is_recommended ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
+          opacity: isDimmed ? 0.45 : 1,
         }}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-display text-base font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>{v.name}</h3>
-          {v.is_recommended && (
+          {isChosen && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white shrink-0 bg-green-600">
+              ✓ Twój wybór
+            </span>
+          )}
+          {!isChosen && v.is_recommended && (
             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory shrink-0" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}>
               <Sparkles className="h-3 w-3" /> Polecany
             </span>

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 export interface OfferWithClient extends Tables<'offers'> {
   clients: { name: string } | null;
+  offer_variants: { id: string; name: string }[] | null;
 }
 
 export interface OfferFilters {
@@ -24,7 +25,7 @@ export const useOffers = (filters: OfferFilters) => {
 
       let query = supabase
         .from('offers')
-        .select('*, clients(name)', { count: 'exact' })
+        .select('*, clients(name), offer_variants(id, name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -43,13 +44,13 @@ export const useOffers = (filters: OfferFilters) => {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      let results = data as OfferWithClient[];
+      let results = data as unknown as OfferWithClient[];
 
       // If searching and no results by offer_number, also try client name filter in JS
       if (filters.search && results.length === 0) {
         let fallbackQuery = supabase
           .from('offers')
-          .select('*, clients(name)')
+          .select('*, clients(name), offer_variants(id, name)')
           .order('created_at', { ascending: false });
 
         if (filters.status && filters.status !== 'all') {
@@ -63,7 +64,7 @@ export const useOffers = (filters: OfferFilters) => {
         if (fallbackError) throw fallbackError;
 
         const searchLower = filters.search.toLowerCase();
-        const filtered = (allData as OfferWithClient[]).filter(
+        const filtered = (allData as unknown as OfferWithClient[]).filter(
           (o) => o.clients?.name?.toLowerCase().includes(searchLower)
         );
         return { offers: filtered.slice(from, to + 1), total: filtered.length };
