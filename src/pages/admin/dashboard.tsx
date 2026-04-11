@@ -17,12 +17,16 @@ import {
   Mail,
   XCircle,
   Flame,
+  Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useDashboardKpi,
   useNewCorrectionsCount,
@@ -51,6 +55,7 @@ const STEP_NAME_LABELS: Record<string, string> = {
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: kpi, isLoading: kpiLoading } = useDashboardKpi();
   const { data: correctionsCount = 0 } = useNewCorrectionsCount();
   const { data: expiring = [] } = useExpiringOffers();
@@ -59,6 +64,23 @@ export const DashboardPage = () => {
   const { data: followUps = [], isLoading: followUpsLoading } = useFollowUps();
   const cancelFollowUp = useCancelFollowUp();
   const { data: hotOffers = [], isLoading: hotLoading } = useHotOffers();
+
+  const extendOffer = useMutation({
+    mutationFn: async (offerId: string) => {
+      const newDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      const { error } = await supabase
+        .from('offers')
+        .update({ valid_until: newDate, status: 'sent' as never })
+        .eq('id', offerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Oferta przedłużona o 7 dni');
+      queryClient.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-expiring'] });
+    },
+    onError: () => toast.error('Nie udało się przedłużyć oferty'),
+  });
 
   const today = format(new Date(), "d MMMM yyyy", { locale: pl });
   const toHandleCount = (kpi?.revision ?? 0) + correctionsCount;
