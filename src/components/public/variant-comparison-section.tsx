@@ -7,7 +7,7 @@ import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { Enums } from '@/integrations/supabase/types';
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import type { VariantWithItems } from '@/lib/calculations';
 
 type Variant = PublicOffer['offer_variants'][number];
 

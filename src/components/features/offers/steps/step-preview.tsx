@@ -13,8 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { Save, CheckCircle, Send, RefreshCw, BookTemplate, Link2, Copy, ExternalLink, Mail, Trophy, XCircle, Unlock, Eye, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
-import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
-import { getItemPrice } from '@/hooks/use-offer-variants';
+import { formatCurrency, calculateOfferTotals, getItemPrice } from '@/lib/calculations';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import { OfferValidationPanel } from './offer-validation-panel';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';

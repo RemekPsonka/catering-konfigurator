@@ -19,9 +19,9 @@ import {
   useRemoveVariantItem,
   useDuplicateVariant,
   useReorderVariantItems,
-  getItemPrice,
-  type VariantWithItems,
 } from '@/hooks/use-offer-variants';
+import { getItemPrice } from '@/lib/calculations';
+import type { VariantWithItems } from '@/lib/calculations';
 import { useAdminPendingProposals } from '@/hooks/use-admin-pending-proposals';
 import { useUpdateProposalItem, useResolveProposal } from '@/hooks/use-proposal-diff';
 import { useAuth } from '@/hooks/use-auth';

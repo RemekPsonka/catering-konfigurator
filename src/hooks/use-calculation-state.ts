@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useOfferVariants, getItemPrice } from '@/hooks/use-offer-variants';
+import { useOfferVariants } from '@/hooks/use-offer-variants';
+import { getItemPrice } from '@/lib/calculations';
 import { useOfferServices } from '@/hooks/use-offer-services';
 import { calculateOfferTotals } from '@/lib/calculations';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';

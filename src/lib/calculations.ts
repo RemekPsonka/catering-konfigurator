@@ -1,7 +1,46 @@
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
-import { getItemPrice } from '@/hooks/use-offer-variants';
+import type { Tables, Json } from '@/integrations/supabase/types';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 import { calculateBlockTotal } from '@/lib/service-constants';
+
+// ── Types (moved from use-offer-variants) ──
+
+export interface VariantItemWithDish extends Tables<'variant_items'> {
+  dishes: {
+    id: string;
+    display_name: string;
+    photo_url: string | null;
+    unit_type: string;
+    price_per_person: number | null;
+    price_per_piece: number | null;
+    price_per_kg: number | null;
+    price_per_set: number | null;
+    is_modifiable: boolean | null;
+    modifiable_items: Json | null;
+  };
+}
+
+export interface VariantWithItems extends Tables<'offer_variants'> {
+  variant_items: VariantItemWithDish[];
+}
+
+// ── Price helpers (moved from use-offer-variants) ──
+
+export const getDishPrice = (dish: VariantItemWithDish['dishes']): number => {
+  switch (dish.unit_type) {
+    case 'PERSON': return dish.price_per_person ?? 0;
+    case 'PIECE': return dish.price_per_piece ?? 0;
+    case 'KG': return dish.price_per_kg ?? 0;
+    case 'SET': return dish.price_per_set ?? 0;
+    default: return 0;
+  }
+};
+
+export const getItemPrice = (item: VariantItemWithDish): number => {
+  const base = item.custom_price != null ? Number(item.custom_price) : getDishPrice(item.dishes);
+  return base + (Number(item.variant_price_modifier) || 0);
+};
+
+// ── Calculation helpers ──
 
 const roundMoney = (n: number) => Math.round(n * 100) / 100;
 

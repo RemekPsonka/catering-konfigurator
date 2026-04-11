@@ -3,10 +3,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Receipt } from 'lucide-react';
-import { formatCurrency } from '@/lib/calculations';
-import type { OfferTotals } from '@/lib/calculations';
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
-import { getItemPrice } from '@/hooks/use-offer-variants';
+import { formatCurrency, getItemPrice } from '@/lib/calculations';
+import type { OfferTotals, VariantWithItems } from '@/lib/calculations';
 
 interface VariantsPanelProps {
   variants: VariantWithItems[];

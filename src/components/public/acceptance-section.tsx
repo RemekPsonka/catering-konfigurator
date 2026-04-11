@@ -6,7 +6,7 @@ import { useAcceptOffer } from '@/hooks/use-public-offer';
 import { fireNotification } from '@/hooks/use-notifications';
 import { fadeInUp, scaleIn } from '@/lib/animations';
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import type { VariantWithItems } from '@/lib/calculations';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';

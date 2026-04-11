@@ -1,41 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Tables, TablesInsert, TablesUpdate, Json } from '@/integrations/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
-export interface VariantItemWithDish extends Tables<'variant_items'> {
-  dishes: {
-    id: string;
-    display_name: string;
-    photo_url: string | null;
-    unit_type: string;
-    price_per_person: number | null;
-    price_per_piece: number | null;
-    price_per_kg: number | null;
-    price_per_set: number | null;
-    is_modifiable: boolean | null;
-    modifiable_items: Json | null;
-  };
-}
+// Re-export types and price helpers from canonical location
+export { getDishPrice, getItemPrice } from '@/lib/calculations';
+export type { VariantItemWithDish, VariantWithItems } from '@/lib/calculations';
 
-export interface VariantWithItems extends Tables<'offer_variants'> {
-  variant_items: VariantItemWithDish[];
-}
-
-export const getDishPrice = (dish: VariantItemWithDish['dishes']): number => {
-  switch (dish.unit_type) {
-    case 'PERSON': return dish.price_per_person ?? 0;
-    case 'PIECE': return dish.price_per_piece ?? 0;
-    case 'KG': return dish.price_per_kg ?? 0;
-    case 'SET': return dish.price_per_set ?? 0;
-    default: return 0;
-  }
-};
-
-export const getItemPrice = (item: VariantItemWithDish): number => {
-  const base = item.custom_price != null ? Number(item.custom_price) : getDishPrice(item.dishes);
-  return base + (Number(item.variant_price_modifier) || 0);
-};
+import type { VariantWithItems } from '@/lib/calculations';
 
 export const useOfferVariants = (offerId: string | null) => {
   return useQuery({
@@ -48,7 +20,6 @@ export const useOfferVariants = (offerId: string | null) => {
         .eq('offer_id', offerId)
         .order('sort_order');
       if (error) throw error;
-      // Sort variant_items by sort_order within each variant
       return (data as VariantWithItems[]).map(v => ({
         ...v,
         variant_items: (v.variant_items ?? []).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
@@ -115,7 +86,6 @@ export const useAddVariantItem = () => {
     mutationFn: async (data: { variant_id: string; dish_id: string; sort_order: number; offer_id: string }) => {
       const { offer_id, ...insertData } = data;
 
-      // Fetch current dish price and freeze it as custom_price
       const { data: dish } = await supabase
         .from('dishes')
         .select('unit_type, price_per_person, price_per_piece, price_per_kg, price_per_set')
@@ -129,6 +99,7 @@ export const useAddVariantItem = () => {
           case 'PIECE': frozenPrice = dish.price_per_piece; break;
           case 'KG': frozenPrice = dish.price_per_kg; break;
           case 'SET': frozenPrice = dish.price_per_set; break;
+          default: frozenPrice = dish.price_per_person ?? 0; break;
         }
       }
 
@@ -183,7 +154,6 @@ export const useDuplicateVariant = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ variantId, offer_id, newName, newSortOrder }: { variantId: string; offer_id: string; newName: string; newSortOrder: number }) => {
-      // Create new variant
       const { data: newVariant, error: vError } = await supabase
         .from('offer_variants')
         .insert({ offer_id, name: newName, sort_order: newSortOrder })
@@ -191,7 +161,6 @@ export const useDuplicateVariant = () => {
         .single();
       if (vError) throw vError;
 
-      // Copy items
       const { data: items, error: iError } = await supabase
         .from('variant_items')
         .select('*')

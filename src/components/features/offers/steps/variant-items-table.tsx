@@ -21,9 +21,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { VariantItemWithDish } from '@/hooks/use-offer-variants';
-import { getItemPrice } from '@/hooks/use-offer-variants';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, getItemPrice } from '@/lib/calculations';
+import type { VariantItemWithDish } from '@/lib/calculations';
 import { UNIT_TYPE_LABELS } from '@/lib/dish-constants';
 import { DishPickerSheet } from './dish-picker-sheet';
 import { ModificationOverrideDialog } from './modification-override-dialog';
