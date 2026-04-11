@@ -62,17 +62,30 @@ export const PublicOfferPage = () => {
     }
   }, [offer]);
 
-  const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
+  const { data: libraryPhotos } = usePhotoLibrary(offer?.event_type);
+  const { data: libraryHero } = useHeroPhoto(offer?.event_type);
+  const { data: legacyEventPhotos } = usePublicEventPhotos(offer?.event_type);
   usePublicEventProfile(offer?.event_type);
 
-  useEffect(() => {
-    if (offer && !activeVariantId) {
-      const sorted = [...offer.offer_variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-      if (sorted.length > 0) setActiveVariantId(sorted[0].id);
+  // Use photo_library with fallback to legacy event_type_photos
+  const galleryPhotos = useMemo(() => {
+    if (libraryPhotos && libraryPhotos.length > 0) {
+      return libraryPhotos.map((p) => ({
+        photo_url: p.photo_url,
+        width: p.width,
+        height: p.height,
+        caption: p.caption,
+        alt_text: p.alt_text,
+        is_hero: false,
+      }));
     }
-  }, [offer, activeVariantId]);
+    return legacyEventPhotos ?? [];
+  }, [libraryPhotos, legacyEventPhotos]);
 
-  const heroPhoto = useMemo(() => eventPhotos?.find((p) => p.is_hero) ?? null, [eventPhotos]);
+  const heroPhoto = useMemo(() => {
+    if (libraryHero) return { photo_url: libraryHero.photo_url, alt_text: libraryHero.alt_text };
+    return legacyEventPhotos?.find((p) => p.is_hero) ?? null;
+  }, [libraryHero, legacyEventPhotos]);
 
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
@@ -193,9 +206,9 @@ export const PublicOfferPage = () => {
         <CalculationSection offer={offer} modifications={modifications} />
       </div>
 
-      {eventPhotos && eventPhotos.length > 0 && (
+      {galleryPhotos.length > 0 && (
         <div className="no-print">
-          <EventGallerySection photos={eventPhotos} />
+          <EventGallerySection photos={galleryPhotos} />
         </div>
       )}
 
