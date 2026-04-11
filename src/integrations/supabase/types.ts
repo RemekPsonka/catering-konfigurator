@@ -748,6 +748,7 @@ export type Database = {
           sequence_step: number
           status: Database["public"]["Enums"]["follow_up_status"]
           step_name: string
+          survey_token: string | null
         }
         Insert: {
           created_at?: string | null
@@ -760,6 +761,7 @@ export type Database = {
           sequence_step: number
           status?: Database["public"]["Enums"]["follow_up_status"]
           step_name: string
+          survey_token?: string | null
         }
         Update: {
           created_at?: string | null
@@ -772,6 +774,7 @@ export type Database = {
           sequence_step?: number
           status?: Database["public"]["Enums"]["follow_up_status"]
           step_name?: string
+          survey_token?: string | null
         }
         Relationships: [
           {
@@ -1423,6 +1426,44 @@ export type Database = {
           type?: Database["public"]["Enums"]["service_type"]
         }
         Relationships: []
+      }
+      survey_responses: {
+        Row: {
+          client_name: string | null
+          comment: string | null
+          created_at: string
+          event_type: string | null
+          id: string
+          offer_id: string
+          rating: number
+        }
+        Insert: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          offer_id: string
+          rating: number
+        }
+        Update: {
+          client_name?: string | null
+          comment?: string | null
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          offer_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
