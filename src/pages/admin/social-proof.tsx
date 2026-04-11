@@ -65,7 +65,7 @@ const StatsTab = () => {
   );
 };
 
-const StatCard = ({ stat, onSave }: { stat: Tables<'company_stats'>['Row']; onSave: (s: Partial<Tables<'company_stats'>['Row']> & { id: string }) => void }) => {
+const StatCard = ({ stat, onSave }: { stat: Tables<'company_stats'>; onSave: (s: Partial<Tables<'company_stats'>> & { id: string }) => void }) => {
   const [icon, setIcon] = useState(stat.stat_icon ?? '');
   const [value, setValue] = useState(stat.stat_value);
   const [label, setLabel] = useState(stat.stat_label);
