@@ -1,51 +1,43 @@
 
 
-## Plan: Fix frozenPrice bug + refactor getDishPrice/getItemPrice
+## Plan: Dodaj typ dostawy COLD_SERVE
 
-### 1. Bug fix — default case w useAddVariantItem
-W `src/hooks/use-offer-variants.ts` linia 132: dodaj `default: frozenPrice = dish.price_per_person ?? 0; break;`
-
-### 2. Refaktor — przeniesienie typów i funkcji do calculations.ts
-
-**`src/lib/calculations.ts`** — na początek pliku:
-- Przenieś interfejsy `VariantItemWithDish` i `VariantWithItems` (z importem `Tables`, `Json`)
-- Przenieś funkcje `getDishPrice` i `getItemPrice`
-- Usuń import `from '@/hooks/use-offer-variants'`
-
-**`src/hooks/use-offer-variants.ts`** — zamień definicje na re-export:
-```typescript
-export { getDishPrice, getItemPrice } from '@/lib/calculations';
-export type { VariantItemWithDish, VariantWithItems } from '@/lib/calculations';
+### 1. Migracja SQL (1 plik)
+```sql
+ALTER TYPE public.delivery_type ADD VALUE IF NOT EXISTS 'COLD_SERVE';
 ```
-To zachowa backward compat — żaden istniejący import nie złamie się.
 
-### 3. Aktualizacja importów w 10 plikach
+### 2. Frontend — stałe w `src/lib/offer-constants.ts`
+- Dodaj `COLD_SERVE: 'Na zimno (boxy)'` do `DELIVERY_TYPE_LABELS`
+- Zmień `DELIVERY_TYPE_OPTIONS` — nowa kolejność:
+  1. `COLD_SERVE` — "Na zimno (boxy / finger food)" — dania zimne gotowe do podania
+  2. `COLD` — "Zimna dostawa (do podgrzania)" — zmieniony opis
+  3. `HEATED` — bez zmian
+  4. `FULL_SERVICE` — bez zmian
 
-Pliki importujące **tylko typy/funkcje cenowe** (nie hooki) — zmienię import na `from '@/lib/calculations'`:
+### 3. Widok publiczny — 2 pliki
+- `src/components/public/services-logistics-section.tsx` — `DELIVERY_TYPE_LABELS` importowane z offer-constants, zadziała automatycznie po pkt 2
+- `src/components/public/logistics-section.tsx` — lokalny `DELIVERY_INFO` — dodaj `COLD_SERVE` entry
 
-| Plik | Import zmieniony |
-|------|-----------------|
-| `steps/step-preview-send.tsx` | `getDishPrice` |
-| `steps/calculation/VariantsPanel.tsx` | `VariantWithItems`, `getItemPrice` |
-| `steps/variant-items-table.tsx` | `VariantItemWithDish`, `getItemPrice` |
-| `steps/manager-modification-dialog.tsx` | `VariantItemWithDish` |
-| `public/variant-comparison-section.tsx` | `VariantWithItems` |
-| `public/menu-variants-section.tsx` | `VariantWithItems` |
-| `public/acceptance-section.tsx` | `VariantWithItems` |
-| `public/calculation-section.tsx` | `getItemPrice`, `VariantWithItems` |
-| `pages/public/offer.tsx` | `getItemPrice`, `VariantWithItems` |
+### 4. Print — `src/components/print/PrintHeader.tsx`
+- Lokalny `DELIVERY_LABELS` — dodaj `COLD_SERVE: 'Catering zimny (boxy)'`
 
-Pliki importujące **hooki + typy** — zostawiam podwójny import (hook z hooka, typy z calculations):
-- `steps/step-menu.tsx` — `useOfferVariants` z hooka, `getItemPrice`+`VariantWithItems` z calculations
-- `hooks/use-calculation-state.ts` — `useOfferVariants` z hooka, `getItemPrice` z calculations
-- `steps/step-pricing.tsx` — `useOfferVariants` z hooka (bez zmian, nie importuje typów/funkcji cenowych)
+### 5. Edge Function — `supabase/functions/parse-inquiry/index.ts`
+- Dodaj `COLD_SERVE` do enum w schema AI parsera (linia ~128)
 
-### Pliki modyfikowane (12)
-1. `src/lib/calculations.ts` — dodaj typy + funkcje, usuń import z hooka
-2. `src/hooks/use-offer-variants.ts` — re-export + bug fix default case
-3-12. 10 plików z aktualizacją importów
+### 6. Typy — `src/integrations/supabase/types.ts`
+- Zostanie zregenerowany automatycznie po migracji — `delivery_type` będzie zawierać `COLD_SERVE`
 
-### Brak circular dependency
-`calculations.ts` → importuje z `supabase/types` i `service-constants` (nie z hooków)
-`use-offer-variants.ts` → re-exportuje z `calculations.ts` (jednokierunkowy)
+### Pliki modyfikowane (5)
+1. Nowa migracja SQL
+2. `src/lib/offer-constants.ts`
+3. `src/components/public/logistics-section.tsx`
+4. `src/components/print/PrintHeader.tsx`
+5. `supabase/functions/parse-inquiry/index.ts`
+
+### Bez zmian (działają automatycznie)
+- `step-event-data.tsx` — renderuje z `DELIVERY_TYPE_OPTIONS`
+- `services-logistics-section.tsx` — importuje `DELIVERY_TYPE_LABELS`
+- `OfferHeader.tsx` — importuje `DELIVERY_TYPE_LABELS`
+- `use-offer-wizard.ts` — delivery_type to string, zadziała
 
