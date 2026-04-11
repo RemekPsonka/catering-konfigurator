@@ -115,12 +115,15 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
     queryKey: ['offer-calc', offerId],
     queryFn: async () => {
       if (!offerId) return null;
-      const { data, error } = await supabase.from('offers').select('discount_percent, discount_value, delivery_cost').eq('id', offerId).single();
+      const { data, error } = await supabase.from('offers').select('discount_percent, discount_value, delivery_cost, coordinator_name, coordinator_phone').eq('id', offerId).single();
       if (error) throw error;
       return data;
     },
     enabled: !!offerId,
   });
+
+  const [coordinatorName, setCoordinatorName] = useState('');
+  const [coordinatorPhone, setCoordinatorPhone] = useState('');
 
   const [discountType, setDiscountType] = useState<DiscountType>('percent');
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -137,6 +140,8 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
       setDiscountValue(val);
       setDiscountType(pct > 0 ? 'percent' : 'value');
       setDeliveryCost(Number(d.delivery_cost ?? 0));
+      setCoordinatorName(d.coordinator_name ?? '');
+      setCoordinatorPhone(d.coordinator_phone ?? '');
       setLoaded(true);
     }
   }, [offerCalcQuery.data, loaded]);
@@ -168,6 +173,8 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
         total_value: totals.grandTotal,
         price_per_person: totals.pricePerPerson,
         upsell_total: upsellTotal,
+        coordinator_name: coordinatorName || null,
+        coordinator_phone: coordinatorPhone || null,
       }).eq('id', offerId);
       if (error) throw error;
     },
