@@ -1,43 +1,25 @@
 
 
-## Plan: Dodaj typ dostawy COLD_SERVE
+## Plan: Fix PER_PERSON service quantity bug
 
-### 1. Migracja SQL (1 plik)
-```sql
-ALTER TYPE public.delivery_type ADD VALUE IF NOT EXISTS 'COLD_SERVE';
-```
+### Problem
+When adding a PER_PERSON service, `quantity` is always set to `1` in the database. The useEffect that syncs quantity only fires when `peopleCount` changes, not when a new service is added.
 
-### 2. Frontend — stałe w `src/lib/offer-constants.ts`
-- Dodaj `COLD_SERVE: 'Na zimno (boxy)'` do `DELIVERY_TYPE_LABELS`
-- Zmień `DELIVERY_TYPE_OPTIONS` — nowa kolejność:
-  1. `COLD_SERVE` — "Na zimno (boxy / finger food)" — dania zimne gotowe do podania
-  2. `COLD` — "Zimna dostawa (do podgrzania)" — zmieniony opis
-  3. `HEATED` — bez zmian
-  4. `FULL_SERVICE` — bez zmian
+### Zmiany (3 pliki)
 
-### 3. Widok publiczny — 2 pliki
-- `src/components/public/services-logistics-section.tsx` — `DELIVERY_TYPE_LABELS` importowane z offer-constants, zadziała automatycznie po pkt 2
-- `src/components/public/logistics-section.tsx` — lokalny `DELIVERY_INFO` — dodaj `COLD_SERVE` entry
+**1. `src/hooks/use-offer-services.ts`** — dodaj opcjonalny `quantity` do `useAddOfferService`:
+- Parametr: `quantity?: number`
+- Insert: `quantity: quantity ?? 1`
 
-### 4. Print — `src/components/print/PrintHeader.tsx`
-- Lokalny `DELIVERY_LABELS` — dodaj `COLD_SERVE: 'Catering zimny (boxy)'`
+**2. `src/components/features/offers/steps/step-pricing.tsx`** — 2 zmiany:
+- `handleServiceToggle`: przy `checked=true` oblicz `qty = service.price_type === 'PER_PERSON' && peopleCount > 0 ? peopleCount : 1` i przekaż do `addService.mutate`
+- `useEffect` (linia 73): dodaj `offerServices` do dependency array
 
-### 5. Edge Function — `supabase/functions/parse-inquiry/index.ts`
-- Dodaj `COLD_SERVE` do enum w schema AI parsera (linia ~128)
+**3. `src/components/features/offers/steps/step-services.tsx`** — ten sam bug:
+- `handleToggle` (linia 81): dodaj obliczenie `qty` jak wyżej
+- `useEffect` (linia 64): dodaj `offerServices` do dependency array
 
-### 6. Typy — `src/integrations/supabase/types.ts`
-- Zostanie zregenerowany automatycznie po migracji — `delivery_type` będzie zawierać `COLD_SERVE`
-
-### Pliki modyfikowane (5)
-1. Nowa migracja SQL
-2. `src/lib/offer-constants.ts`
-3. `src/components/public/logistics-section.tsx`
-4. `src/components/print/PrintHeader.tsx`
-5. `supabase/functions/parse-inquiry/index.ts`
-
-### Bez zmian (działają automatycznie)
-- `step-event-data.tsx` — renderuje z `DELIVERY_TYPE_OPTIONS`
-- `services-logistics-section.tsx` — importuje `DELIVERY_TYPE_LABELS`
-- `OfferHeader.tsx` — importuje `DELIVERY_TYPE_LABELS`
-- `use-offer-wizard.ts` — delivery_type to string, zadziała
+### Bez zmian
+- `src/lib/calculations.ts` — kalkulacja `price × quantity` jest poprawna
+- `ServicesPanel.tsx`, widok publiczny — wyświetlanie oparte na `quantity` z DB, zadziała po fix
 
