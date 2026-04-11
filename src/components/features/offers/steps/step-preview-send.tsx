@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check } from 'lucide-react';
+import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
