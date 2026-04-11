@@ -21,6 +21,8 @@ import { UpsellSection } from '@/components/public/upsell-section';
 import { SuggestedServicesSection } from '@/components/public/suggested-services-section';
 import { COMPANY } from '@/lib/company-config';
 import { SocialProofStats } from '@/components/public/social-proof-stats';
+import { ShareOffer } from '@/components/public/share-offer';
+import { FaqSection } from '@/components/public/faq-section';
 import { TestimonialsCarousel } from '@/components/public/testimonials-carousel';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
@@ -195,6 +197,7 @@ export const PublicOfferPage = () => {
       <div className="no-print">
         <SocialProofStats />
         <TestimonialsCarousel eventType={offer.event_type} />
+        <FaqSection offerId={offer.id} eventType={offer.event_type} />
       </div>
 
       <TermsSection />
