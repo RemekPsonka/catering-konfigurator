@@ -59,6 +59,7 @@ export const DashboardPage = () => {
   const { data: managerName = '' } = useManagerName();
   const { data: followUps = [], isLoading: followUpsLoading } = useFollowUps();
   const cancelFollowUp = useCancelFollowUp();
+  const { data: hotOffers = [], isLoading: hotLoading } = useHotOffers();
 
   const today = format(new Date(), "d MMMM yyyy", { locale: pl });
   const toHandleCount = (kpi?.revision ?? 0) + correctionsCount;
