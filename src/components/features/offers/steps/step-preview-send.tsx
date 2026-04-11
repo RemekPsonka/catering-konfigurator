@@ -39,6 +39,7 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { useDebounce } from '@/hooks/use-debounce';
 import { cn } from '@/lib/utils';
+import { VersionHistoryPanel } from '@/components/features/offers/version-history-panel';
 import type { Tables, Enums } from '@/integrations/supabase/types';
 import type { ClientRequirement } from '@/components/features/offers/requirements-sidebar';
 
@@ -645,6 +646,11 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
               budgetInfo={requirements.find((r) => r.category === 'budget')?.text ?? ''}
               onGoToStep={onGoToStep}
             />
+          )}
+
+          {/* Version history */}
+          {offerId && (offer?.current_version ?? 0) > 0 && (
+            <VersionHistoryPanel offerId={offerId} />
           )}
 
           {/* Actions */}

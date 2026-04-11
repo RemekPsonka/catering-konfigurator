@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Wrench, Percent, ChevronDown, Save, Gift } from 'lucide-react';
+import { Wrench, Percent, ChevronDown, Save, Gift, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { useOfferVariants } from '@/hooks/use-offer-variants';
@@ -388,6 +388,36 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
           </CollapsibleContent>
         </Card>
       </Collapsible>
+
+      {/* Section 2b: Coordinator */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <User className="h-5 w-5" />
+            Koordynator wydarzenia
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Imię i nazwisko</Label>
+            <Input
+              placeholder="np. Jan Kowalski"
+              value={coordinatorName}
+              onChange={(e) => setCoordinatorName(e.target.value)}
+              className="h-8"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Telefon</Label>
+            <Input
+              placeholder="np. +48 123 456 789"
+              value={coordinatorPhone}
+              onChange={(e) => setCoordinatorPhone(e.target.value)}
+              className="h-8"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Section 3: Summary (sticky) */}
       <Card className="sticky bottom-0 bg-background border-t z-10">
