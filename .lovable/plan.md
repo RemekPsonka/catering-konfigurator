@@ -1,54 +1,41 @@
 
 
-## Plan: Poprawa widoku propozycji zmian — więcej kontekstu i czytelności
+## Plan: Poprawka inline propozycji — czytelne etykiety + pełna propagacja zmian
 
-### Problem
-Widok "Porównanie zmian" jest niezrozumiały:
-- Kolumna "Propozycja" pokazuje surową wartość `proposed_variant_option` ("0") zamiast nazwy wariantu
-- Brak informacji o aktualnym wyborze wariantu dania
-- Brak kontekstu cenowego (cena bazowa, cena po zmianie)
-- Nie widać jasno co klient chce zmienić i na co
+### Problemy zidentyfikowane w audycie
 
-### Zmiany w `src/pages/admin/proposal-diff.tsx`
+1. **Inline row pokazuje "Wariant → 0"** zamiast "Wariant → Medium rare" — brak rozwiązania indeksu na etykietę
+2. **Akceptacja zapisałaby `selected_variant_option = "0"`** do `variant_items` — zamiast prawdziwej nazwy wariantu
+3. **Po akceptacji tabela menu się nie odświeża** — brak invalidacji `offer-variants` w `useResolveProposal`
+4. **Banner/inline rows nie znikają po decyzji** — brak invalidacji `admin-pending-proposals`
 
-**1. Rozbudowa DiffRow — lepszy opis zmian**
+### Zmiany
 
-Zamiast suchej tabeli, każda pozycja będzie kartą z czytelnym opisem:
+**1. `src/hooks/use-admin-pending-proposals.ts`** — rozwiązanie nazw wariantów
 
-```text
-┌─────────────────────────────────────────────────────┐
-│ 🔄 Zmiana wariantu                      [Oczekuje] │
-│                                                     │
-│ Danie: Polędwica wołowa sous-vide                   │
-│                                                     │
-│ Obecny wariant:  (brak wyboru)                      │
-│ Proponowany:     Medium rare                        │
-│                                                     │
-│ Cena przed: 45,00 zł → Cena po: 45,00 zł (±0 zł)  │
-│                                                     │
-│                           [✓ Akceptuj] [✗ Odrzuć]  │
-└─────────────────────────────────────────────────────┘
-```
+Rozszerzenie query o join do `variant_items` z `dishes(modifiable_items)`. W mapowaniu: jeśli `changeType === 'VARIANT_CHANGE'` i `proposed_variant_option` to cyfra, rozwiąż na etykietę z `modifiable_items.options[index].label`. Dodanie pola `resolvedProposedLabel` do `PendingProposalItem`.
 
-**2. Pobranie danych o wariantach dania**
+**2. `src/components/features/offers/steps/variant-items-table.tsx`** — lepszy opis inline
 
-Rozszerzenie query w `useProposalDetail` — dodanie joina do `variant_items` z `dishes.modifiable_items`, żeby rozwiązać nazwy wariantów. Alternatywnie: dodatkowe query w komponencie po `variant_item_id` aby pobrać `allowed_modifications` / `modifiable_items` i zmapować opcje wariantu na czytelne nazwy.
+Zamiast `{pi.proposedDishName ?? pi.proposedVariantOption ?? '—'}` użyj:
+- SWAP: "Zamiana na: **[nazwa dania]**"
+- VARIANT_CHANGE: "Zmiana wariantu na: **[etykieta]**" + różnica cenowa
+- QUANTITY_CHANGE: "Zmiana ilości na: **X szt.**"
 
-**3. Lepsze opisy per typ zmiany:**
+Pełniejszy opis w wierszu zamiast suchych wartości.
 
-- **SWAP**: "Klient chce zamienić **Rosół** na **Zupę pomidorową**" + ceny obu dań
-- **VARIANT_CHANGE**: "Klient chce zmienić wariant z **Medium rare** na **Z sosem pieprzowym**" + różnica cenowa
-- **QUANTITY_CHANGE**: "Klient chce zmienić ilość z **2 szt.** na **3 szt.**"
-- **SPLIT**: "Klient chce podzielić danie" + szczegóły podziału
+**3. `src/hooks/use-proposal-diff.ts` — `useResolveProposal`**
 
-**4. Sekcja kontekstu oferty w nagłówku**
+- Przy `VARIANT_CHANGE`: rozwiąż `proposed_variant_option` na etykietę z `modifiable_items` PRZED zapisem do `variant_items.selected_variant_option`
+- Dodanie invalidacji `offer-variants` i `admin-pending-proposals` w `onSuccess`
 
-Dodanie informacji o ofercie nad tabelą:
-- Nazwa oferty / numer
-- Nazwa wariantu menu którego dotyczy zmiana
-- Link "Wróć do edycji oferty"
+**4. `src/components/features/offers/steps/step-menu.tsx` — `checkAndAutoResolve`**
+
+Dodanie invalidacji `admin-pending-proposals` po auto-resolve, żeby banner i inline rows znikały natychmiast.
 
 ### Pliki modyfikowane
-- `src/pages/admin/proposal-diff.tsx` — przebudowa layoutu DiffRow na karty, rozbudowa opisów, dodanie kontekstu oferty
-- `src/hooks/use-proposal-diff.ts` — rozszerzenie query o `variant_items(dishes(modifiable_items))` dla rozwiązania nazw wariantów
+- `src/hooks/use-admin-pending-proposals.ts` — rozszerzenie query + label resolution
+- `src/components/features/offers/steps/variant-items-table.tsx` — lepsze opisy inline
+- `src/hooks/use-proposal-diff.ts` — fix variant label przy apply + dodatkowe invalidacje
+- `src/components/features/offers/steps/step-menu.tsx` — invalidacja po decyzji
 
