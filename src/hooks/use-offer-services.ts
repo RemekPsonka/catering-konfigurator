@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
+import { recalculateOfferTotals } from '@/lib/calculations';
 
 export type OfferServiceWithService = Tables<'offer_services'> & {
   services: Tables<'services'>;
@@ -37,6 +38,7 @@ export const useAddOfferService = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['offer-services', variables.offerId] });
+      recalculateOfferTotals(variables.offerId);
     },
     onError: () => {
       toast.error('Nie udało się dodać usługi');
@@ -72,6 +74,7 @@ export const useUpdateOfferService = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['offer-services', variables.offerId] });
+      recalculateOfferTotals(variables.offerId);
     },
     onError: () => {
       toast.error('Nie udało się zaktualizować usługi');
@@ -91,6 +94,7 @@ export const useRemoveOfferService = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['offer-services', variables.offerId] });
+      recalculateOfferTotals(variables.offerId);
     },
     onError: () => {
       toast.error('Nie udało się usunąć usługi');
