@@ -266,6 +266,12 @@ export const PublicOfferPage = () => {
         />
       </div>
 
+      {eventProfile?.testimonial_text && (
+        <div className="no-print">
+          <TestimonialSection text={eventProfile.testimonial_text} author={eventProfile.testimonial_author} event={eventProfile.testimonial_event} />
+        </div>
+      )}
+
       <div className="no-print">
         <SocialProofStats />
         <TestimonialsCarousel eventType={offer.event_type} />
