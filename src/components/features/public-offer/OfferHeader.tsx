@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { COMPANY } from '@/lib/company-config';
+import { getOfferVersionLabel } from '@/lib/offer-version';
 import { DELIVERY_TYPE_LABELS, EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { formatOfferDate, formatOfferTime, truncateText } from './offer-utils';
 import type { PublicOffer } from '@/hooks/use-public-offer';
@@ -112,7 +113,7 @@ export const OfferHeader = ({ offer, heroPhoto, scrollY, isExpired, isAccepted, 
             <h1 className="font-display text-3xl font-bold text-ivory md:text-4xl">{COMPANY.name}</h1>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }} className="mt-3 flex flex-wrap items-center justify-center gap-3 font-body text-sm text-ivory/70 tracking-wide">
-            <span>{offer.offer_number}</span>
+            <span>{getOfferVersionLabel(offer.offer_number, offer.current_version)}</span>
             <span className="hidden sm:inline">•</span>
             <span>{heroHeadline}</span>
             {offer.valid_until && (
