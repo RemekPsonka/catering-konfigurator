@@ -594,7 +594,111 @@ export const EventProfileEditPage = () => {
         </CardContent>
       </Card>
 
-      {/* Section 4 — Galeria (photo_library) */}
+      {/* Section 4 — Wygląd */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="h-4 w-4" /> Wygląd strony klienta
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Colors */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Kolory</Label>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+              {[
+                { label: 'Główny', value: primaryColor, set: setPrimaryColor },
+                { label: 'Dodatkowy', value: secondaryColor, set: setSecondaryColor },
+                { label: 'Akcent', value: accentColor, set: setAccentColor },
+                { label: 'Tło', value: bgColor, set: setBgColor },
+                { label: 'Tekst', value: textColor, set: setTextColor },
+              ].map((c) => (
+                <div key={c.label} className="space-y-1">
+                  <Label className="text-xs">{c.label}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={c.value}
+                      onChange={(e) => c.set(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border border-input p-0"
+                    />
+                    <Input
+                      value={c.value}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) c.set(v);
+                      }}
+                      className="h-8 text-xs font-mono w-24"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fonts */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Czcionki</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Czcionka treści</Label>
+                <Select value={fontFamily} onValueChange={setFontFamily}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Inter', 'DM Sans', 'Lora', 'Merriweather', 'Poppins', 'Montserrat'].map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Czcionka nagłówków</Label>
+                <Select value={headerFont} onValueChange={setHeaderFont}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Playfair Display', 'Cormorant Garamond', 'Lora', 'Poppins', 'Montserrat', 'Merriweather'].map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini preview */}
+          <div>
+            <Label className="text-sm font-semibold mb-2 block">Podgląd</Label>
+            <div className="rounded-xl border overflow-hidden" style={{ maxWidth: 340 }}>
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  height: 64,
+                }}
+              >
+                <span style={{ fontFamily: headerFont, color: '#fff', fontSize: 18, fontWeight: 700 }}>
+                  Podgląd nagłówka
+                </span>
+              </div>
+              <div style={{ background: bgColor, padding: 16 }}>
+                <p style={{ fontFamily, color: textColor, fontSize: 14, lineHeight: 1.6 }}>
+                  Przykładowy tekst oferty cateringowej w wybranej czcionce i kolorystyce.
+                </p>
+                <span style={{ color: accentColor, fontWeight: 600, fontSize: 16, marginTop: 8, display: 'inline-block' }}>
+                  Akcent: 189,00 zł/os.
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 5 — Galeria (photo_library) */}
       <PhotoLibraryPreview eventTypeId={eventTypeId!} />
 
       {/* Confirm delete dialog */}
