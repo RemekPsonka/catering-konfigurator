@@ -302,11 +302,14 @@ export const PublicOfferPage = () => {
       </div>
 
       <footer className="py-4 text-center" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}>
-        <p className="font-body text-sm text-ivory/60">© {new Date().getFullYear()} {COMPANY.name}</p>
+        <p className="font-body text-sm text-ivory/60">© {new Date().getFullYear()} {COMPANY.name} — marka {COMPANY.legalName}</p>
       </footer>
 
       <div className="print-only hidden" style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #ccc', marginTop: '20px', fontSize: '9pt', color: '#666' }}>
-        {COMPANY.name} | {COMPANY.email} | Wygenerowano: {new Date().toLocaleDateString('pl-PL')}
+        <p style={{ margin: 0 }}>{COMPANY.name} — marka {COMPANY.legalName}</p>
+        <p style={{ margin: '2px 0 0 0' }}>{COMPANY.address} | NIP: {COMPANY.nip} | KRS: {COMPANY.krs}</p>
+        <p style={{ margin: '2px 0 0 0' }}>{COMPANY.email} | tel. {COMPANY.phone}</p>
+        <p style={{ margin: '4px 0 0 0' }}>Wygenerowano: {new Date().toLocaleDateString('pl-PL')}</p>
       </div>
     </div>
   );
