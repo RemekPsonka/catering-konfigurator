@@ -156,14 +156,7 @@ export const useResolveProposal = () => {
       for (const item of acceptedItems) {
         if (!item.variant_item_id) continue;
 
-        const updateData: Partial<{
-          dish_id: string;
-          custom_price: number;
-          custom_name: string;
-          selected_variant_option: string;
-          quantity: number;
-          variant_price_modifier: number;
-        }> = {};
+        const updateData: TablesUpdate<'variant_items'> = {};
 
         if (item.change_type === 'SWAP' && item.proposed_dish_id) {
           updateData.dish_id = item.proposed_dish_id;
@@ -196,7 +189,7 @@ export const useResolveProposal = () => {
         if (Object.keys(updateData).length > 0) {
           const { error: updateError } = await supabase
             .from('variant_items')
-            .update(updateData as Record<string, unknown>)
+            .update(updateData)
             .eq('id', item.variant_item_id);
 
           if (updateError) {
