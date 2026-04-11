@@ -5,7 +5,7 @@ import { Sparkles, UtensilsCrossed, RefreshCw } from 'lucide-react';
 import { DishCard } from './dish-card';
 import type { DishModification } from './dish-edit-panel';
 import { formatCurrency, calculateVariantDishesTotal } from '@/lib/calculations';
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import type { VariantWithItems } from '@/lib/calculations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { PublicOffer } from '@/hooks/use-public-offer';

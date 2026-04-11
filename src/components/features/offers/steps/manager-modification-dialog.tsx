@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/calculations';
-import type { VariantItemWithDish } from '@/hooks/use-offer-variants';
+import type { VariantItemWithDish } from '@/lib/calculations';
 import type { Json, TablesUpdate } from '@/integrations/supabase/types';
 
 interface ManagerModificationDialogProps {

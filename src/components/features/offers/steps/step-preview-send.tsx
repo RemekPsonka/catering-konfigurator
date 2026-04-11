@@ -17,8 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
-import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
-import { getDishPrice } from '@/hooks/use-offer-variants';
+import { formatCurrency, calculateOfferTotals, getDishPrice } from '@/lib/calculations';
 
 const getPreviewItemPrice = (item: PreviewVariantItem): number => {
   if (item.custom_price != null) return Number(item.custom_price);

@@ -3,14 +3,14 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Minus, Plus, MessageCircle, Tag } from 'lucide-react';
 import { fadeInUp, fadeIn, staggerContainer } from '@/lib/animations';
-import { calculateOfferTotals, formatCurrency } from '@/lib/calculations';
-import { getItemPrice } from '@/hooks/use-offer-variants';
+import { calculateOfferTotals, formatCurrency, getItemPrice } from '@/lib/calculations';
+import type { VariantWithItems } from '@/lib/calculations';
 import { useDebounce } from '@/hooks/use-debounce';
 import { supabase } from '@/integrations/supabase/client';
 import { AnimatedPrice } from './animated-price';
 import type { DishModification } from './dish-edit-panel';
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 interface CalculationSectionProps {

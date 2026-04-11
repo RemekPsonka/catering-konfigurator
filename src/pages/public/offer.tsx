@@ -30,8 +30,8 @@ import { FeaturesSection } from '@/components/public/features-section';
 import { TestimonialSection } from '@/components/public/testimonial-section';
 import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
 import { Button } from '@/components/ui/button';
-import { getItemPrice } from '@/hooks/use-offer-variants';
-import type { VariantWithItems } from '@/hooks/use-offer-variants';
+import { getItemPrice } from '@/lib/calculations';
+import type { VariantWithItems } from '@/lib/calculations';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 import type { DishModification } from '@/components/public/dish-edit-panel';
 
