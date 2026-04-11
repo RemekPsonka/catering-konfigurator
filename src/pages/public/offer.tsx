@@ -208,9 +208,31 @@ export const PublicOfferPage = () => {
         <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
       </div>
 
+      {eventProfile?.description_long && (
+        <div className="no-print">
+          <AboutCateringSection descriptionLong={eventProfile.description_long} />
+        </div>
+      )}
+
+      {eventProfile?.features && Array.isArray(eventProfile.features) && (eventProfile.features as Feature[]).length > 0 && (
+        <div className="no-print">
+          <FeaturesSection features={eventProfile.features as Feature[]} />
+        </div>
+      )}
+
       {offer.offer_variants.length > 0 && (
         <div data-track-section="menu">
           <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={handleVariantChange} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} />
+          {offer.offer_variants.length >= 2 && (
+            <div className="no-print text-center py-4">
+              <Button variant="outline" onClick={() => setShowComparison((v) => !v)} style={{ borderColor: 'var(--theme-primary, #1A1A1A)', color: 'var(--theme-primary, #1A1A1A)' }}>
+                {showComparison ? 'Ukryj porównanie' : 'Porównaj warianty'}
+              </Button>
+            </div>
+          )}
+          {showComparison && (
+            <VariantComparisonSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} onSelectVariant={handleVariantChange} acceptedVariantId={offer.accepted_variant_id} />
+          )}
         </div>
       )}
 
