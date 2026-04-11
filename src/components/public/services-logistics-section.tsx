@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Wrench, Truck, Phone, ChefHat } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
-import { formatCurrency, calculateBlockPrice } from '@/lib/calculations';
+import { formatCurrency } from '@/lib/calculations';
+import { calculateBlockTotal, formatBlockLabel } from '@/lib/service-constants';
 import { supabase } from '@/integrations/supabase/client';
 import { DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
 import type { PublicOffer } from '@/hooks/use-public-offer';
@@ -119,7 +120,7 @@ export const ServicesLogisticsSection = ({ offer, priceDisplayMode }: ServicesLo
                     const qty = s.quantity ?? 1;
                     const isBlock = s.services.price_type === 'PER_BLOCK';
                     const lineTotal = isBlock
-                      ? calculateBlockPrice(price, s.services.extra_block_price != null ? Number(s.services.extra_block_price) : null, qty)
+                      ? calculateBlockTotal(price, s.services.extra_block_price != null ? Number(s.services.extra_block_price) : null, qty)
                       : price * qty;
 
                     return (
@@ -132,10 +133,9 @@ export const ServicesLogisticsSection = ({ offer, priceDisplayMode }: ServicesLo
                             <span className="font-body text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
                               {s.services.name}
                             </span>
-                            {isBlock && s.services.block_unit_label ? (
+                            {isBlock ? (
                               <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
-                                {qty} × {s.services.block_unit_label}
-                                {s.services.block_duration_hours ? ` (${s.services.block_duration_hours}h)` : ''}
+                                {formatBlockLabel(qty, s.services.block_unit_label, s.services.block_duration_hours)}
                               </span>
                             ) : (
                               qty > 1 && (
