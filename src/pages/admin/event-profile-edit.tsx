@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -25,8 +26,9 @@ import {
   useReorderEventPhotos,
   useUpdateEventPhotoTags,
 } from '@/hooks/use-event-profiles';
+import { useOfferTheme, useUpdateOfferTheme } from '@/hooks/use-offer-theme';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
-import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag, Camera } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag, Camera, Palette } from 'lucide-react';
 import { usePhotoLibrary, useHeroPhoto, useEventPhotoStats } from '@/hooks/use-photo-library';
 import { MIN_EVENT_PHOTOS, MAX_LIBRARY_PHOTOS } from '@/lib/app-limits';
 import type { Tables } from '@/integrations/supabase/types';
@@ -324,6 +326,8 @@ export const EventProfileEditPage = () => {
   const { data: profile, isLoading } = useEventProfile(eventTypeId);
   const { data: photos = [] } = useEventPhotos(eventTypeId);
   const updateProfile = useUpdateEventProfile();
+  const { data: theme } = useOfferTheme(eventTypeId);
+  const updateTheme = useUpdateOfferTheme();
   const uploadPhoto = useUploadEventPhoto();
   const deletePhoto = useDeleteEventPhoto();
   const setHero = useSetHeroPhoto();
@@ -345,6 +349,15 @@ export const EventProfileEditPage = () => {
   const [testimonialAuthor, setTestimonialAuthor] = useState('');
   const [testimonialEvent, setTestimonialEvent] = useState('');
 
+  // Theme state
+  const [primaryColor, setPrimaryColor] = useState('#6B46C1');
+  const [secondaryColor, setSecondaryColor] = useState('#9F7AEA');
+  const [accentColor, setAccentColor] = useState('#D69E2E');
+  const [bgColor, setBgColor] = useState('#FFFFFF');
+  const [textColor, setTextColor] = useState('#333333');
+  const [fontFamily, setFontFamily] = useState('Inter');
+  const [headerFont, setHeaderFont] = useState('Playfair Display');
+
   useEffect(() => {
     if (profile) {
       setHeadline(profile.headline ?? '');
@@ -358,6 +371,19 @@ export const EventProfileEditPage = () => {
       setTestimonialEvent(profile.testimonial_event ?? '');
     }
   }, [profile]);
+
+  // Init theme state
+  useEffect(() => {
+    if (theme) {
+      setPrimaryColor(theme.primary_color);
+      setSecondaryColor(theme.secondary_color);
+      setAccentColor(theme.accent_color);
+      setBgColor(theme.background_color);
+      setTextColor(theme.text_color);
+      setFontFamily(theme.font_family);
+      setHeaderFont(theme.header_font ?? 'Playfair Display');
+    }
+  }, [theme]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const opt = EVENT_TYPE_OPTIONS.find((o) => o.value === eventTypeId);
@@ -393,7 +419,19 @@ export const EventProfileEditPage = () => {
         testimonial_event: testimonialEvent || null,
       },
     });
-  }, [eventTypeId, headline, descShort, descLong, ctaText, isActive, features, testimonialText, testimonialAuthor, testimonialEvent, updateProfile]);
+    updateTheme.mutate({
+      id: eventTypeId,
+      updates: {
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        accent_color: accentColor,
+        background_color: bgColor,
+        text_color: textColor,
+        font_family: fontFamily,
+        header_font: headerFont,
+      },
+    });
+  }, [eventTypeId, headline, descShort, descLong, ctaText, isActive, features, testimonialText, testimonialAuthor, testimonialEvent, updateProfile, updateTheme, primaryColor, secondaryColor, accentColor, bgColor, textColor, fontFamily, headerFont]);
 
   const handleFileUpload = useCallback(
     async (files: FileList | null) => {
@@ -556,7 +594,111 @@ export const EventProfileEditPage = () => {
         </CardContent>
       </Card>
 
-      {/* Section 4 — Galeria (photo_library) */}
+      {/* Section 4 — Wygląd */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="h-4 w-4" /> Wygląd strony klienta
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Colors */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Kolory</Label>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+              {[
+                { label: 'Główny', value: primaryColor, set: setPrimaryColor },
+                { label: 'Dodatkowy', value: secondaryColor, set: setSecondaryColor },
+                { label: 'Akcent', value: accentColor, set: setAccentColor },
+                { label: 'Tło', value: bgColor, set: setBgColor },
+                { label: 'Tekst', value: textColor, set: setTextColor },
+              ].map((c) => (
+                <div key={c.label} className="space-y-1">
+                  <Label className="text-xs">{c.label}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={c.value}
+                      onChange={(e) => c.set(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border border-input p-0"
+                    />
+                    <Input
+                      value={c.value}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) c.set(v);
+                      }}
+                      className="h-8 text-xs font-mono w-24"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fonts */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Czcionki</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Czcionka treści</Label>
+                <Select value={fontFamily} onValueChange={setFontFamily}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Inter', 'DM Sans', 'Lora', 'Merriweather', 'Poppins', 'Montserrat'].map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Czcionka nagłówków</Label>
+                <Select value={headerFont} onValueChange={setHeaderFont}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Playfair Display', 'Cormorant Garamond', 'Lora', 'Poppins', 'Montserrat', 'Merriweather'].map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini preview */}
+          <div>
+            <Label className="text-sm font-semibold mb-2 block">Podgląd</Label>
+            <div className="rounded-xl border overflow-hidden" style={{ maxWidth: 340 }}>
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  height: 64,
+                }}
+              >
+                <span style={{ fontFamily: headerFont, color: '#fff', fontSize: 18, fontWeight: 700 }}>
+                  Podgląd nagłówka
+                </span>
+              </div>
+              <div style={{ background: bgColor, padding: 16 }}>
+                <p style={{ fontFamily, color: textColor, fontSize: 14, lineHeight: 1.6 }}>
+                  Przykładowy tekst oferty cateringowej w wybranej czcionce i kolorystyce.
+                </p>
+                <span style={{ color: accentColor, fontWeight: 600, fontSize: 16, marginTop: 8, display: 'inline-block' }}>
+                  Akcent: 189,00 zł/os.
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 5 — Galeria (photo_library) */}
       <PhotoLibraryPreview eventTypeId={eventTypeId!} />
 
       {/* Confirm delete dialog */}
@@ -574,7 +716,7 @@ export const EventProfileEditPage = () => {
         }}
       />
 
-      {/* Section 5 — Preview Dialog */}
+      {/* Section 6 — Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -582,19 +724,19 @@ export const EventProfileEditPage = () => {
           </DialogHeader>
           <div className="space-y-6">
             {/* Hero */}
-            <div className="relative h-48 rounded-lg overflow-hidden bg-gradient-to-br from-primary/30 to-primary/5">
+            <div className="relative h-48 rounded-lg overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
               {heroPhoto ? (
                 <img src={heroPhoto.photo_url} alt={headline} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-5xl">{opt?.emoji}</div>
               )}
               <div className="absolute inset-0 bg-black/30 flex items-end p-6">
-                <h2 className="text-2xl font-bold text-white">{headline || 'Nagłówek...'}</h2>
+                <h2 className="text-2xl font-bold text-white" style={{ fontFamily: headerFont }}>{headline || 'Nagłówek...'}</h2>
               </div>
             </div>
 
             {/* Description */}
-            {descLong && <p className="text-sm text-muted-foreground whitespace-pre-line">{descLong}</p>}
+            {descLong && <p className="text-sm whitespace-pre-line" style={{ fontFamily, color: textColor }}>{descLong}</p>}
 
             {/* Features */}
             {features.length > 0 && (
