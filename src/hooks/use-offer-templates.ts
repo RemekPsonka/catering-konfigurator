@@ -88,7 +88,7 @@ export const useSaveAsTemplate = () => {
       // Fetch variants with items
       const { data: variants, error: varErr } = await supabase
         .from('offer_variants')
-        .select('*, variant_items(*)')
+        .select('*, variant_items!variant_items_variant_id_fkey(*)')
         .eq('offer_id', offerId)
         .order('sort_order');
       if (varErr) throw varErr;

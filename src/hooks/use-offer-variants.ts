@@ -44,7 +44,7 @@ export const useOfferVariants = (offerId: string | null) => {
       if (!offerId) return [];
       const { data, error } = await supabase
         .from('offer_variants')
-        .select('*, variant_items(*, dishes(id, display_name, photo_url, unit_type, price_per_person, price_per_piece, price_per_kg, price_per_set, is_modifiable, modifiable_items))')
+        .select('*, variant_items!variant_items_variant_id_fkey(*, dishes(id, display_name, photo_url, unit_type, price_per_person, price_per_piece, price_per_kg, price_per_set, is_modifiable, modifiable_items))')
         .eq('offer_id', offerId)
         .order('sort_order');
       if (error) throw error;
