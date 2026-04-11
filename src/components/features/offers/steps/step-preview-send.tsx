@@ -200,6 +200,43 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   const [followUpEnabled, setFollowUpEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
+  // ── Term override editing state ──
+  const [editingTermId, setEditingTermId] = useState<string | null>(null);
+  const [editingTermValue, setEditingTermValue] = useState('');
+  const [editingTermHidden, setEditingTermHidden] = useState(false);
+
+  const handleSaveOverride = async (termId: string) => {
+    if (!offerId) return;
+    try {
+      const { error } = await supabase
+        .from('offer_term_overrides')
+        .upsert({ offer_id: offerId, term_id: termId, value: editingTermValue, is_hidden: editingTermHidden }, { onConflict: 'offer_id,term_id' });
+      if (error) throw error;
+      toast.success('Warunek zapisany');
+      setEditingTermId(null);
+      queryClient.invalidateQueries({ queryKey: ['offer-terms-preview', offerId] });
+    } catch {
+      toast.error('Nie udało się zapisać warunku');
+    }
+  };
+
+  const handleResetOverride = async (termId: string) => {
+    if (!offerId) return;
+    try {
+      const { error } = await supabase
+        .from('offer_term_overrides')
+        .delete()
+        .eq('offer_id', offerId)
+        .eq('term_id', termId);
+      if (error) throw error;
+      toast.success('Przywrócono domyślną wartość');
+      setEditingTermId(null);
+      queryClient.invalidateQueries({ queryKey: ['offer-terms-preview', offerId] });
+    } catch {
+      toast.error('Nie udało się przywrócić');
+    }
+  };
+
   useEffect(() => {
     if (offer && !settingsLoaded) {
       setDisplayMode(offer.price_display_mode as PriceDisplayMode);
