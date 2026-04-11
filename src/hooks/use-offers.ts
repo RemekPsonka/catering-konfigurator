@@ -44,7 +44,7 @@ export const useOffers = (filters: OfferFilters) => {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      let results = data as OfferWithClient[];
+      let results = data as unknown as OfferWithClient[];
 
       // If searching and no results by offer_number, also try client name filter in JS
       if (filters.search && results.length === 0) {
@@ -64,7 +64,7 @@ export const useOffers = (filters: OfferFilters) => {
         if (fallbackError) throw fallbackError;
 
         const searchLower = filters.search.toLowerCase();
-        const filtered = (allData as OfferWithClient[]).filter(
+        const filtered = (allData as unknown as OfferWithClient[]).filter(
           (o) => o.clients?.name?.toLowerCase().includes(searchLower)
         );
         return { offers: filtered.slice(from, to + 1), total: filtered.length };
