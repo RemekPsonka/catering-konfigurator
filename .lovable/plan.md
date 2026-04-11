@@ -1,43 +1,27 @@
 
 
-## Plan: Auto-obliczanie total_value przy zmianach statusu oferty
+## Plan: Dodaj SZK i SWI do enum event_type
 
 ### Problem
-Kolumna `total_value` na tabeli `offers` jest zapisywana **tylko** gdy manager ręcznie kliknie "Zapisz wycenę" w kroku 3 (Wycena). Jeśli manager doda dania w kroku 2, przejdzie do kroku 4 i zapisze jako szkic/gotową — `total_value` pozostaje NULL (wyświetlane jako 0,00 zł na liście ofert).
+Enum `event_type` w bazie ma 12 wartości — brakuje `SZK` (Szkolenie) i `SWI` (Spotkanie świąteczne). Frontend i Edge Function już je używają, ale INSERT/UPDATE z tymi wartościami failuje na poziomie DB.
 
 ### Rozwiązanie
-Przy każdej zmianie statusu oferty (draft/ready/sent) w `step-preview-send.tsx`, automatycznie przeliczać i zapisywać wartości finansowe razem z updatem statusu.
 
-### Modyfikacje
+**1. Nowa migracja SQL** (jedyna zmiana DB):
+```sql
+ALTER TYPE public.event_type ADD VALUE IF NOT EXISTS 'SZK';
+ALTER TYPE public.event_type ADD VALUE IF NOT EXISTS 'SWI';
+```
 
-**1. `src/components/features/offers/steps/step-preview-send.tsx`**
-- `statusMutation` — zamiast aktualizować TYLKO `status`, dodać obliczenie totali:
-  - Użyć istniejących `totals` (już obliczanych w komponencie via `calculateOfferTotals`)
-  - Dopisać do UPDATE: `total_dishes_value`, `total_services_value`, `total_value`, `price_per_person`
-- Zmiana w `mutationFn`:
-  ```
-  // PRZED:
-  const update = { status };
-  
-  // PO:
-  const update = { 
-    status,
-    total_dishes_value: totals.maxDishesTotal,
-    total_services_value: totals.servicesTotalCalc,
-    total_value: totals.grandTotal,
-    price_per_person: totals.pricePerPerson,
-  };
-  ```
-- `totals` jest już dostępny w scope komponentu (linia ~270-280)
+**2. Typy TypeScript** — po migracji plik `src/integrations/supabase/types.ts` zostanie automatycznie zregenerowany z nowymi wartościami w `Database["public"]["Enums"]["event_type"]`.
 
-**2. Sprawdzić `offer-wizard.tsx` — draft save**
-- Jeśli wizard ma osobny "Zapisz szkic" który nie przechodzi przez `step-preview-send`, również tam dodać auto-save totali
+### Co NIE wymaga zmian
+- `src/lib/offer-constants.ts` — już ma SZK i SWI
+- `src/lib/constants.ts` — już ma SZK i SWI w `EVENT_TYPE_LABELS`
+- `src/types/database.ts` — już ma SZK i SWI w typie `EventType`
+- `supabase/functions/parse-inquiry/index.ts` — już obsługuje 14 typów
+- `step-event-data.tsx` — renderuje z `EVENT_TYPE_OPTIONS` który już zawiera SZK/SWI
 
-### Pliki do modyfikacji (1-2)
-1. `src/components/features/offers/steps/step-preview-send.tsx` — auto-save totali przy statusMutation
-2. Ewentualnie `src/components/features/offers/offer-wizard.tsx` — jeśli draft save jest osobny
-
-### Backward compat
-- Istniejące oferty z `total_value = 0` zostaną zaktualizowane przy następnym zapisie statusu
-- Ręczny zapis w kroku 3 nadal działa jak dotychczas
+### Pliki modyfikowane
+1. Nowa migracja SQL (1 plik)
 
