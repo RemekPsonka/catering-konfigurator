@@ -125,7 +125,7 @@ lub null jeśli kompletnie nie da się określić typu`;
                       location: { type: "string", description: "Adres/miejsce lub null" },
                       delivery_type: {
                         type: "string",
-                        enum: ["COLD", "HEATED", "FULL_SERVICE"],
+                        enum: ["COLD_SERVE", "COLD", "HEATED", "FULL_SERVICE"],
                         description: "Typ dostawy lub null",
                       },
                     },

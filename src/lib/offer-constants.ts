@@ -28,13 +28,15 @@ export const EVENT_TYPE_OPTIONS: EventTypeOption[] = [
 ];
 
 export const DELIVERY_TYPE_LABELS: Record<DeliveryType, string> = {
+  COLD_SERVE: 'Na zimno (boxy)',
   COLD: 'Zimna dostawa',
   HEATED: 'Podgrzewana',
   FULL_SERVICE: 'Full service',
 };
 
 export const DELIVERY_TYPE_OPTIONS: { value: DeliveryType; label: string; description: string }[] = [
-  { value: 'COLD', label: 'Zimna dostawa', description: 'Dania dostarczone w pojemnikach, klient podgrzewa samodzielnie' },
+  { value: 'COLD_SERVE', label: 'Na zimno (boxy / finger food)', description: 'Dania zimne gotowe do podania: finger foody, boxy, przekąski, sałatki. Bez podgrzewania.' },
+  { value: 'COLD', label: 'Zimna dostawa (do podgrzania)', description: 'Dania dostarczone w pojemnikach, wymagają podgrzania przez klienta' },
   { value: 'HEATED', label: 'Podgrzewana', description: 'Dania dostarczone w podgrzewaczach, gotowe do serwowania' },
   { value: 'FULL_SERVICE', label: 'Full service', description: 'Pełna obsługa: dostawa, setup, serwis, sprzątanie' },
 ];
