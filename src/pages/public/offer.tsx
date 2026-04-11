@@ -25,6 +25,11 @@ import { SocialProofStats } from '@/components/public/social-proof-stats';
 import { ShareOffer } from '@/components/public/share-offer';
 import { FaqSection } from '@/components/public/faq-section';
 import { TestimonialsCarousel } from '@/components/public/testimonials-carousel';
+import { AboutCateringSection } from '@/components/public/about-catering-section';
+import { FeaturesSection } from '@/components/public/features-section';
+import { TestimonialSection } from '@/components/public/testimonial-section';
+import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
+import { Button } from '@/components/ui/button';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
@@ -36,6 +41,8 @@ import { OfferHeader } from '@/components/features/public-offer/OfferHeader';
 import { CountdownTimer } from '@/components/public/countdown-timer';
 import { OfferTracker } from '@/components/public/offer-tracker';
 import { trackOfferEvent } from '@/lib/tracking';
+
+type Feature = { icon: string; title: string; text: string };
 
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
