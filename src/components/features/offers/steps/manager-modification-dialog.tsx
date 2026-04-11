@@ -47,7 +47,7 @@ export const ManagerModificationDialog = ({ open, onClose, item, offerId }: Mana
   }, [open, item]);
 
   const applyMutation = useMutation({
-    mutationFn: async (updateData: Record<string, unknown>) => {
+    mutationFn: async (updateData: { dish_id?: string; custom_name?: string; custom_price?: number; selected_variant_option?: string }) => {
       const { error } = await supabase
         .from('variant_items')
         .update(updateData)
