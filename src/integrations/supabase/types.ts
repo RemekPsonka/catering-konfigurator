@@ -1560,6 +1560,8 @@ export type Database = {
           quantity: number | null
           selected_variant_option: string | null
           sort_order: number | null
+          split_parent_id: string | null
+          split_percent: number | null
           variant_id: string
           variant_price_modifier: number | null
         }
@@ -1574,6 +1576,8 @@ export type Database = {
           quantity?: number | null
           selected_variant_option?: string | null
           sort_order?: number | null
+          split_parent_id?: string | null
+          split_percent?: number | null
           variant_id: string
           variant_price_modifier?: number | null
         }
@@ -1588,6 +1592,8 @@ export type Database = {
           quantity?: number | null
           selected_variant_option?: string | null
           sort_order?: number | null
+          split_parent_id?: string | null
+          split_percent?: number | null
           variant_id?: string
           variant_price_modifier?: number | null
         }
@@ -1597,6 +1603,13 @@ export type Database = {
             columns: ["dish_id"]
             isOneToOne: false
             referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "variant_items_split_parent_id_fkey"
+            columns: ["split_parent_id"]
+            isOneToOne: false
+            referencedRelation: "variant_items"
             referencedColumns: ["id"]
           },
           {

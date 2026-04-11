@@ -46,7 +46,8 @@ export const calculateVariantDishesTotal = (variant: VariantWithItems): number =
   return variant.variant_items.reduce((sum, item) => {
     const price = getItemPrice(item);
     const qty = Math.max(0, Number(item.quantity) || 1);
-    return sum + price * qty;
+    const splitFactor = (item.split_percent != null ? item.split_percent / 100 : 1);
+    return sum + price * qty * splitFactor;
   }, 0);
 };
 

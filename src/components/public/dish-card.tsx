@@ -59,9 +59,10 @@ export const DishCard = ({
   }
 
   const quantity = item.quantity ?? 1;
+  const splitFactor = (item.split_percent != null ? item.split_percent / 100 : 1);
   const totalPrice = pricingMode === 'PER_PERSON'
-    ? effectivePrice * quantity * peopleCount
-    : effectivePrice * quantity;
+    ? effectivePrice * quantity * peopleCount * splitFactor
+    : effectivePrice * quantity * splitFactor;
 
   const photoUrl = modification?.swapDishPhoto ?? dish.photo_url;
 
@@ -168,6 +169,17 @@ export const DishCard = ({
                     style={{ color: 'var(--theme-text, #1A1A1A)' }}
                     >
                      {displayName}
+                     {item.split_percent != null && (
+                       <span
+                         className="ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                         style={{
+                           backgroundColor: 'var(--theme-secondary, #e8e4dd)',
+                           color: 'var(--theme-text, #1A1A1A)',
+                         }}
+                       >
+                         {item.split_percent}%
+                       </span>
+                     )}
                      {item.selected_variant_option && (
                        <span className="text-xs font-normal opacity-60 ml-1">
                          ({item.selected_variant_option})

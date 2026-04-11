@@ -184,6 +184,52 @@ export const useResolveProposal = () => {
         } else if (item.change_type === 'QUANTITY_CHANGE') {
           updateData.quantity = item.proposed_quantity ?? undefined;
           updateData.custom_price = item.proposed_price;
+        } else if (item.change_type === 'SPLIT') {
+          const splitData = item.split_details as { percent: number; splitDishId: string; splitDishName: string } | null;
+          if (splitData && item.variant_item_id) {
+            // 1. Set split_percent on original item
+            updateData.split_percent = splitData.percent;
+
+            // 2. Fetch split dish price
+            const { data: splitDish } = await supabase
+              .from('dishes')
+              .select('price_per_person, price_per_piece, price_per_kg, price_per_set, unit_type')
+              .eq('id', splitData.splitDishId)
+              .single();
+
+            let splitPrice: number | null = null;
+            if (splitDish) {
+              switch (splitDish.unit_type) {
+                case 'PERSON': splitPrice = splitDish.price_per_person; break;
+                case 'PIECE': splitPrice = splitDish.price_per_piece; break;
+                case 'KG': splitPrice = splitDish.price_per_kg; break;
+                case 'SET': splitPrice = splitDish.price_per_set; break;
+              }
+            }
+
+            // 3. Fetch original item data for variant_id, sort_order, quantity
+            const { data: originalItem } = await supabase
+              .from('variant_items')
+              .select('variant_id, sort_order, quantity')
+              .eq('id', item.variant_item_id)
+              .single();
+
+            if (originalItem) {
+              const { error: insertError } = await supabase.from('variant_items').insert({
+                variant_id: originalItem.variant_id,
+                dish_id: splitData.splitDishId,
+                custom_name: splitData.splitDishName,
+                custom_price: splitPrice ?? item.proposed_price,
+                split_parent_id: item.variant_item_id,
+                split_percent: 100 - splitData.percent,
+                sort_order: (originalItem.sort_order ?? 0) + 1,
+                quantity: originalItem.quantity,
+              });
+              if (insertError) {
+                errors.push(item.variant_item_id);
+              }
+            }
+          }
         }
 
         if (Object.keys(updateData).length > 0) {
