@@ -1396,7 +1396,11 @@ export type Database = {
       }
       services: {
         Row: {
+          block_duration_hours: number | null
+          block_unit_label: string | null
           description: string | null
+          extra_block_label: string | null
+          extra_block_price: number | null
           id: string
           is_active: boolean | null
           name: string
@@ -1406,7 +1410,11 @@ export type Database = {
           type: Database["public"]["Enums"]["service_type"]
         }
         Insert: {
+          block_duration_hours?: number | null
+          block_unit_label?: string | null
           description?: string | null
+          extra_block_label?: string | null
+          extra_block_price?: number | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -1416,7 +1424,11 @@ export type Database = {
           type: Database["public"]["Enums"]["service_type"]
         }
         Update: {
+          block_duration_hours?: number | null
+          block_unit_label?: string | null
           description?: string | null
+          extra_block_label?: string | null
+          extra_block_price?: number | null
           id?: string
           is_active?: boolean | null
           name?: string
@@ -1818,7 +1830,12 @@ export type Database = {
         | "TOTAL_ONLY"
         | "PER_PERSON_ONLY"
         | "HIDDEN"
-      price_type: "PER_HOUR" | "PER_EVENT" | "PER_PIECE" | "PER_PERSON"
+      price_type:
+        | "PER_HOUR"
+        | "PER_EVENT"
+        | "PER_PIECE"
+        | "PER_PERSON"
+        | "PER_BLOCK"
       pricing_mode: "PER_PERSON" | "FIXED_QUANTITY"
       proposal_item_status: "pending" | "accepted" | "rejected" | "invalidated"
       proposal_status:
@@ -2033,7 +2050,13 @@ export const Constants = {
         "PER_PERSON_ONLY",
         "HIDDEN",
       ],
-      price_type: ["PER_HOUR", "PER_EVENT", "PER_PIECE", "PER_PERSON"],
+      price_type: [
+        "PER_HOUR",
+        "PER_EVENT",
+        "PER_PIECE",
+        "PER_PERSON",
+        "PER_BLOCK",
+      ],
       pricing_mode: ["PER_PERSON", "FIXED_QUANTITY"],
       proposal_item_status: ["pending", "accepted", "rejected", "invalidated"],
       proposal_status: [
