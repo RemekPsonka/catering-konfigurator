@@ -308,7 +308,13 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   const statusMutation = useMutation({
     mutationFn: async ({ status, sentAt }: { status: string; sentAt?: string }) => {
       if (!offerId) throw new Error('Brak offerId');
-      const update: { status: string; sent_at?: string } = { status };
+      const update: Record<string, unknown> = {
+        status,
+        total_dishes_value: totals.maxDishesTotal,
+        total_services_value: totals.servicesTotalCalc,
+        total_value: totals.grandTotal,
+        price_per_person: totals.pricePerPerson,
+      };
       if (sentAt) update.sent_at = sentAt;
       const { error } = await supabase.from('offers').update(update as { status: 'draft' }).eq('id', offerId);
       if (error) throw error;
