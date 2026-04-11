@@ -149,7 +149,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
 
   const offer = offerQuery.data;
   const theme = offer?.offer_themes;
-  const variants = (variantsQuery.data ?? []) as VariantJoined[];
+  const variants = (variantsQuery.data ?? []) as PreviewVariant[];
   const services = (servicesQuery.data ?? []) as OfferServiceJoined[];
   const terms = termsQuery.data ?? [];
 
