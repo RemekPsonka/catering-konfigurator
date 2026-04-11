@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2, Lock, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -46,8 +46,9 @@ const formatDate = (dateStr: string | null) => {
 
 export const OffersListPage = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState('all');
-  const [eventType, setEventType] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [status, setStatus] = useState(searchParams.get('status') ?? 'all');
+  const [eventType, setEventType] = useState(searchParams.get('eventType') ?? 'all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
@@ -87,7 +88,14 @@ export const OffersListPage = () => {
       </div>
 
       {/* Status tabs */}
-      <Tabs value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+      <Tabs value={status} onValueChange={(v) => {
+        setStatus(v);
+        setPage(1);
+        const newParams = new URLSearchParams(searchParams);
+        if (v === 'all') newParams.delete('status');
+        else newParams.set('status', v);
+        setSearchParams(newParams);
+      }}>
         <TabsList className="flex-wrap h-auto">
           {STATUS_TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="text-xs">
