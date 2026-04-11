@@ -1,23 +1,13 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useOfferTerms } from '@/hooks/use-public-offer';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 
-const TERM_ICONS: Record<string, string> = {
-  deposit: '💰',
-  payment: '💳',
-  deadline: '📅',
-  cancellation: '❌',
-  changes: '🔄',
-  validity: '⏰',
-  delivery: '🚚',
-  minimum: '📊',
-};
+interface TermsSectionProps {
+  offerId?: string;
+}
 
-export const TermsSection = () => {
-  const { data: terms, isLoading } = useOfferTerms();
-  const [openIndex, setOpenIndex] = useState(-1);
+export const TermsSection = ({ offerId }: TermsSectionProps) => {
+  const { data: terms, isLoading } = useOfferTerms(offerId);
 
   if (isLoading || !terms || terms.length === 0) return null;
 
@@ -38,57 +28,16 @@ export const TermsSection = () => {
           Warunki oferty
         </motion.h2>
 
-        <div className="space-y-2">
-          {terms.map((term, index) => {
-            const isOpen = openIndex === index;
-            const icon = TERM_ICONS[term.key] ?? '📋';
-
-            return (
-              <motion.div
-                key={term.id}
-                variants={fadeInUp}
-                className="overflow-hidden rounded-xl bg-ivory shadow-sm"
-              >
-                <button
-                  onClick={() => setOpenIndex(isOpen ? -1 : index)}
-                  className="flex w-full items-center justify-between p-3 text-left"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{icon}</span>
-                    <span className="font-display text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                      {term.label}
-                    </span>
-                  </div>
-                  <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                    <ChevronDown className="h-4 w-4 text-charcoal/40" />
-                  </motion.div>
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-3 pb-3">
-                        <div
-                          className="h-px w-full mb-3"
-                          style={{ background: 'linear-gradient(to right, var(--theme-primary, #1A1A1A), transparent)' }}
-                        />
-                        <p className="font-body text-sm leading-relaxed text-charcoal/70 whitespace-pre-line">
-                          {term.value}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
+        <motion.div variants={fadeInUp} className="space-y-3">
+          {terms.map((term) => (
+            <p key={term.id} className="font-body text-sm leading-relaxed text-charcoal/80">
+              <span className="font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                {term.label}:
+              </span>{' '}
+              {term.value}
+            </p>
+          ))}
+        </motion.div>
       </div>
     </motion.section>
   );

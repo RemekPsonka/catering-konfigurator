@@ -281,7 +281,7 @@ export const PublicOfferPage = () => {
         </div>
       </div>
 
-      <TermsSection />
+      <TermsSection offerId={offer?.id} />
 
       <div className="no-print">
         <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} actionsDisabled={actionsDisabled} />
