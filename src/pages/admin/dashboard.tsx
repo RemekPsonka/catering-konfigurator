@@ -162,6 +162,62 @@ export const DashboardPage = () => {
         </Card>
       )}
 
+      {/* Follow-ups */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            Zaplanowane follow-upy
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {followUpsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : followUps.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Brak zaplanowanych follow-upów</p>
+          ) : (
+            <ul className="space-y-2">
+              {followUps.map((fu) => (
+                <li key={fu.id} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {fu.offers?.offer_number ?? '—'} · {STEP_NAME_LABELS[fu.step_name] ?? fu.step_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {fu.status === 'sent'
+                        ? `Wysłano ${fu.sent_at ? formatDistanceToNow(new Date(fu.sent_at), { addSuffix: true, locale: pl }) : ''}`
+                        : `Zaplanowano ${formatDistanceToNow(new Date(fu.scheduled_at), { addSuffix: true, locale: pl })}`}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className={fu.status === 'sent' ? 'bg-green-50 text-green-700 border-none' : 'bg-blue-50 text-blue-700 border-none'}>
+                    {fu.status === 'sent' ? 'Wysłano' : 'Zaplanowano'}
+                  </Badge>
+                  {fu.status === 'scheduled' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={() => {
+                        cancelFollowUp.mutate(fu.id, {
+                          onSuccess: () => toast.success('Follow-up anulowany'),
+                          onError: () => toast.error('Nie udało się anulować'),
+                        });
+                      }}
+                    >
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Activity */}
       <Card>
         <CardHeader className="pb-3">
