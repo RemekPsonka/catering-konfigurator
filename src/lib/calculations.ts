@@ -37,6 +37,7 @@ export interface OfferTotals {
   discountAmount: number;
   dishesAfterDiscount: number;
   servicesTotalCalc: number;
+  upsellTotal: number;
   grandTotal: number;
   pricePerPerson: number;
 }
