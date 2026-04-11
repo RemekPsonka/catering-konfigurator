@@ -11,7 +11,6 @@ import { AnimatedPrice } from './animated-price';
 import type { DishModification } from './dish-edit-panel';
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
-import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 interface CalculationSectionProps {
   offer: PublicOffer;
