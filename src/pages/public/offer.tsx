@@ -28,6 +28,7 @@ import type { DishModification } from '@/components/public/dish-edit-panel';
 import { isValidToken, loadGoogleFont } from '@/components/features/public-offer/offer-utils';
 import { InvalidTokenScreen, LoadingScreen, NotFoundScreen, DraftScreen, LostScreen } from '@/components/features/public-offer/OfferStatusScreens';
 import { OfferHeader } from '@/components/features/public-offer/OfferHeader';
+import { CountdownTimer } from '@/components/public/countdown-timer';
 
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
