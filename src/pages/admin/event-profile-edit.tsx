@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -26,7 +26,9 @@ import {
   useUpdateEventPhotoTags,
 } from '@/hooks/use-event-profiles';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
-import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag, Camera } from 'lucide-react';
+import { usePhotoLibrary, useHeroPhoto, useEventPhotoStats } from '@/hooks/use-photo-library';
+import { MIN_EVENT_PHOTOS, MAX_LIBRARY_PHOTOS } from '@/lib/app-limits';
 import type { Tables } from '@/integrations/supabase/types';
 
 interface Feature {
@@ -482,93 +484,8 @@ export const EventProfileEditPage = () => {
         </CardContent>
       </Card>
 
-      {/* Section 4 — Galeria */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Galeria zdjęć atmosfery ({photos.length}/15)</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {/* Drop zone */}
-          <div
-            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {uploadPhoto.isPending ? (
-              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-            ) : (
-              <>
-                <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Przeciągnij zdjęcia lub kliknij</p>
-                <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP — max 10MB</p>
-              </>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files)}
-            />
-          </div>
-
-          {/* Tag filters */}
-          {allTags.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button
-                type="button"
-                variant={activeTagFilter === null ? 'default' : 'outline'}
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setActiveTagFilter(null)}
-              >
-                Wszystkie
-              </Button>
-              {allTags.map((tag) => (
-                <Button
-                  key={tag}
-                  type="button"
-                  variant={activeTagFilter === tag ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
-                >
-                  {PREDEFINED_TAGS.find((p) => p.label === tag)?.emoji ?? '🏷️'} {tag}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* Photo grid */}
-          {filteredPhotos.length > 0 && (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
-              <SortableContext items={filteredPhotos.map((p) => p.id)} strategy={rectSortingStrategy}>
-                <div className="space-y-2">
-                  {filteredPhotos.map((photo) => (
-                    <SortablePhotoCard
-                      key={photo.id}
-                      photo={photo}
-                      onDelete={() => setDeleteTarget(photo)}
-                      onSetHero={() =>
-                        eventTypeId &&
-                        setHero.mutate({ photoId: photo.id, eventTypeId, photoUrl: photo.photo_url })
-                      }
-                      onUpdateMeta={(caption, altText) =>
-                        eventTypeId &&
-                        updatePhotoMeta.mutate({ id: photo.id, caption, altText, eventTypeId })
-                      }
-                      onUpdateTags={(tags) =>
-                        eventTypeId &&
-                        updatePhotoTags.mutate({ id: photo.id, tags, eventTypeId })
-                      }
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-        </CardContent>
-      </Card>
+      {/* Section 4 — Galeria (photo_library) */}
+      <PhotoLibraryPreview eventTypeId={eventTypeId!} />
 
       {/* Confirm delete dialog */}
       <ConfirmDialog
