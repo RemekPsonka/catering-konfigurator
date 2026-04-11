@@ -47,10 +47,10 @@ export const ManagerModificationDialog = ({ open, onClose, item, offerId }: Mana
   }, [open, item]);
 
   const applyMutation = useMutation({
-    mutationFn: async (updateData: Record<string, unknown>) => {
+    mutationFn: async (updateData: TablesUpdate<'variant_items'>) => {
       const { error } = await supabase
         .from('variant_items')
-        .update(updateData as Record<string, never>)
+        .update(updateData)
         .eq('id', item.id);
       if (error) throw error;
     },
