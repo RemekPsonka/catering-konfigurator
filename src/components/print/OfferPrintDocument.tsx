@@ -1,5 +1,18 @@
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { CompanyInfo } from '@/hooks/use-company-info';
+
+export interface PrintCompanyInfo {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  nip: string;
+  website: string;
+  instagram: string;
+  facebook: string;
+  logoUrl: string | null;
+  legalName: string;
+  regon: string;
+}
 import type { Tables } from '@/integrations/supabase/types';
 import { PrintHeader } from './PrintHeader';
 import { PrintVariantsComparison } from './PrintVariantsComparison';
