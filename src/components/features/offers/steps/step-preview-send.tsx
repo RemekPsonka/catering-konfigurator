@@ -544,6 +544,31 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                   </div>
                 </>
               )}
+              {upsellSelections.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="px-8 py-6">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme?.primary_color ?? '#333' }}>
+                      <Gift className="h-4 w-4" /> Dosprzedaż klienta
+                    </h3>
+                    <div className="space-y-1">
+                      {upsellSelections.map((sel) => (
+                        <div key={sel.id} className="flex justify-between text-sm">
+                          <span>{sel.upsell_items?.emoji ?? '🎁'} {sel.upsell_items?.name ?? '—'} × {sel.quantity}</span>
+                          <span>{formatCurrency(Number(sel.total_price))}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-2 border-t flex justify-between text-sm font-medium" style={{ borderColor: theme?.accent_color ?? '#eee' }}>
+                      <span>Suma dosprzedaży</span>
+                      <span>{formatCurrency(upsellSelections.reduce((sum, s) => sum + Number(s.total_price), 0))}</span>
+                    </div>
+                    <p className="text-xs opacity-50 mt-1">
+                      Dodano: {upsellSelections[0]?.added_at ? new Date(upsellSelections[0].added_at).toLocaleDateString('pl-PL') : '—'}
+                    </p>
+                  </div>
+                </>
+              )}
               {terms.length > 0 && (
                 <>
                   <Separator />
