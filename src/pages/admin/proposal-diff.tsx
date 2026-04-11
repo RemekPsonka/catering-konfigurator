@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useCallback, useEffect } from 'react';
-import { ArrowLeft, Check, X, RefreshCw, Palette, Scissors, Users, Loader2 } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { ArrowLeft, Check, X, RefreshCw, Palette, Scissors, Users, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,131 +13,228 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/calculations';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import type { Json } from '@/integrations/supabase/types';
 
-const CHANGE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string }> = {
-  SWAP: { icon: <RefreshCw className="h-4 w-4" />, label: 'Zamiana' },
-  VARIANT_CHANGE: { icon: <Palette className="h-4 w-4" />, label: 'Wariant' },
-  SPLIT: { icon: <Scissors className="h-4 w-4" />, label: 'Podział' },
-  QUANTITY_CHANGE: { icon: <Users className="h-4 w-4" />, label: 'Ilość' },
+/* ── Helpers ── */
+
+const CHANGE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string; verb: string }> = {
+  SWAP: { icon: <RefreshCw className="h-4 w-4" />, label: 'Zamiana dania', verb: 'zamienić' },
+  VARIANT_CHANGE: { icon: <Palette className="h-4 w-4" />, label: 'Zmiana wariantu', verb: 'zmienić wariant' },
+  SPLIT: { icon: <Scissors className="h-4 w-4" />, label: 'Podział dania', verb: 'podzielić' },
+  QUANTITY_CHANGE: { icon: <Users className="h-4 w-4" />, label: 'Zmiana ilości', verb: 'zmienić ilość' },
 };
 
 const STATUS_BADGE: Record<string, { className: string; label: string }> = {
-  pending: { className: 'bg-muted text-muted-foreground', label: 'Oczekuje' },
-  accepted: { className: 'bg-green-100 text-green-800 animate-scale-in', label: 'Zaakceptowano' },
-  rejected: { className: 'bg-red-100 text-red-800 animate-scale-in', label: 'Odrzucono' },
-  invalidated: { className: 'bg-yellow-100 text-yellow-800', label: 'Nieaktualny' },
+  pending: { className: 'bg-orange-100 text-orange-800', label: 'Oczekuje' },
+  accepted: { className: 'bg-green-100 text-green-800', label: 'Zaakceptowano' },
+  rejected: { className: 'bg-red-100 text-red-800', label: 'Odrzucono' },
+  invalidated: { className: 'bg-muted text-muted-foreground', label: 'Nieaktualny' },
 };
 
 const PROPOSAL_STATUS_BADGE: Record<string, { className: string; label: string }> = {
   draft_client: { className: 'bg-muted text-muted-foreground', label: 'Szkic klienta' },
-  pending: { className: 'bg-orange-100 text-orange-800', label: 'Oczekuje' },
+  pending: { className: 'bg-orange-100 text-orange-800', label: 'Oczekuje na decyzję' },
   accepted: { className: 'bg-green-100 text-green-800', label: 'Zaakceptowana' },
-  partially_accepted: { className: 'bg-yellow-100 text-yellow-800', label: 'Częściowo' },
+  partially_accepted: { className: 'bg-yellow-100 text-yellow-800', label: 'Częściowo zaakceptowana' },
   rejected: { className: 'bg-red-100 text-red-800', label: 'Odrzucona' },
 };
 
+/** Resolve variant option index to label from modifiable_items */
+const resolveVariantLabel = (optionValue: string | null, modifiableItems: Json | null): string | null => {
+  if (optionValue === null || optionValue === undefined) return null;
+  if (!modifiableItems || typeof modifiableItems !== 'object') return optionValue;
 
-interface DiffRowProps {
+  const mod = modifiableItems as Record<string, unknown>;
+  if (mod.type !== 'variant') return optionValue;
+
+  const options = mod.options as Array<{ label?: string; price_modifier?: number }> | undefined;
+  if (!options || !Array.isArray(options)) return optionValue;
+
+  const idx = parseInt(optionValue, 10);
+  if (!isNaN(idx) && options[idx]?.label) {
+    return options[idx].label;
+  }
+
+  // Maybe it's already a label
+  const found = options.find(o => o.label === optionValue);
+  if (found) return found.label;
+
+  return optionValue;
+};
+
+/* ── DiffCard ── */
+
+interface DiffCardProps {
   item: ProposalItemWithDishes;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
   flashState: 'green' | 'red' | null;
 }
 
-const DiffRow = ({ item, onAccept, onReject, flashState }: DiffRowProps) => {
-  const config = CHANGE_TYPE_CONFIG[item.change_type] ?? { icon: null, label: item.change_type };
+const DiffCard = ({ item, onAccept, onReject, flashState }: DiffCardProps) => {
+  const config = CHANGE_TYPE_CONFIG[item.change_type] ?? { icon: null, label: item.change_type, verb: 'zmienić' };
   const statusBadge = STATUS_BADGE[item.status] ?? STATUS_BADGE.pending;
-  const priceDiff = item.proposed_price - item.original_price;
   const isPending = item.status === 'pending';
+  const priceDiff = item.proposed_price - item.original_price;
+
+  // Resolve modifiable_items for variant label resolution
+  const modItems = item.variant_item?.dish?.modifiable_items ?? item.dishes?.modifiable_items ?? null;
+  const currentVariantOption = item.variant_item?.selected_variant_option ?? null;
+
+  const dishName = item.dishes?.display_name ?? item.dishes?.name ?? 'Nieznane danie';
 
   const flashClass = flashState === 'green'
-    ? 'bg-green-100/60'
+    ? 'ring-2 ring-green-400 bg-green-50/50'
     : flashState === 'red'
-      ? 'bg-red-100/60'
+      ? 'ring-2 ring-red-400 bg-red-50/50'
       : '';
 
+  const renderDescription = () => {
+    switch (item.change_type) {
+      case 'SWAP': {
+        const proposedName = item.proposed_dish?.display_name ?? item.proposed_dish?.name ?? 'Nieznane danie';
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">Obecne danie</p>
+                <p className="font-medium text-sm">{dishName}</p>
+                <p className="text-xs text-muted-foreground">{formatCurrency(item.original_price)} / szt.</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">Proponowane danie</p>
+                <p className="font-medium text-sm">{proposedName}</p>
+                <p className="text-xs text-muted-foreground">{formatCurrency(item.proposed_price)} / szt.</p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      case 'VARIANT_CHANGE': {
+        const currentLabel = resolveVariantLabel(currentVariantOption, modItems) ?? '(brak wyboru)';
+        const proposedLabel = resolveVariantLabel(item.proposed_variant_option, modItems) ?? item.proposed_variant_option ?? '—';
+        return (
+          <div className="space-y-3">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Danie:</span>{' '}
+              <span className="font-medium">{dishName}</span>
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="bg-muted/50 border rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">Obecny wariant</p>
+                <p className="font-medium text-sm">{currentLabel}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">Proponowany wariant</p>
+                <p className="font-medium text-sm">{proposedLabel}</p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      case 'QUANTITY_CHANGE':
+        return (
+          <div className="space-y-3">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Danie:</span>{' '}
+              <span className="font-medium">{dishName}</span>
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="bg-muted/50 border rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">Obecna ilość</p>
+                <p className="font-medium text-sm">{item.original_quantity} szt.</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">Proponowana ilość</p>
+                <p className="font-medium text-sm">{item.proposed_quantity ?? item.original_quantity} szt.</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'SPLIT':
+        return (
+          <div className="space-y-2">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Danie:</span>{' '}
+              <span className="font-medium">{dishName}</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Klient chce podzielić to danie na mniejsze porcje z innymi daniami.
+            </p>
+          </div>
+        );
+
+      default:
+        return <p className="text-sm text-muted-foreground">Nieznany typ zmiany</p>;
+    }
+  };
+
   return (
-    <TableRow className={`transition-colors duration-300 ${flashClass}`}>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">{config.icon}</span>
-          <span className="text-xs font-medium">{config.label}</span>
+    <Card className={`transition-all duration-300 ${flashClass}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-primary">{config.icon}</span>
+            <CardTitle className="text-base">{config.label}</CardTitle>
+          </div>
+          <Badge variant="outline" className={`${statusBadge.className} border-none`}>
+            {statusBadge.label}
+          </Badge>
         </div>
-      </TableCell>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {renderDescription()}
 
-      <TableCell>
-        <div>
-          <p className="font-medium">{item.dishes?.display_name ?? item.dishes?.name ?? '—'}</p>
-          <p className="text-xs text-muted-foreground">
-            {item.original_quantity} szt. × {formatCurrency(item.original_price)}
-          </p>
+        {/* Price impact */}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-muted-foreground">
+              Cena przed: <span className="font-medium text-foreground">{formatCurrency(item.original_price * item.original_quantity)}</span>
+            </span>
+            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              Cena po: <span className="font-medium text-foreground">{formatCurrency(item.proposed_price * (item.proposed_quantity ?? item.original_quantity))}</span>
+            </span>
+          </div>
+          <span className={`font-semibold text-sm ${priceDiff > 0 ? 'text-red-600' : priceDiff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+            ({priceDiff > 0 ? '+' : ''}{formatCurrency(priceDiff * (item.proposed_quantity ?? item.original_quantity))})
+          </span>
         </div>
-      </TableCell>
 
-      <TableCell>
-        <div>
-          <p className="font-medium">
-            {item.change_type === 'SWAP' && item.proposed_dish
-              ? item.proposed_dish.display_name ?? item.proposed_dish.name
-              : item.change_type === 'VARIANT_CHANGE' && item.proposed_variant_option
-                ? item.proposed_variant_option
-                : item.change_type === 'QUANTITY_CHANGE'
-                  ? `${item.proposed_quantity ?? item.original_quantity} szt.`
-                  : item.change_type === 'SPLIT'
-                    ? 'Podział'
-                    : '—'}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {item.proposed_quantity ?? item.original_quantity} szt. × {formatCurrency(item.proposed_price)}
-          </p>
-        </div>
-      </TableCell>
-
-      <TableCell>
-        <span className={`font-semibold text-sm ${priceDiff > 0 ? 'text-red-600' : priceDiff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-          {priceDiff > 0 ? '+' : ''}{formatCurrency(priceDiff)}
-        </span>
-      </TableCell>
-
-      <TableCell>
-        <Badge variant="outline" className={`${statusBadge.className} border-none`}>
-          {statusBadge.label}
-        </Badge>
-      </TableCell>
-
-      <TableCell>
+        {/* Actions */}
         {isPending && (
-          <div className="flex items-center gap-1">
+          <div className="flex justify-end gap-2 pt-2">
             <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
-              onClick={() => onAccept(item.id)}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
               onClick={() => onReject(item.id)}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 mr-1" />
+              Odrzuć
+            </Button>
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => onAccept(item.id)}
+            >
+              <Check className="h-4 w-4 mr-1" />
+              Akceptuj
             </Button>
           </div>
         )}
-      </TableCell>
-    </TableRow>
+      </CardContent>
+    </Card>
   );
 };
+
+/* ── Page ── */
 
 export const ProposalDiffPage = () => {
   const { id: offerId, proposalId } = useParams<{ id: string; proposalId: string }>();
@@ -226,21 +323,21 @@ export const ProposalDiffPage = () => {
   const isResolved = ['accepted', 'partially_accepted', 'rejected'].includes(proposal.status);
   const pendingCount = items.filter(i => i.status === 'pending').length;
 
-  const acceptedPriceDiff = items
-    .filter(i => i.status === 'accepted')
-    .reduce((sum, i) => sum + (i.proposed_price - i.original_price), 0);
+  const totalOriginal = items.reduce((sum, i) => sum + i.original_price * i.original_quantity, 0);
+  const totalProposed = items.reduce((sum, i) => sum + i.proposed_price * (i.proposed_quantity ?? i.original_quantity), 0);
+  const totalDiff = totalProposed - totalOriginal;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/offers/${offerId}/edit`)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Propozycja zmian</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Propozycja zmian klienta</h1>
           <p className="text-sm text-muted-foreground">
-            {client?.name ?? 'Klient'} · {proposal.created_at
+            {client?.name ?? 'Klient'} · Oferta {offer?.offer_number ?? '—'} · {proposal.created_at
               ? format(new Date(proposal.created_at), 'd MMM yyyy, HH:mm', { locale: pl })
               : '—'}
           </p>
@@ -252,49 +349,31 @@ export const ProposalDiffPage = () => {
 
       {/* Client message */}
       {proposal.client_message && (
-        <Card>
+        <Card className="border-blue-200 bg-blue-50/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Wiadomość klienta</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">💬 Wiadomość od klienta</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-relaxed">{proposal.client_message}</p>
+            <p className="text-sm leading-relaxed italic">„{proposal.client_message}"</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Diff table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Porównanie zmian</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Typ</TableHead>
-                <TableHead>Oryginał</TableHead>
-                <TableHead>Propozycja</TableHead>
-                <TableHead className="w-[120px]">Wpływ cenowy</TableHead>
-                <TableHead className="w-[120px]">Status</TableHead>
-                <TableHead className="w-[100px]">Akcje</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map(item => (
-                <DiffRow
-                  key={item.id}
-                  item={item}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
-                  flashState={flashStates[item.id] ?? null}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Diff cards */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Proponowane zmiany ({items.length})</h2>
+        {items.map(item => (
+          <DiffCard
+            key={item.id}
+            item={item}
+            onAccept={handleAccept}
+            onReject={handleReject}
+            flashState={flashStates[item.id] ?? null}
+          />
+        ))}
+      </div>
 
-      {/* Summary */}
+      {/* Summary + notes */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
@@ -306,13 +385,13 @@ export const ProposalDiffPage = () => {
               <span className="font-medium">{items.length}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Oczekujące</span>
+              <span>Oczekujące na decyzję</span>
               <span className="font-medium">{pendingCount}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Wpływ cenowy (zaakceptowane)</span>
-              <span className={`font-semibold ${acceptedPriceDiff > 0 ? 'text-red-600' : acceptedPriceDiff < 0 ? 'text-green-600' : ''}`}>
-                {acceptedPriceDiff > 0 ? '+' : ''}{formatCurrency(acceptedPriceDiff)}
+            <div className="flex justify-between text-sm pt-2 border-t">
+              <span>Łączny wpływ cenowy</span>
+              <span className={`font-semibold ${totalDiff > 0 ? 'text-red-600' : totalDiff < 0 ? 'text-green-600' : ''}`}>
+                {totalDiff > 0 ? '+' : ''}{formatCurrency(totalDiff)}
               </span>
             </div>
           </CardContent>
@@ -343,7 +422,7 @@ export const ProposalDiffPage = () => {
             disabled={resolveProposal.isPending || pendingCount > 0}
             className="rounded-xl"
           >
-            {resolveProposal.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {resolveProposal.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Zatwierdź decyzje
           </Button>
         </div>
