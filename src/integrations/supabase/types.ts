@@ -1781,7 +1781,7 @@ export type Database = {
         | "AGENCY"
         | "RETURNING"
       correction_status: "new" | "read" | "resolved"
-      delivery_type: "COLD" | "HEATED" | "FULL_SERVICE"
+      delivery_type: "COLD" | "HEATED" | "FULL_SERVICE" | "COLD_SERVE"
       event_type:
         | "KOM"
         | "WES"
@@ -1999,7 +1999,7 @@ export const Constants = {
         "RETURNING",
       ],
       correction_status: ["new", "read", "resolved"],
-      delivery_type: ["COLD", "HEATED", "FULL_SERVICE"],
+      delivery_type: ["COLD", "HEATED", "FULL_SERVICE", "COLD_SERVE"],
       event_type: [
         "KOM",
         "WES",
