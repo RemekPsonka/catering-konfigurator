@@ -155,7 +155,7 @@ export const useOfferPrintDataFromSnapshot = (
   return {
     offer: snapshotQuery.data?.offer ?? null,
     companyInfo: companyInfoQuery.data as PrintCompanyInfo | null,
-    offerTerms: (snapshotQuery.data?.terms ?? []) as Array<{ id: string; label: string; value: string }>,
+    offerTerms: (snapshotQuery.data?.terms ?? []) as unknown as Array<{ display_order: number; id: string; is_active: boolean; key: string; label: string; updated_at: string; value: string }>,
     upsellSelections: [],
     isLoading: snapshotQuery.isLoading || companyInfoQuery.isLoading,
     error: snapshotQuery.error || companyInfoQuery.error,
