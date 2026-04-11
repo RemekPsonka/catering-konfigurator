@@ -1,41 +1,69 @@
 
 
-## Plan: Poprawka inline propozycji — czytelne etykiety + pełna propagacja zmian
+## Plan: Toggle dosprzedaży + panel wyborów klienta w kroku 4
 
-### Problemy zidentyfikowane w audycie
+### 1. Toggle `upsell_enabled` w panelu "Ustawienia wyświetlania"
 
-1. **Inline row pokazuje "Wariant → 0"** zamiast "Wariant → Medium rare" — brak rozwiązania indeksu na etykietę
-2. **Akceptacja zapisałaby `selected_variant_option = "0"`** do `variant_items` — zamiast prawdziwej nazwy wariantu
-3. **Po akceptacji tabela menu się nie odświeża** — brak invalidacji `offer-variants` w `useResolveProposal`
-4. **Banner/inline rows nie znikają po decyzji** — brak invalidacji `admin-pending-proposals`
+**Plik:** `src/components/features/offers/steps/step-preview-send.tsx`
 
-### Zmiany
+W sekcji settings state (~linia 171), dodać:
+- `const [upsellEnabled, setUpsellEnabled] = useState(true);`
+- W `useEffect` ładującym settings (~linia 174): `setUpsellEnabled(offer.upsell_enabled ?? true);`
+- W `settingsPayload` useMemo (~linia 184): dodać `upsell_enabled: upsellEnabled`
 
-**1. `src/hooks/use-admin-pending-proposals.ts`** — rozwiązanie nazw wariantów
+W UI — w `CollapsibleContent` panelu "Ustawienia wyświetlania" (~linia 389-398), pod istniejącym grid, dodać nowy wiersz:
+```
+<div className="flex items-center gap-2 pt-3">
+  <Switch checked={upsellEnabled} onCheckedChange={setUpsellEnabled} />
+  <div>
+    <Label className="text-xs">Pokaż sekcję dosprzedaży klientowi</Label>
+    <p className="text-xs text-muted-foreground">Klient zobaczy sugerowane dodatki na stronie oferty</p>
+  </div>
+</div>
+```
 
-Rozszerzenie query o join do `variant_items` z `dishes(modifiable_items)`. W mapowaniu: jeśli `changeType === 'VARIANT_CHANGE'` i `proposed_variant_option` to cyfra, rozwiąż na etykietę z `modifiable_items.options[index].label`. Dodanie pola `resolvedProposedLabel` do `PendingProposalItem`.
+Auto-save działa automatycznie bo `upsellEnabled` jest w `settingsPayload`.
 
-**2. `src/components/features/offers/steps/variant-items-table.tsx`** — lepszy opis inline
+### 2. Query na `offer_upsell_selections` + panel readonly
 
-Zamiast `{pi.proposedDishName ?? pi.proposedVariantOption ?? '—'}` użyj:
-- SWAP: "Zamiana na: **[nazwa dania]**"
-- VARIANT_CHANGE: "Zmiana wariantu na: **[etykieta]**" + różnica cenowa
-- QUANTITY_CHANGE: "Zmiana ilości na: **X szt.**"
+**Plik:** `src/components/features/offers/steps/step-preview-send.tsx`
 
-Pełniejszy opis w wierszu zamiast suchych wartości.
+Dodać query:
+```ts
+const upsellQuery = useQuery({
+  queryKey: ['offer-upsell-selections', offerId],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('offer_upsell_selections')
+      .select('*, upsell_items(name, emoji)')
+      .eq('offer_id', offerId!)
+      .eq('status', 'active');
+    if (error) throw error;
+    return data;
+  },
+  enabled: !!offerId,
+});
+```
 
-**3. `src/hooks/use-proposal-diff.ts` — `useResolveProposal`**
+W lewej kolumnie podglądu, pod sekcją kalkulacji (~po linii 520, przed `terms`), dodać panel "Dosprzedaż klienta" — renderowany tylko gdy `upsellSelections.length > 0`:
 
-- Przy `VARIANT_CHANGE`: rozwiąż `proposed_variant_option` na etykietę z `modifiable_items` PRZED zapisem do `variant_items.selected_variant_option`
-- Dodanie invalidacji `offer-variants` i `admin-pending-proposals` w `onSuccess`
+```text
+┌──────────────────────────────────────────┐
+│ 🎁 Dosprzedaż klienta                   │
+│                                          │
+│ 🍰 Tort weselny × 1       450,00 zł     │
+│ 🥂 Szampan powitalny × 2  120,00 zł     │
+│                                          │
+│ Suma dosprzedaży:          570,00 zł     │
+│ Dodano: 10.04.2026                       │
+└──────────────────────────────────────────┘
+```
 
-**4. `src/components/features/offers/steps/step-menu.tsx` — `checkAndAutoResolve`**
-
-Dodanie invalidacji `admin-pending-proposals` po auto-resolve, żeby banner i inline rows znikały natychmiast.
+Panel readonly — bez przycisków edycji. Import `Gift` z lucide-react dla ikony nagłówka.
 
 ### Pliki modyfikowane
-- `src/hooks/use-admin-pending-proposals.ts` — rozszerzenie query + label resolution
-- `src/components/features/offers/steps/variant-items-table.tsx` — lepsze opisy inline
-- `src/hooks/use-proposal-diff.ts` — fix variant label przy apply + dodatkowe invalidacje
-- `src/components/features/offers/steps/step-menu.tsx` — invalidacja po decyzji
+- `src/components/features/offers/steps/step-preview-send.tsx` — jedyny plik
+
+### Nie ruszam
+step-pricing.tsx, step-event-data.tsx, step-menu.tsx, public/offer.tsx
 
