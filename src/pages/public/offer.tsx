@@ -33,6 +33,8 @@ import { isValidToken, loadGoogleFont } from '@/components/features/public-offer
 import { InvalidTokenScreen, LoadingScreen, NotFoundScreen, DraftScreen, LostScreen } from '@/components/features/public-offer/OfferStatusScreens';
 import { OfferHeader } from '@/components/features/public-offer/OfferHeader';
 import { CountdownTimer } from '@/components/public/countdown-timer';
+import { OfferTracker } from '@/components/public/offer-tracker';
+import { trackOfferEvent } from '@/lib/tracking';
 
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
@@ -46,6 +48,18 @@ export const PublicOfferPage = () => {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const isFirstVisitRef = useRef<boolean | null>(null);
+  const lastVariantTrackRef = useRef<number>(0);
+
+  const handleVariantChange = useCallback((variantId: string | null) => {
+    setActiveVariantId(variantId);
+    if (variantId && offer) {
+      const now = Date.now();
+      if (now - lastVariantTrackRef.current > 30000) {
+        lastVariantTrackRef.current = now;
+        trackOfferEvent(offer.id, 'variant_compared', { variant_id: variantId });
+      }
+    }
+  }, [offer]);
 
   const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
   usePublicEventProfile(offer?.event_type);
