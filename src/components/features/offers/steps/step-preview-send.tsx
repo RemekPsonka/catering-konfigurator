@@ -169,6 +169,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   const [displayMode, setDisplayMode] = useState<PriceDisplayMode>('PER_PERSON_AND_TOTAL');
   const [minPrice, setMinPrice] = useState('');
   const [peopleEditable, setPeopleEditable] = useState(false);
+  const [upsellEnabled, setUpsellEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
@@ -176,6 +177,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
       setDisplayMode(offer.price_display_mode as PriceDisplayMode);
       setMinPrice(offer.min_offer_price ? String(offer.min_offer_price) : '');
       setPeopleEditable(offer.is_people_count_editable ?? false);
+      setUpsellEnabled(offer.upsell_enabled ?? true);
       setSettingsLoaded(true);
     }
   }, [offer, settingsLoaded]);
@@ -185,7 +187,8 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     price_display_mode: displayMode,
     min_offer_price: minPrice ? parseFloat(minPrice) : null,
     is_people_count_editable: peopleEditable,
-  }), [displayMode, minPrice, peopleEditable]);
+    upsell_enabled: upsellEnabled,
+  }), [displayMode, minPrice, peopleEditable, upsellEnabled]);
 
   const debouncedSettings = useDebounce(settingsPayload, 600);
   const prevSettingsRef = useRef(debouncedSettings);
