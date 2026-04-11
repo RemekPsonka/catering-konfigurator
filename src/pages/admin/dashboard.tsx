@@ -121,6 +121,65 @@ export const DashboardPage = () => {
         />
       </div>
 
+      {/* HOT offers */}
+      {(hotLoading || hotOffers.length > 0) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Flame className="h-4 w-4 text-orange-500" />
+              Oferty HOT 🔥
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hotLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {hotOffers.map((o) => {
+                  const score = o.conversion_score ?? 0;
+                  const scoreColor = score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-500';
+                  return (
+                    <li
+                      key={o.id}
+                      className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/admin/offers/${o.id}/edit`)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {o.offer_number ?? '—'} · {o.clients?.name ?? 'Brak klienta'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {o.last_client_activity_at
+                            ? `Aktywność ${formatDistanceToNow(new Date(o.last_client_activity_at), { addSuffix: true, locale: pl })}`
+                            : 'Brak aktywności'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="w-20">
+                          <Progress
+                            value={score}
+                            className="h-2 [&>div]:transition-all"
+                            style={{ '--progress-color': 'transparent' } as React.CSSProperties}
+                          />
+                          <div className="relative -mt-2 h-2 w-full overflow-hidden rounded-full">
+                            <div className={`h-full ${scoreColor} transition-all`} style={{ width: `${score}%` }} />
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold w-8 text-right">{score}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Warnings */}
       {hasWarnings && (
         <Card>
