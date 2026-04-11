@@ -1,128 +1,58 @@
 
 
-## Plan: Naprawa systemu cenowego wariantów dań [CS-032b]
+## Plan: Wyświetlanie wybranego wariantu klienta [CS-037]
 
-### Diagnoza problemu
-
-**Root cause potwierdzona w danych:**
-
-```
-variant_items: custom_price = 0.00, selected_variant_option = "Medium rare"
-dishes: price_per_person = 65.00
-```
-
-Pole `custom_price` pełni **podwójną rolę**: zamrożona cena bazowa dania + cena po zmianie wariantu. Gdy wariant ma `price_modifier = 0` (np. "Medium rare" bez dopłaty), a `custom_price` było `null` przed propozycją, system oblicza:
-
-```
-originalPrice = variantItem.custom_price ?? 0  → 0 (bo null)
-proposedPrice = 0 + price_modifier(0) = 0
-```
-
-Po zaakceptowaniu propozycji: `custom_price = 0` → cena dania znika.
-
-### Rozwiązanie: Rozdzielenie ceny bazowej od modyfikatora
-
-Dodaj kolumnę `variant_price_modifier` do `variant_items`. Dzięki temu:
-
-- `custom_price` = zamrożona cena bazowa dania (ustawiana przy dodawaniu do oferty, NIGDY nadpisywana przez warianty)
-- `variant_price_modifier` = dodatkowa kwota za wybrany wariant (+10 zł za roladę, 0 zł za "medium rare", -5 zł za tańszą opcję)
-- Efektywna cena = `custom_price + (variant_price_modifier ?? 0)`
+### Problem
+Gdy klient akceptuje ofertę, jego wybór wariantu zapisywany jest w `offers.accepted_variant_id` — ale nigdzie w portalu managera ani na stronie klienta (po akceptacji) ta informacja nie jest widoczna.
 
 ### Zmiany
 
-**1. Migracja bazy danych**
+**1. `src/components/features/offers/steps/step-menu.tsx` — Badge "Wybrany przez klienta" na tabie wariantu**
 
-```sql
-ALTER TABLE variant_items ADD COLUMN variant_price_modifier numeric DEFAULT NULL;
-```
+- Dodaj prop `acceptedVariantId?: string | null` do `StepMenuProps`
+- Na `TabsTrigger` wariantu, gdy `v.id === acceptedVariantId`, dodaj badge:
+  ```
+  {v.id === acceptedVariantId && (
+    <Badge className="bg-green-100 text-green-800 text-[10px]">✓ Wybrany</Badge>
+  )}
+  ```
+- W nagłówku karty wariantu (linia ~260), analogiczny badge "Klient wybrał ten wariant"
 
-Napraw istniejące dane — przywróć cenę polędwicy:
-```sql
-UPDATE variant_items SET custom_price = 65.00, variant_price_modifier = 0
-WHERE id = 'd76398c8-20c5-4640-8650-9d1c298a6e6b';
-```
+**2. `src/components/features/offers/offer-wizard.tsx` — przekazanie `acceptedVariantId`**
 
-**2. `src/hooks/use-offer-variants.ts` — `getItemPrice`**
+- `offerQuery.data` już zawiera `accepted_variant_id` (bo pobiera `*` z tabeli `offers`)
+- Przekaż do `StepMenu`:
+  ```tsx
+  <StepMenu offerId={...} acceptedVariantId={offerQuery.data?.accepted_variant_id} ... />
+  ```
 
-Zmiana z:
-```ts
-return item.custom_price != null ? Number(item.custom_price) : getDishPrice(item.dishes);
-```
-Na:
-```ts
-const base = item.custom_price != null ? Number(item.custom_price) : getDishPrice(item.dishes);
-return base + (Number(item.variant_price_modifier) || 0);
-```
+**3. `src/pages/admin/offers-list.tsx` — kolumna/badge "Wybrany wariant" na liście ofert**
 
-**3. `src/components/features/offers/steps/manager-modification-dialog.tsx` — `handleApply`**
+- Dla ofert ze statusem `accepted`/`won`: pokaż badge z nazwą wybranego wariantu
+- Wymaga dociągnięcia `offer_variants(id, name)` w query `useOffers`
+- Badge pod statusem: "Wariant: Premium" (zielony)
 
-Zmiana — przy wyborze wariantu NIE nadpisuj `custom_price`, ustaw `variant_price_modifier`:
-```ts
-applyMutation.mutate({
-  selected_variant_option: opt.label,
-  variant_price_modifier: opt.price_modifier,  // NOWA kolumna
-  // NIE zmieniaj custom_price!
-});
-```
+**4. `src/components/public/variant-comparison-section.tsx` — wyróżnienie wybranego wariantu po akceptacji**
 
-**4. `src/hooks/use-proposal-diff.ts` — akceptacja propozycji VARIANT_CHANGE**
+- Dodaj prop `acceptedVariantId?: string | null`
+- Gdy oferta zaakceptowana i wariant === accepted: zielona ramka + badge "Twój wybór ✓"
+- Pozostałe warianty wyszarzone (opacity-50)
 
-Zmiana z `updateData.custom_price = item.proposed_price` na:
-```ts
-// Oblicz modifier: proposed_price - original_price
-updateData.variant_price_modifier = (item.proposed_price ?? 0) - (item.original_price ?? 0);
-// NIE zmieniaj custom_price
-```
+**5. `src/pages/public/offer.tsx` — przekazanie `accepted_variant_id` do sekcji wariantów**
 
-**5. `src/hooks/use-public-offer.ts` — tworzenie propozycji**
-
-Poprawka `originalPrice` — czytaj cenę bazową z dania, nie z custom_price:
-```ts
-const dishPrice = getDishPriceFromUnit(variantItem?.dishes);
-const originalPrice = variantItem?.custom_price ?? dishPrice ?? 0;
-```
-
-**6. `src/components/public/dish-card.tsx` — wyświetlanie ceny**
-
-Zmiana logiki `effectivePrice`:
-```ts
-const basePrice = item.custom_price != null ? Number(item.custom_price) : getPrice(dish);
-const variantMod = Number(item.variant_price_modifier) || 0;
-let effectivePrice = basePrice + variantMod;
-// Modyfikacje klienta (tymczasowe) — dodatkowe, NIE nadpisują
-if (modification?.type === 'swap') effectivePrice = basePrice + (modification.swapPriceDiff ?? 0);
-else if (modification?.type === 'variant') effectivePrice = basePrice + (modification.variantPriceModifier ?? 0);
-```
-
-**7. `src/components/public/calculation-section.tsx` — adjustedVariants**
-
-Analogiczna poprawka — uwzględnij `variant_price_modifier` w bazowej cenie przed aplikowaniem tymczasowych modyfikacji klienta.
-
-**8. `src/components/features/offers/steps/calculation/VariantsPanel.tsx` — wyświetlanie w wizardzie**
-
-Upewnij się że `getItemPrice` (zmienione w punkcie 2) jest używane — powinno działać automatycznie.
-
-### Scenariusze po zmianie
-
-| Przypadek | custom_price | variant_price_modifier | Efektywna cena |
-|---|---|---|---|
-| Polędwica dodana do oferty | 65.00 | null | 65.00 |
-| Medium rare (bez dopłaty) | 65.00 | 0 | 65.00 ✅ |
-| Z sosem pieprzowym (+8 zł) | 65.00 | 8 | 73.00 ✅ |
-| Zamiana na kotleta (swap) | *nowy dish_id* | null | cena kotleta |
-| Tańsza opcja (-5 zł) | 65.00 | -5 | 60.00 ✅ |
+- `offer.accepted_variant_id` jest już dostępne z hooka `usePublicOffer`
+- Przekaż do `VariantComparisonSection` i `MenuVariantsSection`
 
 ### Pliki modyfikowane
-1. Migracja: nowa kolumna `variant_price_modifier` + naprawa danych
-2. `src/hooks/use-offer-variants.ts` — `getItemPrice`
-3. `src/components/features/offers/steps/manager-modification-dialog.tsx`
-4. `src/hooks/use-proposal-diff.ts`
-5. `src/hooks/use-public-offer.ts`
-6. `src/components/public/dish-card.tsx`
-7. `src/components/public/calculation-section.tsx`
+1. `src/components/features/offers/steps/step-menu.tsx` — badge na tabie i karcie
+2. `src/components/features/offers/offer-wizard.tsx` — przekazanie prop
+3. `src/hooks/use-offers.ts` — dociągnięcie `offer_variants(id,name)` + `accepted_variant_id`
+4. `src/pages/admin/offers-list.tsx` — badge z nazwą wariantu
+5. `src/components/public/variant-comparison-section.tsx` — wizualne wyróżnienie
+6. `src/pages/public/offer.tsx` — przekazanie prop
 
 ### Nie ruszam
-- `src/lib/calculations.ts` (korzysta z `getItemPrice` — zmiana propaguje automatycznie)
-- `dish-form.tsx`, `modifiable-items-section.tsx` (konfiguracja zamienników — bez zmian)
-- `changes-panel.tsx` (panel zmian klienta)
+- `acceptance-section.tsx` (logika akceptacji działa poprawnie)
+- `use-public-offer.ts` (dane są już pobierane)
+- `changes-panel.tsx`
 
