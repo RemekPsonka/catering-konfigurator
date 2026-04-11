@@ -245,6 +245,78 @@ const SortableFeatureRow = ({
   );
 };
 
+// --- Photo Library Preview for Event Profile ---
+const EVENT_TAG_COLORS: Record<string, string> = {
+  KOM: 'bg-pink-100 text-pink-800', WES: 'bg-rose-100 text-rose-800', FIR: 'bg-blue-100 text-blue-800',
+  KON: 'bg-indigo-100 text-indigo-800', PRY: 'bg-purple-100 text-purple-800', GAL: 'bg-amber-100 text-amber-800',
+};
+
+const PhotoLibraryPreview = ({ eventTypeId }: { eventTypeId: string }) => {
+  const { data: libraryPhotos = [] } = usePhotoLibrary(eventTypeId);
+  const { data: heroPhoto } = useHeroPhoto(eventTypeId);
+  const count = libraryPhotos.length;
+  const status = count >= MIN_EVENT_PHOTOS ? 'ok' : count > 0 ? 'warn' : 'error';
+  const statusIcon = status === 'ok' ? '✅' : status === 'warn' ? '⚠️' : '❌';
+  const statusColor = status === 'ok' ? 'text-green-700' : status === 'warn' ? 'text-yellow-700' : 'text-red-700';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center justify-between">
+          <span>Galeria zdjęć atmosfery</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${statusColor}`}>
+              {statusIcon} {count}/{MAX_LIBRARY_PHOTOS} zdjęć
+            </span>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/admin/photos?event=${eventTypeId}`}>
+                <Camera className="h-4 w-4 mr-1" /> Zarządzaj zdjęciami
+              </Link>
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {status !== 'ok' && (
+          <p className={`text-sm ${statusColor}`}>
+            {count === 0
+              ? `Brak zdjęć dla tego typu wydarzenia. Dodaj minimum ${MIN_EVENT_PHOTOS} zdjęcia w bibliotece.`
+              : `Dodaj jeszcze ${MIN_EVENT_PHOTOS - count} zdjęcia (minimum ${MIN_EVENT_PHOTOS}).`}
+          </p>
+        )}
+        {heroPhoto && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
+            <img src={heroPhoto.photo_url} alt="" className="w-16 h-12 rounded object-cover" />
+            <div>
+              <Badge variant="secondary" className="text-xs"><Star className="h-3 w-3 mr-0.5 fill-current" /> Hero</Badge>
+              <p className="text-xs text-muted-foreground mt-0.5">{heroPhoto.caption ?? 'Zdjęcie hero'}</p>
+            </div>
+          </div>
+        )}
+        {libraryPhotos.length > 0 ? (
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {libraryPhotos.slice(0, 12).map((p) => (
+              <div key={p.id} className="aspect-square rounded-lg overflow-hidden border">
+                <img src={p.photo_url} alt={p.alt_text ?? ''} className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+            {libraryPhotos.length > 12 && (
+              <div className="aspect-square rounded-lg border flex items-center justify-center bg-muted">
+                <span className="text-sm text-muted-foreground">+{libraryPhotos.length - 12}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Camera className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-sm text-muted-foreground">Brak zdjęć. Przejdź do biblioteki, aby dodać.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // --- Main Page ---
 export const EventProfileEditPage = () => {
   const { eventTypeId } = useParams<{ eventTypeId: string }>();
