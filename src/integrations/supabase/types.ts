@@ -106,6 +106,36 @@ export type Database = {
         }
         Relationships: []
       }
+      company_stats: {
+        Row: {
+          id: string
+          is_active: boolean
+          sort_order: number
+          stat_icon: string | null
+          stat_key: string
+          stat_label: string
+          stat_value: string
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          stat_icon?: string | null
+          stat_key: string
+          stat_label: string
+          stat_value: string
+        }
+        Update: {
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          stat_icon?: string | null
+          stat_key?: string
+          stat_label?: string
+          stat_value?: string
+        }
+        Relationships: []
+      }
       dish_categories: {
         Row: {
           code: string
@@ -616,6 +646,83 @@ export type Database = {
           },
         ]
       }
+      offer_faq: {
+        Row: {
+          answer: string
+          created_at: string | null
+          event_types: string[]
+          id: string
+          is_active: boolean
+          question: string
+          sort_order: number
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          event_types?: string[]
+          id?: string
+          is_active?: boolean
+          question: string
+          sort_order?: number
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          event_types?: string[]
+          id?: string
+          is_active?: boolean
+          question?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      offer_follow_ups: {
+        Row: {
+          created_at: string | null
+          email_subject: string | null
+          email_to: string | null
+          id: string
+          offer_id: string
+          scheduled_at: string
+          sent_at: string | null
+          sequence_step: number
+          status: Database["public"]["Enums"]["follow_up_status"]
+          step_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_subject?: string | null
+          email_to?: string | null
+          id?: string
+          offer_id: string
+          scheduled_at: string
+          sent_at?: string | null
+          sequence_step: number
+          status?: Database["public"]["Enums"]["follow_up_status"]
+          step_name: string
+        }
+        Update: {
+          created_at?: string | null
+          email_subject?: string | null
+          email_to?: string | null
+          id?: string
+          offer_id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          sequence_step?: number
+          status?: Database["public"]["Enums"]["follow_up_status"]
+          step_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_follow_ups_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_services: {
         Row: {
           custom_price: number | null
@@ -910,6 +1017,7 @@ export type Database = {
           ai_summary: string | null
           client_id: string | null
           client_requirements: Json | null
+          conversion_score: number | null
           created_at: string | null
           created_by: string
           current_version: number | null
@@ -922,10 +1030,12 @@ export type Database = {
           event_time_from: string | null
           event_time_to: string | null
           event_type: Database["public"]["Enums"]["event_type"]
+          follow_up_enabled: boolean | null
           greeting_text: string | null
           id: string
           inquiry_text: string | null
           is_people_count_editable: boolean | null
+          last_client_activity_at: string | null
           lead_id: string | null
           min_offer_price: number | null
           notes_client: string | null
@@ -956,6 +1066,7 @@ export type Database = {
           ai_summary?: string | null
           client_id?: string | null
           client_requirements?: Json | null
+          conversion_score?: number | null
           created_at?: string | null
           created_by: string
           current_version?: number | null
@@ -968,10 +1079,12 @@ export type Database = {
           event_time_from?: string | null
           event_time_to?: string | null
           event_type: Database["public"]["Enums"]["event_type"]
+          follow_up_enabled?: boolean | null
           greeting_text?: string | null
           id?: string
           inquiry_text?: string | null
           is_people_count_editable?: boolean | null
+          last_client_activity_at?: string | null
           lead_id?: string | null
           min_offer_price?: number | null
           notes_client?: string | null
@@ -1002,6 +1115,7 @@ export type Database = {
           ai_summary?: string | null
           client_id?: string | null
           client_requirements?: Json | null
+          conversion_score?: number | null
           created_at?: string | null
           created_by?: string
           current_version?: number | null
@@ -1014,10 +1128,12 @@ export type Database = {
           event_time_from?: string | null
           event_time_to?: string | null
           event_type?: Database["public"]["Enums"]["event_type"]
+          follow_up_enabled?: boolean | null
           greeting_text?: string | null
           id?: string
           inquiry_text?: string | null
           is_people_count_editable?: boolean | null
+          last_client_activity_at?: string | null
           lead_id?: string | null
           min_offer_price?: number | null
           notes_client?: string | null
@@ -1212,6 +1328,45 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          client_name: string
+          created_at: string | null
+          event_description: string | null
+          event_type: string | null
+          id: string
+          is_active: boolean
+          photo_url: string | null
+          quote: string
+          rating: number | null
+          sort_order: number
+        }
+        Insert: {
+          client_name: string
+          created_at?: string | null
+          event_description?: string | null
+          event_type?: string | null
+          id?: string
+          is_active?: boolean
+          photo_url?: string | null
+          quote: string
+          rating?: number | null
+          sort_order?: number
+        }
+        Update: {
+          client_name?: string
+          created_at?: string | null
+          event_description?: string | null
+          event_type?: string | null
+          id?: string
+          is_active?: boolean
+          photo_url?: string | null
+          quote?: string
+          rating?: number | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       upsell_items: {
         Row: {
           created_at: string | null
@@ -1386,6 +1541,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_conversion_score: {
+        Args: { p_offer_id: string }
+        Returns: number
+      }
+      cancel_follow_ups: { Args: { p_offer_id: string }; Returns: undefined }
       find_offer_by_email_and_number: {
         Args: { p_email: string; p_offer_number: string }
         Returns: {
@@ -1411,6 +1571,10 @@ export type Database = {
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
       reorder_variant_items: { Args: { items: Json }; Returns: undefined }
+      schedule_follow_up_sequence: {
+        Args: { p_offer_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       activity_type:
@@ -1443,6 +1607,7 @@ export type Database = {
         | "BOX"
         | "KAW"
         | "SPE"
+      follow_up_status: "scheduled" | "sent" | "skipped" | "cancelled"
       lead_source: "EMAIL" | "FORM" | "PHONE" | "IG" | "TENDER" | "OTHER"
       lead_status:
         | "new"
@@ -1653,6 +1818,7 @@ export const Constants = {
         "KAW",
         "SPE",
       ],
+      follow_up_status: ["scheduled", "sent", "skipped", "cancelled"],
       lead_source: ["EMAIL", "FORM", "PHONE", "IG", "TENDER", "OTHER"],
       lead_status: [
         "new",
