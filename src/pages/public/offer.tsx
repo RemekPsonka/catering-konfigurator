@@ -218,6 +218,7 @@ export const PublicOfferPage = () => {
 
       <div className="no-print">
         <ChangesPanel modifications={modifications} offer={offer} onClearModifications={handleClearModifications} originalTotal={originalTotal} proposedTotal={proposedTotal} actionsDisabled={actionsDisabled} />
+        <ShareOffer offerId={offer.id} eventTypeLabel={EVENT_TYPE_OPTIONS.find((e) => e.value === offer.event_type)?.label ?? offer.event_type} eventDate={offer.event_date} />
       </div>
 
       <footer className="py-4 text-center" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}>
