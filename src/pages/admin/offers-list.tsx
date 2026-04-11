@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileTex
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -161,7 +162,14 @@ export const OffersListPage = () => {
                   </TableCell>
                   <TableCell>{formatDate(offer.event_date)}</TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatCurrency(offer.total_value)}
+                    <div className="flex flex-col items-end gap-0.5">
+                      {formatCurrency(offer.total_value)}
+                      {(offer.upsell_total ?? 0) > 0 && (
+                        <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-[10px] mt-0.5">
+                          +{formatCurrency(offer.upsell_total)} dosprzedaż
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={offer.status as OfferStatus} type="offer" />
