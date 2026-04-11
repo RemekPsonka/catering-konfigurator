@@ -83,6 +83,7 @@ const App = () => (
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="notifications" element={<NotificationsListPage />} />
                 <Route path="social-proof" element={<SocialProofPage />} />
+                <Route path="photos" element={<PhotosLibraryPage />} />
                 <Route path="settings/event-profiles" element={<EventProfilesListPage />} />
                 <Route path="settings/event-profiles/:eventTypeId" element={<EventProfileEditPage />} />
               </Route>

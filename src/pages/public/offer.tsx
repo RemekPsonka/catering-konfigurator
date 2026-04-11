@@ -87,6 +87,13 @@ export const PublicOfferPage = () => {
     return legacyEventPhotos?.find((p) => p.is_hero) ?? null;
   }, [libraryHero, legacyEventPhotos]);
 
+  useEffect(() => {
+    if (offer && !activeVariantId) {
+      const sorted = [...offer.offer_variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      if (sorted.length > 0) setActiveVariantId(sorted[0].id);
+    }
+  }, [offer, activeVariantId]);
+
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
       const next = new Map(prev);
