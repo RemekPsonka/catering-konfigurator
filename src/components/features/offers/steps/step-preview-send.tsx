@@ -18,7 +18,19 @@ import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, Bo
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
-import { getItemPrice } from '@/hooks/use-offer-variants';
+import { getDishPrice } from '@/hooks/use-offer-variants';
+
+const getPreviewItemPrice = (item: PreviewVariantItem): number => {
+  if (item.custom_price != null) return Number(item.custom_price);
+  const d = item.dishes;
+  switch (d.unit_type) {
+    case 'PERSON': return d.price_per_person ?? 0;
+    case 'PIECE': return d.price_per_piece ?? 0;
+    case 'KG': return d.price_per_kg ?? 0;
+    case 'SET': return d.price_per_set ?? 0;
+    default: return 0;
+  }
+};
 import { buildPublicOfferUrl } from '@/lib/constants';
 import { buildRichOfferEmail } from '@/lib/email-templates';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
