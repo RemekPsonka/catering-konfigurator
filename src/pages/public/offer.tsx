@@ -160,6 +160,12 @@ export const PublicOfferPage = () => {
       <ServicesLogisticsSection offer={offer} priceDisplayMode={offer.price_display_mode} />
       <CalculationSection offer={offer} modifications={modifications} />
 
+      {eventPhotos && eventPhotos.length > 0 && (
+        <div className="no-print">
+          <EventGallerySection photos={eventPhotos} />
+        </div>
+      )}
+
       <div className="no-print">
         <UpsellSection
           offerId={offer.id}
