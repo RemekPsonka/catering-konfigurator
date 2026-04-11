@@ -185,6 +185,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   const [minPrice, setMinPrice] = useState('');
   const [peopleEditable, setPeopleEditable] = useState(false);
   const [upsellEnabled, setUpsellEnabled] = useState(true);
+  const [followUpEnabled, setFollowUpEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
@@ -193,6 +194,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
       setMinPrice(offer.min_offer_price ? String(offer.min_offer_price) : '');
       setPeopleEditable(offer.is_people_count_editable ?? false);
       setUpsellEnabled(offer.upsell_enabled ?? true);
+      setFollowUpEnabled(offer.follow_up_enabled ?? true);
       setSettingsLoaded(true);
     }
   }, [offer, settingsLoaded]);
@@ -203,7 +205,8 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     min_offer_price: minPrice ? parseFloat(minPrice) : null,
     is_people_count_editable: peopleEditable,
     upsell_enabled: upsellEnabled,
-  }), [displayMode, minPrice, peopleEditable, upsellEnabled]);
+    follow_up_enabled: followUpEnabled,
+  }), [displayMode, minPrice, peopleEditable, upsellEnabled, followUpEnabled]);
 
   const debouncedSettings = useDebounce(settingsPayload, 600);
   const prevSettingsRef = useRef(debouncedSettings);
@@ -419,6 +422,13 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                     <div>
                       <Label className="text-xs">Pokaż sekcję dosprzedaży klientowi</Label>
                       <p className="text-xs text-muted-foreground">Klient zobaczy sugerowane dodatki na stronie oferty</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-3 border-t">
+                    <Switch checked={followUpEnabled} onCheckedChange={setFollowUpEnabled} />
+                    <div>
+                      <Label className="text-xs">Automatyczne follow-upy</Label>
+                      <p className="text-xs text-muted-foreground">System wyśle automatyczne przypomnienia po wysłaniu oferty</p>
                     </div>
                   </div>
                 </CardContent>

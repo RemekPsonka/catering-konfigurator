@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -98,3 +98,47 @@ export const useManagerName = () =>
     },
     staleTime: 5 * 60 * 1000,
   });
+
+// ── Follow-ups ──
+
+interface FollowUpRow {
+  id: string;
+  offer_id: string;
+  step_name: string;
+  sequence_step: number;
+  status: string;
+  scheduled_at: string;
+  sent_at: string | null;
+  offers: { offer_number: string | null } | null;
+}
+
+export const useFollowUps = () =>
+  useQuery({
+    queryKey: ['dashboard-follow-ups'],
+    queryFn: async (): Promise<FollowUpRow[]> => {
+      const { data, error } = await supabase
+        .from('offer_follow_ups')
+        .select('id, offer_id, step_name, sequence_step, status, scheduled_at, sent_at, offers(offer_number)')
+        .in('status', ['scheduled', 'sent'])
+        .order('scheduled_at', { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return (data ?? []) as FollowUpRow[];
+    },
+  });
+
+export const useCancelFollowUp = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('offer_follow_ups')
+        .update({ status: 'cancelled' as never })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dashboard-follow-ups'] });
+    },
+  });
+};
