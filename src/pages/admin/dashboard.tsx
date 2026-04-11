@@ -16,11 +16,13 @@ import {
   Trophy,
   Mail,
   XCircle,
+  Flame,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import {
   useDashboardKpi,
@@ -31,6 +33,7 @@ import {
   useFollowUps,
   useCancelFollowUp,
 } from '@/hooks/use-dashboard';
+import { useHotOffers } from '@/hooks/use-hot-offers';
 
 const EVENT_ICONS: Record<string, typeof Eye> = {
   offer_viewed: Eye,
