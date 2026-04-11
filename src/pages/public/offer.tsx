@@ -15,6 +15,7 @@ import { CommunicationSection } from '@/components/public/communication-section'
 import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
+import { EventGallerySection } from '@/components/public/event-gallery-section';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
 import { UpsellSection } from '@/components/public/upsell-section';
 import { SuggestedServicesSection } from '@/components/public/suggested-services-section';
@@ -158,6 +159,12 @@ export const PublicOfferPage = () => {
 
       <ServicesLogisticsSection offer={offer} priceDisplayMode={offer.price_display_mode} />
       <CalculationSection offer={offer} modifications={modifications} />
+
+      {eventPhotos && eventPhotos.length > 0 && (
+        <div className="no-print">
+          <EventGallerySection photos={eventPhotos} />
+        </div>
+      )}
 
       <div className="no-print">
         <UpsellSection
