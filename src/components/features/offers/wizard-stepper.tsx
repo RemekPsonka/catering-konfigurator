@@ -1,14 +1,11 @@
-import { Check, ClipboardList, UtensilsCrossed, Wrench, Settings, Calculator, Palette, Eye } from 'lucide-react';
+import { Check, ClipboardList, UtensilsCrossed, Calculator, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WIZARD_STEPS } from '@/lib/offer-constants';
 
 const iconMap = {
   ClipboardList,
   UtensilsCrossed,
-  Wrench,
-  Settings,
   Calculator,
-  Palette,
   Eye,
 } as const;
 
