@@ -1,27 +1,26 @@
 
 
-## Plan: Fix PER_PERSON service calculation bug
+## Plan: Napraw wyświetlanie nazw produktów w panelu "Moje zmiany"
 
 ### Problem
-`calculateOfferTotals()` uses `os.quantity` from DB for all service types, but for PER_PERSON services this value may be stale due to race conditions. The function already receives `peopleCount` as a parameter but doesn't use it for PER_PERSON services.
+Panel upsell pokazuje "Dodatek" zamiast prawdziwych nazw produktów (np. "Piramidka makaroników", "Patera owoców sezonowych", "Lemoniadowy bar").
 
-### Changes (2 files, 1 line each)
+### Przyczyna
+Tabela `offer_upsell_selections` nie ma klucza obcego (FK) do `upsell_items` na kolumnie `upsell_item_id`. Bez FK Supabase PostgREST nie potrafi wykonać joina `.select('*, upsell_items(name, emoji)')` — zwraca null, co powoduje fallback na tekst "Dodatek".
 
-**1. `src/lib/calculations.ts`** — line ~115:
-```
-BYŁO:   const qty = os.quantity ?? 1;
-JEST:   const qty = os.services.price_type === 'PER_PERSON' ? safePeopleCount : (os.quantity ?? 1);
-```
+### Rozwiązanie
 
-**2. `src/components/public/calculation-section.tsx`** — service display in DETAILED mode:
-```
-BYŁO:   const qty = os.quantity ?? 1;
-JEST:   const qty = os.services.price_type === 'PER_PERSON' ? debouncedCount : (os.quantity ?? 1);
+**1. Migracja SQL** — dodaj brakujący FK:
+```sql
+ALTER TABLE public.offer_upsell_selections
+  ADD CONSTRAINT offer_upsell_selections_upsell_item_id_fkey
+  FOREIGN KEY (upsell_item_id) REFERENCES public.upsell_items(id) ON DELETE CASCADE;
 ```
 
-Both variables (`safePeopleCount`, `debouncedCount`) already exist in their respective files.
+Po tej jednej zmianie join zacznie działać i nazwy produktów pojawią się automatycznie we wszystkich 3 miejscach w kodzie (changes-panel, step-pricing, step-preview-send).
 
-### No other changes needed
-- useEffect syncing quantity to DB remains (for PDF/export correctness)
-- PER_EVENT, PER_PIECE, PER_BLOCK services unaffected
+**2. Bez zmian w kodzie** — logika `{item?.name ?? 'Dodatek'}` jest poprawna — po dodaniu FK `item?.name` przestanie być null.
+
+### Weryfikacja
+- Panel "Moje zmiany" pokaże: "🎂 Piramidka makaroników 400,00 zł" zamiast "🛒 Dodatek 400,00 zł"
 
