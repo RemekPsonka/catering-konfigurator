@@ -24,8 +24,6 @@ interface OfferHeaderProps {
   isAccepted: boolean;
   isWon: boolean;
 }
-import { useState, useCallback } from 'react';
-
 
 export const OfferHeader = ({ offer, heroPhoto, scrollY, isExpired, isAccepted, isWon }: OfferHeaderProps) => {
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
