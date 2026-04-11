@@ -63,6 +63,9 @@ const App = () => (
                 <Route path="/survey/:token" element={<SurveyPage />} />
               </Route>
 
+              {/* Admin print (auth required, no layout) */}
+              <Route path="/admin/offers/:id/print" element={<AuthGuard><AdminOfferPrintPage /></AuthGuard>} />
+
               {/* Admin (protected) */}
               <Route
                 path="/admin"
@@ -79,7 +82,6 @@ const App = () => (
                 <Route path="offers/:id/edit" element={<OfferEditPage />} />
                 <Route path="offers/:id/messages" element={<OfferMessagesPage />} />
                 <Route path="offers/:id/proposals/:proposalId" element={<ProposalDiffPage />} />
-                <Route path="offers/:id/print" element={<AdminOfferPrintPage />} />
                 <Route path="dishes" element={<DishesListPage />} />
                 <Route path="dishes/categories" element={<DishCategoriesPage />} />
                 <Route path="dishes/new" element={<DishNewPage />} />
