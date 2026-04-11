@@ -49,7 +49,7 @@ interface OfferValidationPanelProps {
 }
 
 const CATEGORY_STEP_MAP: Record<string, number> = {
-  menu: 2, dietary: 2, service: 3, logistics: 3, budget: 5, special: 4,
+  menu: 2, dietary: 2, service: 3, logistics: 3, budget: 3, special: 4,
 };
 
 const statusConfig = {
