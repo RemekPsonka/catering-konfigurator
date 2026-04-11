@@ -166,6 +166,13 @@ export const PublicOfferPage = () => {
           upsellEnabled={offer.upsell_enabled ?? true}
           actionsDisabled={actionsDisabled}
         />
+        <SuggestedServicesSection
+          offerId={offer.id}
+          offerServices={offer.offer_services}
+          peopleCount={offer.people_count ?? 1}
+          upsellEnabled={offer.upsell_enabled ?? true}
+          actionsDisabled={actionsDisabled}
+        />
       </div>
 
       <TermsSection />
