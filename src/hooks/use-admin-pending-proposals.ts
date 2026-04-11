@@ -16,6 +16,7 @@ export interface PendingProposalItem {
   proposedPrice: number;
   originalPrice: number;
   status: string;
+  splitDetails: { percent: number; splitDishId: string; splitDishName: string } | null;
 }
 
 export interface ProposalSummary {
@@ -60,7 +61,7 @@ export const useAdminPendingProposals = (offerId: string | null) => {
           proposal_items(
             id, variant_item_id, change_type, original_dish_id,
             proposed_dish_id, proposed_variant_option, proposed_price,
-            original_price, proposed_quantity, status,
+            original_price, proposed_quantity, status, split_details,
             proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(display_name),
             variant_item:variant_items!proposal_items_variant_item_id_fkey(
               id,
@@ -112,6 +113,7 @@ export const useAdminPendingProposals = (offerId: string | null) => {
             proposedPrice: item.proposed_price,
             originalPrice: item.original_price,
             status: item.status,
+            splitDetails: item.split_details as { percent: number; splitDishId: string; splitDishName: string } | null,
           };
 
           const existing = itemsByVariantItem.get(item.variant_item_id) ?? [];
