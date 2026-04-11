@@ -17,7 +17,8 @@ const formatVersionDate = (d: string | null) =>
 const formatTime = (t: string | null) => (t ? t.slice(0, 5) : null);
 
 const DELIVERY_LABELS: Record<string, string> = {
-  COLD: 'Catering zimny',
+  COLD_SERVE: 'Catering zimny (boxy)',
+  COLD: 'Catering zimny (do podgrzania)',
   HEATED: 'Catering ciepły',
   FULL_SERVICE: 'Pełna obsługa',
 };

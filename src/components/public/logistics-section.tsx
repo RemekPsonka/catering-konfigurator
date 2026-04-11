@@ -10,7 +10,8 @@ interface LogisticsSectionProps {
 }
 
 const DELIVERY_INFO: Record<string, { label: string; description: string }> = {
-  COLD: { label: 'Zimna dostawa', description: 'Dania w pojemnikach, gotowe do podgrzania' },
+  COLD_SERVE: { label: 'Na zimno (boxy / finger food)', description: 'Dania zimne gotowe do podania: finger foody, boxy, przekąski, sałatki' },
+  COLD: { label: 'Zimna dostawa (do podgrzania)', description: 'Dania w pojemnikach, wymagają podgrzania przez klienta' },
   HEATED: { label: 'Podgrzewana', description: 'Dania w podgrzewaczach, gotowe do serwowania' },
   FULL_SERVICE: { label: 'Full service', description: 'Pełna obsługa: dostawa, setup, serwis, sprzątanie' },
 };
