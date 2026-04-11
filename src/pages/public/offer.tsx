@@ -4,6 +4,7 @@ import { useScroll } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { fireNotification } from '@/hooks/use-notifications';
 import { usePublicEventProfile, usePublicEventPhotos } from '@/hooks/use-public-event-profile';
+import { usePhotoLibrary, useHeroPhoto } from '@/hooks/use-photo-library';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { calculateOfferTotals } from '@/lib/calculations';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';
@@ -61,8 +62,30 @@ export const PublicOfferPage = () => {
     }
   }, [offer]);
 
-  const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
+  const { data: libraryPhotos } = usePhotoLibrary(offer?.event_type);
+  const { data: libraryHero } = useHeroPhoto(offer?.event_type);
+  const { data: legacyEventPhotos } = usePublicEventPhotos(offer?.event_type);
   usePublicEventProfile(offer?.event_type);
+
+  // Use photo_library with fallback to legacy event_type_photos
+  const galleryPhotos = useMemo(() => {
+    if (libraryPhotos && libraryPhotos.length > 0) {
+      return libraryPhotos.map((p) => ({
+        photo_url: p.photo_url,
+        width: p.width,
+        height: p.height,
+        caption: p.caption,
+        alt_text: p.alt_text,
+        is_hero: false,
+      }));
+    }
+    return legacyEventPhotos ?? [];
+  }, [libraryPhotos, legacyEventPhotos]);
+
+  const heroPhoto = useMemo(() => {
+    if (libraryHero) return { photo_url: libraryHero.photo_url, alt_text: libraryHero.alt_text };
+    return legacyEventPhotos?.find((p) => p.is_hero) ?? null;
+  }, [libraryHero, legacyEventPhotos]);
 
   useEffect(() => {
     if (offer && !activeVariantId) {
@@ -70,8 +93,6 @@ export const PublicOfferPage = () => {
       if (sorted.length > 0) setActiveVariantId(sorted[0].id);
     }
   }, [offer, activeVariantId]);
-
-  const heroPhoto = useMemo(() => eventPhotos?.find((p) => p.is_hero) ?? null, [eventPhotos]);
 
   const handleModificationChange = useCallback((itemId: string, mod: DishModification | undefined) => {
     setModifications((prev) => {
@@ -192,9 +213,9 @@ export const PublicOfferPage = () => {
         <CalculationSection offer={offer} modifications={modifications} />
       </div>
 
-      {eventPhotos && eventPhotos.length > 0 && (
+      {galleryPhotos.length > 0 && (
         <div className="no-print">
-          <EventGallerySection photos={eventPhotos} />
+          <EventGallerySection photos={galleryPhotos} />
         </div>
       )}
 

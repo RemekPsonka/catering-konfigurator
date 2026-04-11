@@ -7,10 +7,18 @@ import 'yet-another-react-lightbox/styles.css';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/plugins/captions.css';
 import { fadeIn } from '@/lib/animations';
-import type { PublicEventPhoto } from '@/hooks/use-public-event-profile';
+
+export interface GalleryPhoto {
+  photo_url: string;
+  width?: number | null;
+  height?: number | null;
+  caption?: string | null;
+  alt_text?: string | null;
+  is_hero?: boolean;
+}
 
 interface EventGallerySectionProps {
-  photos: PublicEventPhoto[];
+  photos: GalleryPhoto[];
 }
 
 export const EventGallerySection = ({ photos }: EventGallerySectionProps) => {

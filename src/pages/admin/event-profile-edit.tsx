@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -26,7 +26,9 @@ import {
   useUpdateEventPhotoTags,
 } from '@/hooks/use-event-profiles';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
-import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag, Camera } from 'lucide-react';
+import { usePhotoLibrary, useHeroPhoto, useEventPhotoStats } from '@/hooks/use-photo-library';
+import { MIN_EVENT_PHOTOS, MAX_LIBRARY_PHOTOS } from '@/lib/app-limits';
 import type { Tables } from '@/integrations/supabase/types';
 
 interface Feature {
@@ -240,6 +242,78 @@ const SortableFeatureRow = ({
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
     </div>
+  );
+};
+
+// --- Photo Library Preview for Event Profile ---
+const EVENT_TAG_COLORS: Record<string, string> = {
+  KOM: 'bg-pink-100 text-pink-800', WES: 'bg-rose-100 text-rose-800', FIR: 'bg-blue-100 text-blue-800',
+  KON: 'bg-indigo-100 text-indigo-800', PRY: 'bg-purple-100 text-purple-800', GAL: 'bg-amber-100 text-amber-800',
+};
+
+const PhotoLibraryPreview = ({ eventTypeId }: { eventTypeId: string }) => {
+  const { data: libraryPhotos = [] } = usePhotoLibrary(eventTypeId);
+  const { data: heroPhoto } = useHeroPhoto(eventTypeId);
+  const count = libraryPhotos.length;
+  const status = count >= MIN_EVENT_PHOTOS ? 'ok' : count > 0 ? 'warn' : 'error';
+  const statusIcon = status === 'ok' ? '✅' : status === 'warn' ? '⚠️' : '❌';
+  const statusColor = status === 'ok' ? 'text-green-700' : status === 'warn' ? 'text-yellow-700' : 'text-red-700';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center justify-between">
+          <span>Galeria zdjęć atmosfery</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${statusColor}`}>
+              {statusIcon} {count}/{MAX_LIBRARY_PHOTOS} zdjęć
+            </span>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/admin/photos?event=${eventTypeId}`}>
+                <Camera className="h-4 w-4 mr-1" /> Zarządzaj zdjęciami
+              </Link>
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {status !== 'ok' && (
+          <p className={`text-sm ${statusColor}`}>
+            {count === 0
+              ? `Brak zdjęć dla tego typu wydarzenia. Dodaj minimum ${MIN_EVENT_PHOTOS} zdjęcia w bibliotece.`
+              : `Dodaj jeszcze ${MIN_EVENT_PHOTOS - count} zdjęcia (minimum ${MIN_EVENT_PHOTOS}).`}
+          </p>
+        )}
+        {heroPhoto && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
+            <img src={heroPhoto.photo_url} alt="" className="w-16 h-12 rounded object-cover" />
+            <div>
+              <Badge variant="secondary" className="text-xs"><Star className="h-3 w-3 mr-0.5 fill-current" /> Hero</Badge>
+              <p className="text-xs text-muted-foreground mt-0.5">{heroPhoto.caption ?? 'Zdjęcie hero'}</p>
+            </div>
+          </div>
+        )}
+        {libraryPhotos.length > 0 ? (
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {libraryPhotos.slice(0, 12).map((p) => (
+              <div key={p.id} className="aspect-square rounded-lg overflow-hidden border">
+                <img src={p.photo_url} alt={p.alt_text ?? ''} className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+            {libraryPhotos.length > 12 && (
+              <div className="aspect-square rounded-lg border flex items-center justify-center bg-muted">
+                <span className="text-sm text-muted-foreground">+{libraryPhotos.length - 12}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Camera className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-sm text-muted-foreground">Brak zdjęć. Przejdź do biblioteki, aby dodać.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
@@ -482,93 +556,8 @@ export const EventProfileEditPage = () => {
         </CardContent>
       </Card>
 
-      {/* Section 4 — Galeria */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Galeria zdjęć atmosfery ({photos.length}/15)</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {/* Drop zone */}
-          <div
-            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {uploadPhoto.isPending ? (
-              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-            ) : (
-              <>
-                <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Przeciągnij zdjęcia lub kliknij</p>
-                <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP — max 10MB</p>
-              </>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files)}
-            />
-          </div>
-
-          {/* Tag filters */}
-          {allTags.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button
-                type="button"
-                variant={activeTagFilter === null ? 'default' : 'outline'}
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setActiveTagFilter(null)}
-              >
-                Wszystkie
-              </Button>
-              {allTags.map((tag) => (
-                <Button
-                  key={tag}
-                  type="button"
-                  variant={activeTagFilter === tag ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
-                >
-                  {PREDEFINED_TAGS.find((p) => p.label === tag)?.emoji ?? '🏷️'} {tag}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* Photo grid */}
-          {filteredPhotos.length > 0 && (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
-              <SortableContext items={filteredPhotos.map((p) => p.id)} strategy={rectSortingStrategy}>
-                <div className="space-y-2">
-                  {filteredPhotos.map((photo) => (
-                    <SortablePhotoCard
-                      key={photo.id}
-                      photo={photo}
-                      onDelete={() => setDeleteTarget(photo)}
-                      onSetHero={() =>
-                        eventTypeId &&
-                        setHero.mutate({ photoId: photo.id, eventTypeId, photoUrl: photo.photo_url })
-                      }
-                      onUpdateMeta={(caption, altText) =>
-                        eventTypeId &&
-                        updatePhotoMeta.mutate({ id: photo.id, caption, altText, eventTypeId })
-                      }
-                      onUpdateTags={(tags) =>
-                        eventTypeId &&
-                        updatePhotoTags.mutate({ id: photo.id, tags, eventTypeId })
-                      }
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-        </CardContent>
-      </Card>
+      {/* Section 4 — Galeria (photo_library) */}
+      <PhotoLibraryPreview eventTypeId={eventTypeId!} />
 
       {/* Confirm delete dialog */}
       <ConfirmDialog
