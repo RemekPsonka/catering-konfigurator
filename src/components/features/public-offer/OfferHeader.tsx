@@ -32,12 +32,8 @@ export const OfferHeader = ({ offer, heroPhoto, scrollY, isExpired, isAccepted, 
   const eventTypeInfo = EVENT_TYPE_OPTIONS.find((e) => e.value === offer.event_type);
 
   const handlePrint = useCallback(() => {
-    const originalTitle = document.title;
-    const safeName = (offer.offer_number ?? 'oferta').replace(/[^a-zA-Z0-9-]/g, '_');
-    document.title = `Oferta_${safeName}_Catering_Slaski`;
-    window.print();
-    document.title = originalTitle;
-  }, [offer.offer_number]);
+    window.open(`/offer/${offer.public_token}/print`, '_blank');
+  }, [offer.public_token]);
 
   const heroHeadline = eventTypeInfo ? `${eventTypeInfo.emoji} ${eventTypeInfo.label}` : COMPANY.name;
 

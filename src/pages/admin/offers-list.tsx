@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2, Lock } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2, Lock, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';

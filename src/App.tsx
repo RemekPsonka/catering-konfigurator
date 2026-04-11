@@ -53,11 +53,13 @@ const App = () => (
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+              {/* Print routes (no layout wrapper) */}
+              <Route path="/offer/:publicToken/print" element={<OfferPrintPage />} />
+
               {/* Public offer */}
               <Route element={<PublicLayout />}>
                 <Route path="/offer/find" element={<OfferFindPage />} />
                 <Route path="/offer/:publicToken" element={<PublicOfferPage />} />
-                <Route path="/offer/:publicToken/print" element={<OfferPrintPage />} />
                 <Route path="/survey/:token" element={<SurveyPage />} />
               </Route>
 
