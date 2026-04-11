@@ -274,7 +274,7 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
           >
             <Sparkles className="h-3 w-3" />
-            Polecany
+            Najczęściej wybierany ⭐
           </span>
         )}
       </div>

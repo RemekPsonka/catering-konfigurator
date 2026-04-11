@@ -79,6 +79,7 @@ const App = () => (
                 <Route path="leads/:id" element={<LeadDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="notifications" element={<NotificationsListPage />} />
+                <Route path="social-proof" element={<SocialProofPage />} />
                 <Route path="settings/event-profiles" element={<EventProfilesListPage />} />
                 <Route path="settings/event-profiles/:eventTypeId" element={<EventProfileEditPage />} />
               </Route>

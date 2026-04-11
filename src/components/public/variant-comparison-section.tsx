@@ -76,7 +76,7 @@ export const VariantComparisonSection = ({
           )}
           {!isChosen && v.is_recommended && (
             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-ivory shrink-0" style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}>
-              <Sparkles className="h-3 w-3" /> Polecany
+              <Sparkles className="h-3 w-3" /> Najczęściej wybierany ⭐
             </span>
           )}
         </div>
