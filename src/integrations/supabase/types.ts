@@ -106,6 +106,66 @@ export type Database = {
         }
         Relationships: []
       }
+      company_info: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          bank_account: string | null
+          bank_name: string | null
+          company_name: string
+          created_at: string | null
+          email: string | null
+          facebook: string | null
+          id: string
+          instagram: string | null
+          legal_form: string | null
+          logo_url: string | null
+          nip: string | null
+          phone: string | null
+          regon: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          company_name?: string
+          created_at?: string | null
+          email?: string | null
+          facebook?: string | null
+          id?: string
+          instagram?: string | null
+          legal_form?: string | null
+          logo_url?: string | null
+          nip?: string | null
+          phone?: string | null
+          regon?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          company_name?: string
+          created_at?: string | null
+          email?: string | null
+          facebook?: string | null
+          id?: string
+          instagram?: string | null
+          legal_form?: string | null
+          logo_url?: string | null
+          nip?: string | null
+          phone?: string | null
+          regon?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       company_stats: {
         Row: {
           id: string
@@ -1018,6 +1078,8 @@ export type Database = {
           client_id: string | null
           client_requirements: Json | null
           conversion_score: number | null
+          coordinator_name: string | null
+          coordinator_phone: string | null
           created_at: string | null
           created_by: string
           current_version: number | null
@@ -1057,6 +1119,7 @@ export type Database = {
           upsell_total: number | null
           valid_until: string | null
           validity_days: number | null
+          version_date: string | null
           viewed_at: string | null
         }
         Insert: {
@@ -1067,6 +1130,8 @@ export type Database = {
           client_id?: string | null
           client_requirements?: Json | null
           conversion_score?: number | null
+          coordinator_name?: string | null
+          coordinator_phone?: string | null
           created_at?: string | null
           created_by: string
           current_version?: number | null
@@ -1106,6 +1171,7 @@ export type Database = {
           upsell_total?: number | null
           valid_until?: string | null
           validity_days?: number | null
+          version_date?: string | null
           viewed_at?: string | null
         }
         Update: {
@@ -1116,6 +1182,8 @@ export type Database = {
           client_id?: string | null
           client_requirements?: Json | null
           conversion_score?: number | null
+          coordinator_name?: string | null
+          coordinator_phone?: string | null
           created_at?: string | null
           created_by?: string
           current_version?: number | null
@@ -1155,6 +1223,7 @@ export type Database = {
           upsell_total?: number | null
           valid_until?: string | null
           validity_days?: number | null
+          version_date?: string | null
           viewed_at?: string | null
         }
         Relationships: [
