@@ -28,6 +28,7 @@ import type { DishModification } from '@/components/public/dish-edit-panel';
 import { isValidToken, loadGoogleFont } from '@/components/features/public-offer/offer-utils';
 import { InvalidTokenScreen, LoadingScreen, NotFoundScreen, DraftScreen, LostScreen } from '@/components/features/public-offer/OfferStatusScreens';
 import { OfferHeader } from '@/components/features/public-offer/OfferHeader';
+import { CountdownTimer } from '@/components/public/countdown-timer';
 
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
@@ -147,6 +148,12 @@ export const PublicOfferPage = () => {
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
       <OfferHeader offer={offer} heroPhoto={heroPhoto} scrollY={scrollY} isExpired={isExpired} isAccepted={isAccepted} isWon={isWon} />
+
+      {offer.valid_until && !isExpired && (
+        <div className="no-print">
+          <CountdownTimer validUntil={offer.valid_until} isExpired={isExpired} />
+        </div>
+      )}
 
       <div className="no-print">
         {showOnboarding && <OnboardingOverlay variantCount={offer.offer_variants.length} editableCount={editableCount} onDismiss={() => setOnboardingDismissed(true)} />}
