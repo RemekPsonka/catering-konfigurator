@@ -24,7 +24,7 @@ import { ClientsListPage } from "@/pages/admin/clients-list";
 import { LeadsListPage } from "@/pages/admin/leads-list";
 import { LeadDetailPage } from "@/pages/admin/lead-detail";
 import { SettingsPage } from "@/pages/admin/settings";
-import { CompanySettingsPage } from "@/pages/admin/company-settings";
+
 import { NotificationsListPage } from "@/pages/admin/notifications-list";
 import { SocialProofPage } from "@/pages/admin/social-proof";
 import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
