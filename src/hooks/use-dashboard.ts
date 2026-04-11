@@ -9,6 +9,7 @@ interface KpiCounts {
   revision: number;
   accepted: number;
   won: number;
+  expired: number;
 }
 
 interface ExpiringOffer {
@@ -25,9 +26,9 @@ export const useDashboardKpi = () =>
       const { data, error } = await supabase
         .from('offers')
         .select('status')
-        .in('status', ['draft', 'sent', 'viewed', 'revision', 'accepted', 'won']);
+        .in('status', ['draft', 'sent', 'viewed', 'revision', 'accepted', 'won', 'expired']);
       if (error) throw error;
-      const counts: KpiCounts = { draft: 0, sent: 0, viewed: 0, revision: 0, accepted: 0, won: 0 };
+      const counts: KpiCounts = { draft: 0, sent: 0, viewed: 0, revision: 0, accepted: 0, won: 0, expired: 0 };
       data?.forEach((r) => {
         const s = r.status as keyof KpiCounts;
         if (s in counts) counts[s]++;

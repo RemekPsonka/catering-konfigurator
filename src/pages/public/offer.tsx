@@ -36,7 +36,7 @@ import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 import type { DishModification } from '@/components/public/dish-edit-panel';
 
 import { isValidToken, loadGoogleFont } from '@/components/features/public-offer/offer-utils';
-import { InvalidTokenScreen, LoadingScreen, NotFoundScreen, DraftScreen, LostScreen } from '@/components/features/public-offer/OfferStatusScreens';
+import { InvalidTokenScreen, LoadingScreen, NotFoundScreen, DraftScreen, LostScreen, ExpiredScreen } from '@/components/features/public-offer/OfferStatusScreens';
 import { OfferHeader } from '@/components/features/public-offer/OfferHeader';
 import { CountdownTimer } from '@/components/public/countdown-timer';
 import { OfferTracker } from '@/components/public/offer-tracker';
@@ -170,7 +170,7 @@ export const PublicOfferPage = () => {
     }
   }, [offer?.id, offer?.viewed_at, offer?.status]);
 
-  const isExpired = useMemo(() => offer?.valid_until ? new Date() > new Date(offer.valid_until) : false, [offer?.valid_until]);
+  const isExpired = useMemo(() => offer?.status === 'expired' || (offer?.valid_until ? new Date() > new Date(offer.valid_until) : false), [offer?.status, offer?.valid_until]);
 
   const editableCount = useMemo(() => {
     if (!offer) return 0;
@@ -185,6 +185,7 @@ export const PublicOfferPage = () => {
   if (isLoading) return <LoadingScreen />;
   if (!offer || error) return <NotFoundScreen />;
   if (offer.status === 'draft') return <DraftScreen />;
+  if (offer.status === 'expired') return <ExpiredScreen />;
   if (offer.status === 'lost') return <LostScreen />;
 
   const isAccepted = offer.status === 'accepted';
