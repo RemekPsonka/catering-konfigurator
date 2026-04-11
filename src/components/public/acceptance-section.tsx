@@ -8,6 +8,9 @@ import { fadeInUp, scaleIn } from '@/lib/animations';
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { CheckCircle2, CreditCard, Phone, UtensilsCrossed } from 'lucide-react';
 
 interface AcceptanceSectionProps {
   offer: PublicOffer;
@@ -75,6 +78,16 @@ export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsD
   };
 
   if (accepted) {
+    const eventDateFormatted = offer.event_date
+      ? format(new Date(offer.event_date), 'd MMMM yyyy', { locale: pl })
+      : null;
+
+    const steps = [
+      { icon: CreditCard, label: 'Zaliczka 30%', desc: 'Wpłata w ciągu 3 dni roboczych' },
+      { icon: Phone, label: 'Kontakt przed eventem', desc: 'Zadzwonimy 7 dni przed wydarzeniem' },
+      { icon: UtensilsCrossed, label: 'Obsługa w dniu wydarzenia', desc: 'Wszystko przygotujemy na czas' },
+    ];
+
     return (
       <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8 md:py-12">
         <div className="mx-auto max-w-3xl px-6 text-center">
@@ -85,16 +98,52 @@ export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsD
             className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
             style={{ backgroundColor: 'var(--theme-primary, #1A1A1A)' }}
           >
-            <motion.svg viewBox="0 0 24 24" className="h-8 w-8 text-ivory" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <motion.path d="M5 13l4 4L19 7" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay: 0.3 }} />
-            </motion.svg>
+            <CheckCircle2 className="h-8 w-8 text-ivory" />
           </motion.div>
+
           <h2 className="font-display text-xl font-bold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
             Dziękujemy za akceptację!
           </h2>
-          <p className="mt-2 font-body text-sm text-charcoal/60 leading-relaxed">
-            Skontaktujemy się w sprawie dalszych szczegółów.
-          </p>
+
+          {/* Summary */}
+          <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.7 }}>
+            {eventDateFormatted && <span>📅 {eventDateFormatted}</span>}
+            {selectedVariant && <span>🍽 {selectedVariant.name}</span>}
+            {displayGrandTotal > 0 && <span>💰 {formatCurrency(displayGrandTotal)}</span>}
+          </div>
+
+          {/* What's next */}
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {steps.map((step, i) => (
+              <motion.div
+                key={step.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + i * 0.15 }}
+                className="rounded-xl p-4"
+                style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary, #1A1A1A) 5%, var(--theme-bg, #FAF7F2))' }}
+              >
+                <step.icon className="mx-auto mb-2 h-6 w-6" style={{ color: 'var(--theme-primary, #1A1A1A)' }} />
+                <p className="font-body text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                  {step.label}
+                </p>
+                <p className="mt-0.5 font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
+                  {step.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="mt-6 font-body text-sm font-medium underline underline-offset-4 transition-colors"
+            style={{ color: 'var(--theme-primary, #1A1A1A)' }}
+          >
+            Wróć do szczegółów oferty
+          </motion.button>
         </div>
       </motion.section>
     );
