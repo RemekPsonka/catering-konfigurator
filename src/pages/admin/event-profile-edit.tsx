@@ -326,6 +326,8 @@ export const EventProfileEditPage = () => {
   const { data: profile, isLoading } = useEventProfile(eventTypeId);
   const { data: photos = [] } = useEventPhotos(eventTypeId);
   const updateProfile = useUpdateEventProfile();
+  const { data: theme } = useOfferTheme(eventTypeId);
+  const updateTheme = useUpdateOfferTheme();
   const uploadPhoto = useUploadEventPhoto();
   const deletePhoto = useDeleteEventPhoto();
   const setHero = useSetHeroPhoto();
@@ -346,6 +348,15 @@ export const EventProfileEditPage = () => {
   const [testimonialText, setTestimonialText] = useState('');
   const [testimonialAuthor, setTestimonialAuthor] = useState('');
   const [testimonialEvent, setTestimonialEvent] = useState('');
+
+  // Theme state
+  const [primaryColor, setPrimaryColor] = useState('#6B46C1');
+  const [secondaryColor, setSecondaryColor] = useState('#9F7AEA');
+  const [accentColor, setAccentColor] = useState('#D69E2E');
+  const [bgColor, setBgColor] = useState('#FFFFFF');
+  const [textColor, setTextColor] = useState('#333333');
+  const [fontFamily, setFontFamily] = useState('Inter');
+  const [headerFont, setHeaderFont] = useState('Playfair Display');
 
   useEffect(() => {
     if (profile) {
