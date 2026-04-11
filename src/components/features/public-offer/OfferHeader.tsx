@@ -89,6 +89,7 @@ export const OfferHeader = ({ offer, heroPhoto, scrollY, isExpired, isAccepted, 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 0', borderBottom: '2px solid #1A1A1A', marginBottom: '20px' }}>
           <div>
             <h1 style={{ fontSize: '20pt', fontWeight: 'bold', margin: 0 }}>{COMPANY.name}</h1>
+            <p style={{ fontSize: '9pt', color: '#888', margin: '2px 0 0 0' }}>marka {COMPANY.legalName}</p>
             <p style={{ fontSize: '11pt', color: '#666', margin: '4px 0 0 0' }}>Oferta cateringowa</p>
           </div>
           <div style={{ textAlign: 'right', fontSize: '10pt', color: '#444' }}>
