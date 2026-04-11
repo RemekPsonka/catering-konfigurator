@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -25,8 +26,9 @@ import {
   useReorderEventPhotos,
   useUpdateEventPhotoTags,
 } from '@/hooks/use-event-profiles';
+import { useOfferTheme, useUpdateOfferTheme } from '@/hooks/use-offer-theme';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
-import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag, Camera } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Star, Upload, GripVertical, Eye, Loader2, X, Tag, Camera, Palette } from 'lucide-react';
 import { usePhotoLibrary, useHeroPhoto, useEventPhotoStats } from '@/hooks/use-photo-library';
 import { MIN_EVENT_PHOTOS, MAX_LIBRARY_PHOTOS } from '@/lib/app-limits';
 import type { Tables } from '@/integrations/supabase/types';
