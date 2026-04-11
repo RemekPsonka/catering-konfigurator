@@ -390,9 +390,13 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
 
   const handleSaveAndShowLink = () => {
     statusMutation.mutate({ status: 'ready' }, {
-      onSuccess: () => {
-        setPublicLink(buildPublicOfferUrl(offer?.public_token ?? ''));
+      onSuccess: async () => {
+        // Refetch to get the freshly generated public_token from trigger
+        const { data: freshOffer } = await supabase.from('offers').select('public_token').eq('id', offerId!).single();
+        const token = freshOffer?.public_token ?? '';
+        setPublicLink(buildPublicOfferUrl(token));
         setLinkDialogOpen(true);
+        queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
         toast.success('Oferta zapisana jako gotowa');
       },
     });
@@ -408,12 +412,17 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     if (!clientEmail) { toast.error('Klient nie ma przypisanego adresu email.'); return; }
 
     statusMutation.mutate({ status: 'ready' }, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        // Refetch to get the freshly generated public_token from trigger
+        const { data: freshOffer } = await supabase.from('offers').select('public_token').eq('id', offerId!).single();
+        const token = freshOffer?.public_token ?? '';
+        queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
+
         const eventTypeLabel = EVENT_TYPE_OPTIONS.find((o) => o.value === offer?.event_type)?.label ?? offer?.event_type ?? '—';
         const variantLines = variants.map((v) => `- ${v.name} (${v.variant_items?.length ?? 0} dań): ${v.variant_items.map((i) => i.custom_name || i.dishes.display_name).join(', ')}`).join('\n');
         const servicesText = services.length > 0 ? `🛎️ Usługi dodatkowe:\n${services.map((os) => `- ${os.services.name} × ${os.quantity ?? 1}`).join('\n')}` : '';
         const text = buildRichOfferEmail({
-          clientName, offerNumber: offer?.offer_number ?? '—', publicToken: offer?.public_token ?? '', clientEmail,
+          clientName, offerNumber: offer?.offer_number ?? '—', publicToken: token, clientEmail,
           validUntil: offer?.valid_until ?? '—', eventType: eventTypeLabel, eventDate: offer?.event_date ?? '—',
           peopleCount, variantsSummary: variantLines || 'Menu w przygotowaniu', servicesSummary: servicesText, totalValue: formatCurrency(totals.grandTotal),
         });
