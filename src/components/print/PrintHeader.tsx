@@ -1,11 +1,11 @@
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { CompanyInfo } from '@/hooks/use-company-info';
+import type { PrintCompanyInfo } from './OfferPrintDocument';
 import { EVENT_TYPE_LABELS } from '@/lib/constants';
 import { COMPANY } from '@/lib/company-config';
 
 interface PrintHeaderProps {
   offer: PublicOffer;
-  companyInfo: CompanyInfo;
+  companyInfo: PrintCompanyInfo;
 }
 
 const formatDate = (d: string | null) =>

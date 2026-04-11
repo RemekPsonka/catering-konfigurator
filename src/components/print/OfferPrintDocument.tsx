@@ -23,7 +23,7 @@ import './print-styles.css';
 
 export interface OfferPrintDocumentProps {
   offer: PublicOffer;
-  companyInfo: CompanyInfo;
+  companyInfo: PrintCompanyInfo;
   offerTerms: Tables<'offer_terms'>[];
   upsellSelections?: Tables<'offer_upsell_selections'>[];
 }

@@ -1,10 +1,10 @@
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { CompanyInfo } from '@/hooks/use-company-info';
+import type { PrintCompanyInfo } from './OfferPrintDocument';
 import { COMPANY } from '@/lib/company-config';
 
 interface PrintFooterProps {
   offer: PublicOffer;
-  companyInfo: CompanyInfo;
+  companyInfo: PrintCompanyInfo;
 }
 
 export const PrintFooter = ({ offer, companyInfo }: PrintFooterProps) => {
