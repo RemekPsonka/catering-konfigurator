@@ -33,13 +33,13 @@ export const trackOfferEvent = (
 ): void => {
   supabase
     .from('offer_events')
-    .insert({
+    .insert([{
       offer_id: offerId,
       event_type: eventType,
-      event_data: eventData ?? null,
+      event_data: (eventData ?? null) as import('@/integrations/supabase/types').Json,
       session_id: getSessionId(),
       device_type: getDeviceType(),
       browser: getBrowser(),
-    })
+    }])
     .then(() => {});
 };
