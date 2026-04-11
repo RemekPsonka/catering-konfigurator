@@ -414,6 +414,13 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                       <Label className="text-xs">Klient zmienia liczbę osób</Label>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3 pt-3 border-t">
+                    <Switch checked={upsellEnabled} onCheckedChange={setUpsellEnabled} />
+                    <div>
+                      <Label className="text-xs">Pokaż sekcję dosprzedaży klientowi</Label>
+                      <p className="text-xs text-muted-foreground">Klient zobaczy sugerowane dodatki na stronie oferty</p>
+                    </div>
+                  </div>
                 </CardContent>
               </CollapsibleContent>
             </Card>
