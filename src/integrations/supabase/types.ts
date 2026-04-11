@@ -772,6 +772,57 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_upsell_selections: {
+        Row: {
+          added_at: string | null
+          confirmed_at: string | null
+          id: string
+          offer_id: string
+          quantity: number
+          status: Database["public"]["Enums"]["upsell_selection_status"]
+          total_price: number
+          unit_price: number
+          upsell_item_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          confirmed_at?: string | null
+          id?: string
+          offer_id: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["upsell_selection_status"]
+          total_price: number
+          unit_price: number
+          upsell_item_id: string
+        }
+        Update: {
+          added_at?: string | null
+          confirmed_at?: string | null
+          id?: string
+          offer_id?: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["upsell_selection_status"]
+          total_price?: number
+          unit_price?: number
+          upsell_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_upsell_selections_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_upsell_selections_upsell_item_id_fkey"
+            columns: ["upsell_item_id"]
+            isOneToOne: false
+            referencedRelation: "upsell_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_variants: {
         Row: {
           description: string | null
@@ -892,6 +943,8 @@ export type Database = {
           total_services_value: number | null
           total_value: number | null
           updated_at: string | null
+          upsell_enabled: boolean | null
+          upsell_total: number | null
           valid_until: string | null
           validity_days: number | null
           viewed_at: string | null
@@ -936,6 +989,8 @@ export type Database = {
           total_services_value?: number | null
           total_value?: number | null
           updated_at?: string | null
+          upsell_enabled?: boolean | null
+          upsell_total?: number | null
           valid_until?: string | null
           validity_days?: number | null
           viewed_at?: string | null
@@ -980,6 +1035,8 @@ export type Database = {
           total_services_value?: number | null
           total_value?: number | null
           updated_at?: string | null
+          upsell_enabled?: boolean | null
+          upsell_total?: number | null
           valid_until?: string | null
           validity_days?: number | null
           viewed_at?: string | null
@@ -1155,6 +1212,118 @@ export type Database = {
         }
         Relationships: []
       }
+      upsell_items: {
+        Row: {
+          created_at: string | null
+          default_quantity: number
+          description: string | null
+          dish_id: string | null
+          emoji: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          item_type: Database["public"]["Enums"]["upsell_item_type"]
+          name: string
+          price: number
+          price_type: Database["public"]["Enums"]["upsell_price_type"]
+          service_id: string | null
+          set_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string | null
+          default_quantity?: number
+          description?: string | null
+          dish_id?: string | null
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          item_type?: Database["public"]["Enums"]["upsell_item_type"]
+          name: string
+          price: number
+          price_type?: Database["public"]["Enums"]["upsell_price_type"]
+          service_id?: string | null
+          set_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string | null
+          default_quantity?: number
+          description?: string | null
+          dish_id?: string | null
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          item_type?: Database["public"]["Enums"]["upsell_item_type"]
+          name?: string
+          price?: number
+          price_type?: Database["public"]["Enums"]["upsell_price_type"]
+          service_id?: string | null
+          set_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upsell_items_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upsell_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upsell_items_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "upsell_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      upsell_sets: {
+        Row: {
+          category: Database["public"]["Enums"]["upsell_category"]
+          created_at: string | null
+          description: string | null
+          event_types: string[]
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["upsell_category"]
+          created_at?: string | null
+          description?: string | null
+          event_types?: string[]
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["upsell_category"]
+          created_at?: string | null
+          description?: string | null
+          event_types?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       variant_items: {
         Row: {
           allowed_modifications: Json | null
@@ -1320,6 +1489,10 @@ export type Database = {
         | "rejected"
       service_type: "STAFF" | "EQUIPMENT" | "LOGISTICS"
       unit_type: "PERSON" | "PIECE" | "KG" | "SET"
+      upsell_category: "FOOD" | "DRINK" | "DESSERT" | "SERVICE" | "EQUIPMENT"
+      upsell_item_type: "DISH" | "SERVICE" | "CUSTOM"
+      upsell_price_type: "FIXED" | "PER_PERSON"
+      upsell_selection_status: "active" | "removed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1531,6 +1704,10 @@ export const Constants = {
       ],
       service_type: ["STAFF", "EQUIPMENT", "LOGISTICS"],
       unit_type: ["PERSON", "PIECE", "KG", "SET"],
+      upsell_category: ["FOOD", "DRINK", "DESSERT", "SERVICE", "EQUIPMENT"],
+      upsell_item_type: ["DISH", "SERVICE", "CUSTOM"],
+      upsell_price_type: ["FIXED", "PER_PERSON"],
+      upsell_selection_status: ["active", "removed"],
     },
   },
 } as const

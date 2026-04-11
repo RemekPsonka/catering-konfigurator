@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check } from 'lucide-react';
+import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
@@ -159,16 +159,32 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     },
   });
 
+  const upsellSelectionsQuery = useQuery({
+    queryKey: ['offer-upsell-selections', offerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('offer_upsell_selections')
+        .select('*, upsell_items(name, emoji)')
+        .eq('offer_id', offerId!)
+        .eq('status', 'active');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!offerId,
+  });
+
   const offer = offerQuery.data;
   const theme = offer?.offer_themes;
   const variants = (variantsQuery.data ?? []) as PreviewVariant[];
   const services = (servicesQuery.data ?? []) as OfferServiceJoined[];
   const terms = termsQuery.data ?? [];
+  const upsellSelections = upsellSelectionsQuery.data ?? [];
 
   // ── Settings state ──
   const [displayMode, setDisplayMode] = useState<PriceDisplayMode>('PER_PERSON_AND_TOTAL');
   const [minPrice, setMinPrice] = useState('');
   const [peopleEditable, setPeopleEditable] = useState(false);
+  const [upsellEnabled, setUpsellEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
@@ -176,6 +192,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
       setDisplayMode(offer.price_display_mode as PriceDisplayMode);
       setMinPrice(offer.min_offer_price ? String(offer.min_offer_price) : '');
       setPeopleEditable(offer.is_people_count_editable ?? false);
+      setUpsellEnabled(offer.upsell_enabled ?? true);
       setSettingsLoaded(true);
     }
   }, [offer, settingsLoaded]);
@@ -185,7 +202,8 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     price_display_mode: displayMode,
     min_offer_price: minPrice ? parseFloat(minPrice) : null,
     is_people_count_editable: peopleEditable,
-  }), [displayMode, minPrice, peopleEditable]);
+    upsell_enabled: upsellEnabled,
+  }), [displayMode, minPrice, peopleEditable, upsellEnabled]);
 
   const debouncedSettings = useDebounce(settingsPayload, 600);
   const prevSettingsRef = useRef(debouncedSettings);
@@ -396,6 +414,13 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                       <Label className="text-xs">Klient zmienia liczbę osób</Label>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3 pt-3 border-t">
+                    <Switch checked={upsellEnabled} onCheckedChange={setUpsellEnabled} />
+                    <div>
+                      <Label className="text-xs">Pokaż sekcję dosprzedaży klientowi</Label>
+                      <p className="text-xs text-muted-foreground">Klient zobaczy sugerowane dodatki na stronie oferty</p>
+                    </div>
+                  </div>
                 </CardContent>
               </CollapsibleContent>
             </Card>
@@ -516,6 +541,31 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                         <div className="flex justify-between text-xs opacity-70"><span>Cena za osobę</span><span>{formatCurrency(totals.pricePerPerson)}</span></div>
                       )}
                     </div>
+                  </div>
+                </>
+              )}
+              {upsellSelections.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="px-8 py-6">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme?.primary_color ?? '#333' }}>
+                      <Gift className="h-4 w-4" /> Dosprzedaż klienta
+                    </h3>
+                    <div className="space-y-1">
+                      {upsellSelections.map((sel) => (
+                        <div key={sel.id} className="flex justify-between text-sm">
+                          <span>{sel.upsell_items?.emoji ?? '🎁'} {sel.upsell_items?.name ?? '—'} × {sel.quantity}</span>
+                          <span>{formatCurrency(Number(sel.total_price))}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-2 border-t flex justify-between text-sm font-medium" style={{ borderColor: theme?.accent_color ?? '#eee' }}>
+                      <span>Suma dosprzedaży</span>
+                      <span>{formatCurrency(upsellSelections.reduce((sum, s) => sum + Number(s.total_price), 0))}</span>
+                    </div>
+                    <p className="text-xs opacity-50 mt-1">
+                      Dodano: {upsellSelections[0]?.added_at ? new Date(upsellSelections[0].added_at).toLocaleDateString('pl-PL') : '—'}
+                    </p>
                   </div>
                 </>
               )}
