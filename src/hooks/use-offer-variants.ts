@@ -8,6 +8,7 @@ export { getDishPrice, getItemPrice } from '@/lib/calculations';
 export type { VariantItemWithDish, VariantWithItems } from '@/lib/calculations';
 
 import type { VariantWithItems } from '@/lib/calculations';
+import { recalculateOfferTotals } from '@/lib/calculations';
 
 export const useOfferVariants = (offerId: string | null) => {
   return useQuery({
@@ -113,6 +114,7 @@ export const useAddVariantItem = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['offer-variants', result.offer_id] });
+      recalculateOfferTotals(result.offer_id);
       toast.success('Danie dodane');
     },
     onError: () => toast.error('Nie udało się dodać dania'),
@@ -129,6 +131,7 @@ export const useUpdateVariantItem = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['offer-variants', result.offer_id] });
+      recalculateOfferTotals(result.offer_id);
     },
     onError: () => toast.error('Nie udało się zaktualizować pozycji'),
   });
@@ -144,6 +147,7 @@ export const useRemoveVariantItem = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['offer-variants', result.offer_id] });
+      recalculateOfferTotals(result.offer_id);
       toast.success('Pozycja usunięta');
     },
     onError: () => toast.error('Nie udało się usunąć pozycji'),

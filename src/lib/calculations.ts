@@ -1,6 +1,7 @@
 import type { Tables, Json } from '@/integrations/supabase/types';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 import { calculateBlockTotal } from '@/lib/service-constants';
+import { supabase } from '@/integrations/supabase/client';
 
 // ── Types (moved from use-offer-variants) ──
 
@@ -172,4 +173,51 @@ export const calculateOfferTotals = (
     grandTotal,
     pricePerPerson,
   };
+};
+
+// ── Async helper: recalculate & persist offer totals ──
+
+export const recalculateOfferTotals = async (offerId: string): Promise<void> => {
+  // 1. Fetch offer settings
+  const { data: offer, error: oErr } = await supabase
+    .from('offers')
+    .select('pricing_mode, people_count, discount_percent, discount_value, delivery_cost, upsell_total')
+    .eq('id', offerId)
+    .single();
+  if (oErr || !offer) return;
+
+  // 2. Fetch variants with items + dishes
+  const { data: variants, error: vErr } = await supabase
+    .from('offer_variants')
+    .select('*, variant_items!variant_items_variant_id_fkey(*, dishes(id, display_name, photo_url, unit_type, price_per_person, price_per_piece, price_per_kg, price_per_set, is_modifiable, modifiable_items))')
+    .eq('offer_id', offerId)
+    .order('sort_order');
+  if (vErr) return;
+
+  // 3. Fetch services
+  const { data: services, error: sErr } = await supabase
+    .from('offer_services')
+    .select('*, services(*)')
+    .eq('offer_id', offerId);
+  if (sErr) return;
+
+  // 4. Calculate totals
+  const totals = calculateOfferTotals(
+    offer.pricing_mode,
+    offer.people_count ?? 1,
+    (variants ?? []) as VariantWithItems[],
+    (services ?? []) as OfferServiceWithService[],
+    Number(offer.discount_percent) || 0,
+    Number(offer.discount_value) || 0,
+    Number(offer.delivery_cost) || 0,
+    Number(offer.upsell_total) || 0,
+  );
+
+  // 5. Persist
+  await supabase.from('offers').update({
+    total_value: totals.grandTotal,
+    total_dishes_value: totals.maxDishesTotal,
+    total_services_value: totals.servicesTotalCalc,
+    price_per_person: totals.pricePerPerson,
+  }).eq('id', offerId);
 };
