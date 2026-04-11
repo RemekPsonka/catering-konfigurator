@@ -602,8 +602,53 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                   <Separator />
                   <div className="px-8 py-6">
                     <h3 className="text-sm font-semibold mb-2" style={{ color: theme?.primary_color ?? '#333' }}>Warunki</h3>
-                    <ul className="space-y-1">
-                      {terms.map((term) => <li key={term.id} className="text-xs opacity-70"><span className="font-medium">{term.label}:</span> {term.value}</li>)}
+                    <ul className="space-y-1.5">
+                      {terms.map((term) => {
+                        const t = term as Tables<'offer_terms'> & { _overridden?: boolean; _hidden?: boolean };
+                        const isEditing = editingTermId === t.id;
+                        return (
+                          <li key={t.id} className={cn('text-xs group relative rounded px-1 -mx-1', t._hidden ? 'opacity-30 line-through' : '', t._overridden && !t._hidden ? 'bg-blue-50 dark:bg-blue-900/20' : '')}>
+                            {isEditing ? (
+                              <div className="space-y-1.5 py-1">
+                                <Textarea
+                                  autoFocus
+                                  value={editingTermValue}
+                                  onChange={(e) => setEditingTermValue(e.target.value)}
+                                  rows={2}
+                                  className="text-xs"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                                    <input type="checkbox" checked={editingTermHidden} onChange={(e) => setEditingTermHidden(e.target.checked)} className="rounded" />
+                                    <EyeOff className="h-3 w-3" /> Ukryj
+                                  </label>
+                                  <div className="flex-1" />
+                                  {t._overridden && (
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => handleResetOverride(t.id)}>
+                                      <RotateCcw className="h-3 w-3 mr-1" /> Domyślne
+                                    </Button>
+                                  )}
+                                  <Button size="sm" className="h-6 text-xs" onClick={() => handleSaveOverride(t.id)}>Zapisz</Button>
+                                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setEditingTermId(null)}>Anuluj</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <span className="opacity-70 flex-1"><span className="font-medium">{t.label}:</span> {t.value}</span>
+                                {t._overridden && !t._hidden && <Badge variant="outline" className="ml-1 text-[10px] h-4 border-blue-300 text-blue-600">Zmieniony</Badge>}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                                  onClick={() => { setEditingTermId(t.id); setEditingTermValue(t.value); setEditingTermHidden(t._hidden ?? false); }}
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </>
