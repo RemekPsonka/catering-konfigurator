@@ -1,92 +1,54 @@
 
 
-## Plan: Podpięcie brakujących sekcji profilu eventu do strony publicznej
+## Plan: Edycja kolorów/czcionek w panelu profilu eventu
 
-### Problem
-Hook `usePublicEventProfile` jest wywoływany w `offer.tsx` (linia 68), ale wynik jest ignorowany — brak destructuring `{ data }`. Trzy gotowe komponenty (`AboutCateringSection`, `FeaturesSection`, `TestimonialSection`) nie są zaimportowane ani renderowane. `VariantComparisonSection` istnieje, ale nie jest podpięty.
+### Obecny stan
+- `offer_themes` — 14 wierszy (B2B, BOX, FIR, GAL, GRI, KAW, KOM, KON, PRY, SPE, STY, SWI, SZK, WES), IDs identyczne z `event_type_profiles.id`
+- Kolory/czcionki zahardkodowane jako seed, brak UI do edycji
+- `event-profile-edit.tsx` (636 linii) — edytuje treść profilu, zapisuje przez `useUpdateEventProfile()`
+- `company_info` — tabela istnieje z danymi firmy, ale kod używa hardcoded `COMPANY` z `company-config.ts`
 
-### Zmiany — jeden plik: `src/pages/public/offer.tsx`
+### Zmiany
 
-**1. Destructure hook (linia 68)**
-```
-PRZED: usePublicEventProfile(offer?.event_type);
-PO:    const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
-```
+**1. Nowy hook: `src/hooks/use-offer-theme.ts`**
+- `useOfferTheme(themeId: string)` — React Query, `offer_themes` WHERE id = themeId
+- `useUpdateOfferTheme()` — mutation, update `offer_themes` SET primary_color, secondary_color, accent_color, background_color, text_color, font_family, header_font WHERE id
+- Typ `OfferTheme` exportowany
 
-**2. Dodaj importy**
-- `AboutCateringSection` z `@/components/public/about-catering-section`
-- `FeaturesSection` z `@/components/public/features-section`
-- `TestimonialSection` z `@/components/public/testimonial-section`
-- `VariantComparisonSection` z `@/components/public/variant-comparison-section`
+**2. Nowy hook: `src/hooks/use-company-info.ts`**
+- `useCompanyInfo()` — React Query, `company_info` LIMIT 1
+- Fallback na stałe z `company-config.ts` jeśli brak danych
+- Eksport: `useCompanyInfo`
 
-**3. Dodaj stan `showComparison` (boolean, default false)** — przełącznik "Porównaj warianty"
+**3. Modyfikacja: `src/pages/admin/event-profile-edit.tsx`**
+- Import `useOfferTheme`, `useUpdateOfferTheme`
+- Dodaj stany: `primaryColor`, `secondaryColor`, `accentColor`, `bgColor`, `textColor`, `fontFamily`, `headerFont`
+- `useEffect` init z theme data
+- Nowa Card "🎨 Wygląd strony klienta" po sekcji "Opinia klienta" (przed galerią):
+  - 5 color pickers (Input type="color" + Input text hex obok)
+  - 2 Select (font_family, header_font) z opcjami: Playfair Display, Cormorant Garamond, Lora, Merriweather, Inter, DM Sans, Poppins, Montserrat
+  - Mini-preview (320px): gradient header (primary→secondary) z heading w header_font, body z sample text w font_family, accent color na cenie
+- `handleSave`: rozszerz o `updateTheme.mutate(...)` obok `updateProfile.mutate(...)`
+- Podgląd dialog: użyj kolorów/czcionek z theme state
 
-**4. Renderuj sekcje w JSX (kolejność):**
+**4. Modyfikacja: `src/components/public/contact-section.tsx`**
+- Import `useCompanyInfo()` zamiast hardcoded `COMPANY`
+- Fallback na stałe wartości
 
-Po CountdownTimer + Onboarding, PRZED MenuVariantsSection:
-```tsx
-{eventProfile?.description_long && (
-  <div className="no-print">
-    <AboutCateringSection descriptionLong={eventProfile.description_long} />
-  </div>
-)}
-{eventProfile?.features && Array.isArray(eventProfile.features) && (eventProfile.features as Feature[]).length > 0 && (
-  <div className="no-print">
-    <FeaturesSection features={eventProfile.features as Feature[]} />
-  </div>
-)}
-```
+**5. Modyfikacja: `src/lib/company-config.ts`**
+- Zachowaj jako fallback/default values (nie usuwaj)
 
-Wewnątrz sekcji menu (po `MenuVariantsSection`, w tym samym `data-track-section="menu"` div), jeśli >= 2 warianty:
-```tsx
-{offer.offer_variants.length >= 2 && (
-  <div className="no-print text-center py-4">
-    <Button variant="outline" onClick={() => setShowComparison(v => !v)}>
-      {showComparison ? 'Ukryj porównanie' : 'Porównaj warianty'}
-    </Button>
-  </div>
-)}
-{showComparison && (
-  <VariantComparisonSection
-    variants={offer.offer_variants}
-    pricingMode={offer.pricing_mode}
-    peopleCount={offer.people_count ?? 1}
-    priceDisplayMode={offer.price_display_mode}
-    onSelectVariant={handleVariantChange}
-    acceptedVariantId={offer.accepted_variant_id}
-  />
-)}
-```
+### Nowe pliki
+1. `src/hooks/use-offer-theme.ts`
+2. `src/hooks/use-company-info.ts`
 
-Po Gallery + Upsell, PRZED SocialProofStats:
-```tsx
-{eventProfile?.testimonial_text && (
-  <div className="no-print">
-    <TestimonialSection
-      text={eventProfile.testimonial_text}
-      author={eventProfile.testimonial_author}
-      event={eventProfile.testimonial_event}
-    />
-  </div>
-)}
-```
-
-**5. Typ Feature** — lokalny type alias na górze komponentu:
-```tsx
-type Feature = { icon: string; title: string; text: string };
-```
-
-### Kolejność sekcji (finalna)
-Hero → Countdown → Onboarding → **AboutCatering** → **Features** → Menu + **VariantComparison toggle** → Services → Calculation → Gallery → Upsell → **Testimonial** → SocialProof → TestimonialsCarousel → FAQ → Terms → Communication → Acceptance → Contact → Footer
-
-### Props compatibility
-- `AboutCateringSection`: `descriptionLong: string` — OK, `event_type_profiles.description_long` is `string | null`
-- `FeaturesSection`: `features: Feature[]` — OK, cast z `Json | null`
-- `TestimonialSection`: `text: string, author?: string | null, event?: string | null` — OK, exact match
-- `VariantComparisonSection`: `onSelectVariant: (variantId: string) => void` — reuse `handleVariantChange` (accepts `string | null`, compatible)
+### Modyfikowane pliki
+1. `src/pages/admin/event-profile-edit.tsx` — sekcja Wygląd + rozszerzony save
+2. `src/components/public/contact-section.tsx` — useCompanyInfo hook
 
 ### Nie ruszam
-- Komponentów `AboutCateringSection`, `FeaturesSection`, `TestimonialSection`, `VariantComparisonSection`
-- Hooka `usePublicEventProfile`
-- Innych sekcji, tracking, Edge Functions
+- Tabeli `offer_themes` (brak migracji)
+- Seed data (wartości domyślne zostają)
+- Strony publicznej oferty (theme loading już działa)
+- Wizarda ofert, tracking, Edge Functions
 
