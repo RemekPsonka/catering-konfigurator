@@ -229,7 +229,7 @@ export const OfferMessagesPage = () => {
             subject: isQuestion
               ? `Odpowiedź na pytanie — oferta ${offerNumber}`
               : `Odpowiedź na korektę — oferta ${offerNumber}`,
-            body: `Szanowna/y ${clientName},\n\ndziękujemy za ${isQuestion ? 'pytanie' : 'uwagę'} dotyczące oferty ${offerNumber}.\n\n${responseText}\n\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\n${COMPANY.name}\ntel. ${COMPANY.phone} | ${COMPANY.email}`,
+            body: `Szanowna/y ${clientName},\n\ndziękujemy za ${isQuestion ? 'pytanie' : 'uwagę'} dotyczące oferty ${offerNumber}.\n\n${responseText}\n\nSzczegóły znajdziesz w swojej ofercie:\n${publicToken ? buildPublicOfferUrl(publicToken) : ''}\n\nPozdrawiamy,\nAngelika Sadurska\n${COMPANY.name}\ntel. ${COMPANY.phone} | ${COMPANY.email}`,
           });
         },
         onError: () => {
