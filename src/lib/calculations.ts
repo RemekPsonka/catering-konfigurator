@@ -113,7 +113,7 @@ export const calculateOfferTotals = (
       return sum + fallback * (os.quantity ?? 1);
     }
     const price = os.custom_price != null ? Number(os.custom_price) : (os.services?.price ?? 0);
-    const qty = os.quantity ?? 1;
+    const qty = os.services.price_type === 'PER_PERSON' ? safePeopleCount : (os.quantity ?? 1);
     if (os.services.price_type === 'PER_BLOCK') {
       const extraPrice = os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null;
       return sum + calculateBlockTotal(price, extraPrice, qty);

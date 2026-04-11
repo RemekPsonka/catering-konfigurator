@@ -254,7 +254,7 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
                 <div className="space-y-1.5">
                   {services.filter((os) => os.services != null).map((os) => {
                     const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
-                    const qty = os.quantity ?? 1;
+                    const qty = os.services.price_type === 'PER_PERSON' ? debouncedCount : (os.quantity ?? 1);
                     return (
                       <div key={os.id} className="flex items-center justify-between text-sm">
                         <span className="text-charcoal/70">
