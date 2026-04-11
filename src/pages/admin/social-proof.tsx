@@ -20,7 +20,7 @@ import {
 } from '@/hooks/use-social-proof';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Testimonial = Tables<'testimonials'>['Row'];
+type Testimonial = Tables<'testimonials'>;
 
 const EMPTY_TESTIMONIAL = {
   client_name: '',
