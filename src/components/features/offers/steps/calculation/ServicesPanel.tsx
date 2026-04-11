@@ -1,16 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/calculations';
-import { calculateBlockTotal } from '@/lib/service-constants';
+import { formatCurrency, getServiceEffectiveQty, getServiceLineTotal } from '@/lib/calculations';
 import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 interface ServicesPanelProps {
   offerServices: OfferServiceWithService[];
   servicesTotal: number;
+  peopleCount: number;
 }
 
-export const ServicesPanel = ({ offerServices, servicesTotal }: ServicesPanelProps) => (
+export const ServicesPanel = ({ offerServices, servicesTotal, peopleCount }: ServicesPanelProps) => (
   <Card>
     <CardHeader>
       <CardTitle className="text-base">Usługi dodatkowe</CardTitle>
@@ -31,11 +31,11 @@ export const ServicesPanel = ({ offerServices, servicesTotal }: ServicesPanelPro
           <TableBody>
             {offerServices.map((os) => {
               const price = os.custom_price != null ? Number(os.custom_price) : os.services.price;
-              const qty = os.quantity ?? 1;
-              const isBlock = os.services.price_type === 'PER_BLOCK';
-              const lineTotal = isBlock
-                ? calculateBlockTotal(price, os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
-                : price * qty;
+              const priceType = os.services.price_type;
+              const qty = getServiceEffectiveQty(priceType, os.quantity, peopleCount);
+              const isBlock = priceType === 'PER_BLOCK';
+              const extraBlock = os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null;
+              const lineTotal = getServiceLineTotal(price, priceType, os.quantity, peopleCount, extraBlock);
               return (
                 <TableRow key={os.id}>
                   <TableCell>

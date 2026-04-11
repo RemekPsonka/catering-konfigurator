@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Wrench, Truck, Phone, ChefHat } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
-import { formatCurrency } from '@/lib/calculations';
-import { calculateBlockTotal, formatBlockLabel } from '@/lib/service-constants';
+import { formatCurrency, getServiceEffectiveQty, getServiceLineTotal } from '@/lib/calculations';
+import { formatBlockLabel } from '@/lib/service-constants';
 import { supabase } from '@/integrations/supabase/client';
 import { DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
 import type { PublicOffer } from '@/hooks/use-public-offer';
@@ -117,11 +117,11 @@ export const ServicesLogisticsSection = ({ offer, priceDisplayMode }: ServicesLo
                 <div className="flex flex-col gap-1.5">
                   {items.map((s) => {
                     const price = s.custom_price != null ? Number(s.custom_price) : s.services.price;
-                    const qty = s.quantity ?? 1;
+                    const peopleCount = offer.people_count ?? 1;
+                    const qty = getServiceEffectiveQty(s.services.price_type, s.quantity, peopleCount);
                     const isBlock = s.services.price_type === 'PER_BLOCK';
-                    const lineTotal = isBlock
-                      ? calculateBlockTotal(price, s.services.extra_block_price != null ? Number(s.services.extra_block_price) : null, qty)
-                      : price * qty;
+                    const extraBlock = s.services.extra_block_price != null ? Number(s.services.extra_block_price) : null;
+                    const lineTotal = getServiceLineTotal(price, s.services.price_type, s.quantity, peopleCount, extraBlock);
 
                     return (
                       <div
