@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift } from 'lucide-react';
+import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift, Edit2, RotateCcw, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals, getDishPrice } from '@/lib/calculations';
@@ -142,12 +142,24 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   });
 
   const termsQuery = useQuery({
-    queryKey: ['offer-terms-active'],
+    queryKey: ['offer-terms-preview', offerId ?? 'global'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('offer_terms').select('*').eq('is_active', true).order('display_order');
+      const { data: allTerms, error } = await supabase.from('offer_terms').select('*').eq('is_active', true).order('display_order');
       if (error) throw error;
-      return data as Tables<'offer_terms'>[];
+      const globalTerms = (allTerms ?? []) as Tables<'offer_terms'>[];
+      if (!offerId) return globalTerms;
+
+      const { data: overrides, error: oErr } = await supabase.from('offer_term_overrides').select('*').eq('offer_id', offerId);
+      if (oErr) throw oErr;
+      const overrideMap = new Map((overrides ?? []).map((o: { term_id: string; value: string; is_hidden: boolean | null }) => [o.term_id, o]));
+
+      return globalTerms.map((t) => {
+        const ov = overrideMap.get(t.id);
+        if (!ov) return { ...t, _overridden: false, _hidden: false };
+        return { ...t, value: ov.value, _overridden: true, _hidden: ov.is_hidden ?? false };
+      });
     },
+    enabled: !!offerId,
   });
 
   const themesQuery = useQuery({
@@ -187,6 +199,43 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   const [upsellEnabled, setUpsellEnabled] = useState(true);
   const [followUpEnabled, setFollowUpEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // ── Term override editing state ──
+  const [editingTermId, setEditingTermId] = useState<string | null>(null);
+  const [editingTermValue, setEditingTermValue] = useState('');
+  const [editingTermHidden, setEditingTermHidden] = useState(false);
+
+  const handleSaveOverride = async (termId: string) => {
+    if (!offerId) return;
+    try {
+      const { error } = await supabase
+        .from('offer_term_overrides')
+        .upsert({ offer_id: offerId, term_id: termId, value: editingTermValue, is_hidden: editingTermHidden }, { onConflict: 'offer_id,term_id' });
+      if (error) throw error;
+      toast.success('Warunek zapisany');
+      setEditingTermId(null);
+      queryClient.invalidateQueries({ queryKey: ['offer-terms-preview', offerId] });
+    } catch {
+      toast.error('Nie udało się zapisać warunku');
+    }
+  };
+
+  const handleResetOverride = async (termId: string) => {
+    if (!offerId) return;
+    try {
+      const { error } = await supabase
+        .from('offer_term_overrides')
+        .delete()
+        .eq('offer_id', offerId)
+        .eq('term_id', termId);
+      if (error) throw error;
+      toast.success('Przywrócono domyślną wartość');
+      setEditingTermId(null);
+      queryClient.invalidateQueries({ queryKey: ['offer-terms-preview', offerId] });
+    } catch {
+      toast.error('Nie udało się przywrócić');
+    }
+  };
 
   useEffect(() => {
     if (offer && !settingsLoaded) {
@@ -590,8 +639,53 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                   <Separator />
                   <div className="px-8 py-6">
                     <h3 className="text-sm font-semibold mb-2" style={{ color: theme?.primary_color ?? '#333' }}>Warunki</h3>
-                    <ul className="space-y-1">
-                      {terms.map((term) => <li key={term.id} className="text-xs opacity-70"><span className="font-medium">{term.label}:</span> {term.value}</li>)}
+                    <ul className="space-y-1.5">
+                      {terms.map((term) => {
+                        const t = term as Tables<'offer_terms'> & { _overridden?: boolean; _hidden?: boolean };
+                        const isEditing = editingTermId === t.id;
+                        return (
+                          <li key={t.id} className={cn('text-xs group relative rounded px-1 -mx-1', t._hidden ? 'opacity-30 line-through' : '', t._overridden && !t._hidden ? 'bg-blue-50 dark:bg-blue-900/20' : '')}>
+                            {isEditing ? (
+                              <div className="space-y-1.5 py-1">
+                                <Textarea
+                                  autoFocus
+                                  value={editingTermValue}
+                                  onChange={(e) => setEditingTermValue(e.target.value)}
+                                  rows={2}
+                                  className="text-xs"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                                    <input type="checkbox" checked={editingTermHidden} onChange={(e) => setEditingTermHidden(e.target.checked)} className="rounded" />
+                                    <EyeOff className="h-3 w-3" /> Ukryj
+                                  </label>
+                                  <div className="flex-1" />
+                                  {t._overridden && (
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => handleResetOverride(t.id)}>
+                                      <RotateCcw className="h-3 w-3 mr-1" /> Domyślne
+                                    </Button>
+                                  )}
+                                  <Button size="sm" className="h-6 text-xs" onClick={() => handleSaveOverride(t.id)}>Zapisz</Button>
+                                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setEditingTermId(null)}>Anuluj</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <span className="opacity-70 flex-1"><span className="font-medium">{t.label}:</span> {t.value}</span>
+                                {t._overridden && !t._hidden && <Badge variant="outline" className="ml-1 text-[10px] h-4 border-blue-300 text-blue-600">Zmieniony</Badge>}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                                  onClick={() => { setEditingTermId(t.id); setEditingTermValue(t.value); setEditingTermHidden(t._hidden ?? false); }}
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </>

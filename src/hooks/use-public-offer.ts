@@ -228,18 +228,37 @@ export const useSubmitCorrection = () => {
   });
 };
 
-export const useOfferTerms = () => {
+export const useOfferTerms = (offerId?: string) => {
   return useQuery({
-    queryKey: ['offer-terms'],
+    queryKey: ['offer-terms', offerId ?? 'global'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: terms, error } = await supabase
         .from('offer_terms')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
       if (error) throw error;
-      return data ?? [];
+      const globalTerms = terms ?? [];
+
+      if (!offerId) return globalTerms;
+
+      const { data: overrides, error: oErr } = await supabase
+        .from('offer_term_overrides')
+        .select('*')
+        .eq('offer_id', offerId);
+
+      if (oErr) throw oErr;
+      const overrideMap = new Map((overrides ?? []).map((o) => [o.term_id, o]));
+
+      return globalTerms
+        .map((t) => {
+          const ov = overrideMap.get(t.id);
+          if (!ov) return t;
+          if (ov.is_hidden) return null;
+          return { ...t, value: ov.value };
+        })
+        .filter(Boolean) as typeof globalTerms;
     },
   });
 };

@@ -38,7 +38,7 @@ export const useOfferPrintData = (offerId: string | undefined) => {
   });
 
   const companyInfoQuery = useCompanyInfo();
-  const termsQuery = useOfferTerms();
+  const termsQuery = useOfferTerms(offerId);
 
   const upsellQuery = useQuery({
     queryKey: ['offer-upsells', offerId],
@@ -69,7 +69,7 @@ export const useOfferPrintData = (offerId: string | undefined) => {
 export const useOfferPrintDataByToken = (publicToken: string | undefined) => {
   const offerQuery = usePublicOffer(publicToken);
   const companyInfoQuery = useCompanyInfo();
-  const termsQuery = useOfferTerms();
+  const termsQuery = useOfferTerms(offerQuery.data?.id);
 
   const upsellQuery = useQuery({
     queryKey: ['offer-upsells-public', offerQuery.data?.id],
