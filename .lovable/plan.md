@@ -1,38 +1,37 @@
 
-## Plan: CS-PDF-03 — Route /print + Przycisk Pobierz PDF
 
-### Obecny stan
-- ✅ Routes już istnieją: `/offer/:publicToken/print` i `/admin/offers/:id/print` (dodane w CS-PDF-02)
-- ✅ Strony `OfferPrintPage` i `AdminOfferPrintPage` z auto `window.print()` już działają
-- ❌ Przycisk "Pobierz PDF" w OfferHeader wywołuje `window.print()` bezpośrednio (drukuje stronę publiczną, nie dedykowany dokument)
-- ❌ Brak "Drukuj ofertę" w dropdown menu listy ofert admina
-- ❌ ContactSection `onPrint` też wywołuje `window.print()` bezpośrednio
+## Plan: Napraw linkowanie kafelków KPI do filtrowanej listy ofert
 
-### Zmiany
+### Problem
+Kafelki KPI na dashboardzie nawigują do `/admin/offers?status=draft`, `?status=sent` itd., ale strona `offers-list.tsx` **ignoruje query params** — używa `useState('all')` zamiast odczytywać `?status=` z URL. Efekt: każdy kafelek otwiera tę samą niefiltrowaną listę.
 
-**1. `src/components/features/public-offer/OfferHeader.tsx`**
-- Zmień `handlePrint` z `window.print()` na `window.open(\`/offer/${publicToken}/print\`, '_blank')`
-- Dodaj `publicToken` do props interfejsu (lub wyciągnij z `offer.public_token`)
-- Tytuł strony ustawiany w `OfferPrintPage`, nie tu
+### Rozwiązanie
 
-**2. `src/pages/public/offer.tsx`**
-- Zmień `ContactSection onPrint` z inline `window.print()` na `window.open(\`/offer/${offer.public_token}/print\`, '_blank')`
+**Modyfikowany plik: `src/pages/admin/offers-list.tsx`**
 
-**3. `src/pages/admin/offers-list.tsx`**
-- Dodaj `DropdownMenuItem` "Drukuj ofertę" (ikona `Printer`) po "Zapisz jako szablon"
-- `onClick`: `window.open(\`/admin/offers/${offer.id}/print\`, '_blank')`
+1. Dodaj `useSearchParams` z React Router
+2. Inicjalizuj `status` z `searchParams.get('status') ?? 'all'`
+3. Przy zmianie taba aktualizuj zarówno stan jak i URL (`setSearchParams`)
+4. Analogicznie dla `eventType` jeśli jest w URL (opcjonalnie)
 
-**4. `src/pages/public/offer-print.tsx` + `src/pages/admin/offer-print.tsx`**
-- Dodaj ustawienie `document.title` z wersją: `Oferta_{offer_number}_v{version}_Catering_Slaski`
-- Print route NIE powinien być wewnątrz `PublicLayout` (bez sidebara/footera) — przeniesienie na osobny route poza layout
+```tsx
+// Przed:
+const [status, setStatus] = useState('all');
 
-**5. `src/App.tsx`**
-- Przenieś `/offer/:publicToken/print` POZA `<PublicLayout>` (print page nie potrzebuje layoutu)
-- Przenieś `/admin/offers/:id/print` POZA `<AdminLayout>` ale WEWNĄTRZ `<AuthGuard>` (potrzebuje auth ale nie sidebara)
+// Po:
+const [searchParams, setSearchParams] = useSearchParams();
+const [status, setStatus] = useState(searchParams.get('status') ?? 'all');
 
-### Modyfikowane pliki (5)
-1. `src/components/features/public-offer/OfferHeader.tsx`
-2. `src/pages/public/offer.tsx`
-3. `src/pages/admin/offers-list.tsx`
-4. `src/pages/public/offer-print.tsx` — document.title
-5. `src/App.tsx` — przenieś print routes poza layouty
+// W onValueChange taba:
+onValueChange={(v) => {
+  setStatus(v);
+  setPage(1);
+  if (v === 'all') searchParams.delete('status');
+  else searchParams.set('status', v);
+  setSearchParams(searchParams);
+}}
+```
+
+### Pliki do modyfikacji
+1. `src/pages/admin/offers-list.tsx` — odczyt `?status=` z URL
+
