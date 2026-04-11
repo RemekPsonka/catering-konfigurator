@@ -46,11 +46,31 @@ type FullOffer = Tables<'offers'> & {
   offer_themes: Tables<'offer_themes'> | null;
 };
 type OfferServiceJoined = Tables<'offer_services'> & { services: Tables<'services'> };
-type VariantJoined = Tables<'offer_variants'> & {
-  variant_items: (Tables<'variant_items'> & {
-    dishes: { display_name: string; price_per_person: number | null; price_per_piece: number | null; price_per_kg: number | null; price_per_set: number | null; unit_type: string; is_modifiable: boolean | null };
-  })[];
-};
+
+// Use a simple inline type that matches the query select — avoids TS mismatch with VariantItemWithDish
+interface PreviewVariantItem {
+  id: string;
+  quantity: number | null;
+  custom_name: string | null;
+  custom_price: number | null;
+  selected_variant_option: string | null;
+  dishes: {
+    display_name: string;
+    price_per_person: number | null;
+    price_per_piece: number | null;
+    price_per_kg: number | null;
+    price_per_set: number | null;
+    unit_type: string;
+    is_modifiable: boolean | null;
+  };
+}
+interface PreviewVariant {
+  id: string;
+  name: string;
+  is_recommended: boolean | null;
+  sort_order: number | null;
+  variant_items: PreviewVariantItem[];
+}
 
 const DISPLAY_MODE_OPTIONS: { value: PriceDisplayMode; label: string; description: string }[] = [
   { value: 'DETAILED', label: 'Szczegółowy', description: 'Cena każdego dania, usługi, dostawy, rabat, łącznie' },
