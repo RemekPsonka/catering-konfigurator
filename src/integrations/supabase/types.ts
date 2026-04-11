@@ -867,6 +867,48 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_term_overrides: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_hidden: boolean | null
+          offer_id: string
+          term_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_hidden?: boolean | null
+          offer_id: string
+          term_id: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_hidden?: boolean | null
+          offer_id?: string
+          term_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_term_overrides_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_term_overrides_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "offer_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_terms: {
         Row: {
           display_order: number | null
