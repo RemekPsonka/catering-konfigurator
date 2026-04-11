@@ -4,6 +4,7 @@ import { useScroll } from 'framer-motion';
 import { usePublicOffer, useMarkOfferViewed } from '@/hooks/use-public-offer';
 import { fireNotification } from '@/hooks/use-notifications';
 import { usePublicEventProfile, usePublicEventPhotos } from '@/hooks/use-public-event-profile';
+import { usePhotoLibrary, useHeroPhoto } from '@/hooks/use-photo-library';
 import { EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { calculateOfferTotals } from '@/lib/calculations';
 import { MenuVariantsSection } from '@/components/public/menu-variants-section';

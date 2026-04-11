@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench, Bell, LayoutDashboard, Award } from 'lucide-react';
+import { LogOut, FileText, UtensilsCrossed, Users, Target, Settings, Wrench, Bell, LayoutDashboard, Award, Camera } from 'lucide-react';
 import { NotificationBell } from '@/components/features/notifications/notification-bell';
 import { PushPermissionBanner } from '@/components/features/notifications/push-permission-banner';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { title: 'Oferty', url: '/admin/offers', icon: FileText },
   { title: 'Baza potraw', url: '/admin/dishes', icon: UtensilsCrossed },
   { title: 'Usługi', url: '/admin/services', icon: Wrench },
+  { title: 'Zdjęcia', url: '/admin/photos', icon: Camera },
   { title: 'Social Proof', url: '/admin/social-proof', icon: Award },
   { title: 'Klienci', url: '/admin/clients', icon: Users },
   { title: 'Leady', url: '/admin/leads', icon: Target },

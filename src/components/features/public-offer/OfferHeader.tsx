@@ -8,18 +8,24 @@ import { COMPANY } from '@/lib/company-config';
 import { DELIVERY_TYPE_LABELS, EVENT_TYPE_OPTIONS } from '@/lib/offer-constants';
 import { formatOfferDate, formatOfferTime, truncateText } from './offer-utils';
 import type { PublicOffer } from '@/hooks/use-public-offer';
-import type { Tables } from '@/integrations/supabase/types';
 import { GREETING_WORD_LIMIT } from '@/lib/app-limits';
 import { useState, useCallback } from 'react';
 
+interface HeroPhotoData {
+  photo_url: string;
+  alt_text?: string | null;
+}
+
 interface OfferHeaderProps {
   offer: PublicOffer;
-  heroPhoto: Tables<'event_type_photos'> | null;
+  heroPhoto: HeroPhotoData | null;
   scrollY: MotionValue<number>;
   isExpired: boolean;
   isAccepted: boolean;
   isWon: boolean;
 }
+import { useState, useCallback } from 'react';
+
 
 export const OfferHeader = ({ offer, heroPhoto, scrollY, isExpired, isAccepted, isWon }: OfferHeaderProps) => {
   const heroY = useTransform(scrollY, [0, 500], [0, -50]);
