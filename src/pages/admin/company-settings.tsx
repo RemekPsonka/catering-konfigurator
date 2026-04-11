@@ -33,7 +33,11 @@ const companySchema = z.object({
 
 type CompanyFormValues = z.infer<typeof companySchema>;
 
-export const CompanySettingsPage = () => {
+interface CompanySettingsPageProps {
+  embedded?: boolean;
+}
+
+export const CompanySettingsPage = ({ embedded = false }: CompanySettingsPageProps) => {
   const { data: companyData, isLoading } = useCompanyInfoRaw();
   const updateCompany = useUpdateCompanyInfo();
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -138,10 +142,12 @@ export const CompanySettingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Building2 className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold text-foreground">Dane firmy</h1>
-      </div>
+      {!embedded && (
+        <div className="flex items-center gap-3">
+          <Building2 className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground">Dane firmy</h1>
+        </div>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-3xl">

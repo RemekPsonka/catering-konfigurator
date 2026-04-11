@@ -95,8 +95,8 @@ const App = () => (
                 <Route path="notifications" element={<NotificationsListPage />} />
                 <Route path="social-proof" element={<SocialProofPage />} />
                 <Route path="photos" element={<PhotosLibraryPage />} />
-                <Route path="settings/company" element={<CompanySettingsPage />} />
-                <Route path="settings/event-profiles" element={<EventProfilesListPage />} />
+                <Route path="settings/company" element={<Navigate to="/admin/settings?tab=company" replace />} />
+                <Route path="settings/event-profiles" element={<Navigate to="/admin/settings?tab=event-profiles" replace />} />
                 <Route path="settings/event-profiles/:eventTypeId" element={<EventProfileEditPage />} />
               </Route>
 
