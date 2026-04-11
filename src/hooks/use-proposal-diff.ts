@@ -1,10 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/types';
 
 export type ProposalItemWithDishes = Tables<'proposal_items'> & {
   dishes: Tables<'dishes'>;
   proposed_dish: Tables<'dishes'> | null;
+  variant_item?: {
+    id: string;
+    selected_variant_option: string | null;
+    allowed_modifications: Json | null;
+    dish: {
+      modifiable_items: Json | null;
+      display_name: string;
+    } | null;
+  } | null;
 };
 
 export type ProposalDetail = Tables<'change_proposals'> & {
@@ -27,7 +37,13 @@ export const useProposalDetail = (proposalId: string | undefined) => {
           proposal_items(
             *,
             dishes!proposal_items_original_dish_id_fkey(*),
-            proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(*)
+            proposed_dish:dishes!proposal_items_proposed_dish_id_fkey(*),
+            variant_item:variant_items!proposal_items_variant_item_id_fkey(
+              id,
+              selected_variant_option,
+              allowed_modifications,
+              dish:dishes(modifiable_items, display_name)
+            )
           ),
           offers(*, clients(*))
         `)
