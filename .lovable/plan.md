@@ -1,34 +1,29 @@
 
 
-## Plan: Napraw generowanie linku publicznego dla nowych ofert
+## Plan: Napraw znikającą belkę zakładek w Ustawieniach
 
 ### Problem
-`handleSaveAndShowLink` ustawia status na `'ready'`, ale trigger `generate_public_token()` generuje token tylko przy `status = 'sent'`. Więc `public_token` zostaje `NULL` → link wychodzi jako `/offer/` (pusty).
-
-Ten sam problem dotyczy `handleGenerateEmail` — też ustawia `'ready'` i czyta `offer?.public_token` z cache'u.
+Zakładki "Dane firmy" i "Profile eventów" używają `navigate()` do osobnych stron (`/admin/settings/company`, `/admin/settings/event-profiles`). Po kliknięciu użytkownik traci pasek zakładek i nie ma łatwego powrotu.
 
 ### Rozwiązanie
+Zamiast nawigować do osobnych stron, renderować "Dane firmy" i "Profile eventów" jako zawartość zakładek (`TabsContent`) bezpośrednio na stronie Ustawień — tak jak działają już "Konta", "Szablony" i "Warunki".
 
-**1. Zmiana triggera w bazie** — generuj token także dla `'ready'`:
-```sql
-IF NEW.status IN ('sent', 'ready') AND NEW.public_token IS NULL THEN
-```
+### Zmiany
 
-**2. Refetch oferty po mutacji** — w `handleSaveAndShowLink` i `handleGenerateEmail` po ustawieniu statusu trzeba odświeżyć dane oferty, żeby pobrać nowo wygenerowany token, zanim zbudujemy link.
+**1. `src/pages/admin/settings.tsx`**
+- Usunąć `onClick` z zakładek "Dane firmy" i "Profile eventów"
+- Dodać `<TabsContent value="company">` z `<CompanySettingsPage />` (bez nagłówka — bo jest już "Ustawienia")
+- Dodać `<TabsContent value="event-profiles">` z `<EventProfilesListPage />`
+- Obsłużyć URL: jeśli ktoś wejdzie na `/admin/settings/company` → redirect do `/admin/settings` z aktywną zakładką "company"
 
-W `statusMutation.onSuccess` już jest `invalidateQueries(['offers'])`, ale brakuje `invalidateQueries(['offer', offerId])` — więc `offer` w komponencie nie odświeża się.
+**2. `src/App.tsx`** (opcjonalnie)
+- Zachować route `/admin/settings/company` jako redirect do `/admin/settings?tab=company` albo usunąć, jeśli nie jest linkowany z innych miejsc
 
-Konkretnie w `handleSaveAndShowLink`:
-- Po mutacji: refetch oferty → odczytaj nowy `public_token` → dopiero wtedy `setPublicLink(...)`.
-
-**3. Analogicznie w `handleGenerateEmail`** — po refetch użyj świeżego tokenu w emailu.
-
-### Pliki do zmiany
-1. **Migracja SQL** — rozszerzenie triggera `generate_public_token()` o status `'ready'`
-2. **`src/components/features/offers/steps/step-preview-send.tsx`** — refetch oferty w `onSuccess` obu handlerów, budowanie linku z odświeżonego tokenu
+**3. `src/pages/admin/company-settings.tsx`**
+- Wyodrębnić formularz do komponentu, który można renderować bez własnego nagłówka "Dane firmy" (albo warunkowe ukrycie nagłówka gdy renderowany w zakładce)
 
 ### Efekt
-- "Zapisz i pokaż link" → token generowany natychmiast → poprawny link
-- "Wygeneruj email" → email zawiera poprawny link publiczny
-- Istniejące oferty ze statusem `sent` → bez zmian (trigger i tak działa)
+- Pasek zakładek zawsze widoczny
+- Nawigacja między sekcjami ustawień bez przeładowania strony
+- Spójna nawigacja z resztą zakładek
 
