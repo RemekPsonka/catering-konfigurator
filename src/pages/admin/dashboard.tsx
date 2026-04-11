@@ -219,14 +219,23 @@ export const DashboardPage = () => {
                 </p>
                 <ul className="space-y-1">
                   {expiring.map((o) => (
-                    <li key={o.id} className="flex items-center justify-between text-sm">
+                    <li key={o.id} className="flex items-center justify-between gap-2 text-sm">
                       <button
-                        className="text-primary hover:underline text-left"
+                        className="text-primary hover:underline text-left flex-1 min-w-0 truncate"
                         onClick={() => navigate(`/admin/offers/${o.id}/edit`)}
                       >
                         {o.offer_number} — {o.clients?.name ?? 'Brak klienta'} (do{' '}
                         {o.valid_until ? format(new Date(o.valid_until), 'dd.MM.yyyy') : '—'})
                       </button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 shrink-0"
+                        onClick={() => extendOffer.mutate(o.id)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                        +7 dni
+                      </Button>
                     </li>
                   ))}
                 </ul>
