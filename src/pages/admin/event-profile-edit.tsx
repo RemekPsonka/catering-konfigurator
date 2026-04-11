@@ -716,7 +716,7 @@ export const EventProfileEditPage = () => {
         }}
       />
 
-      {/* Section 5 — Preview Dialog */}
+      {/* Section 6 — Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -724,19 +724,19 @@ export const EventProfileEditPage = () => {
           </DialogHeader>
           <div className="space-y-6">
             {/* Hero */}
-            <div className="relative h-48 rounded-lg overflow-hidden bg-gradient-to-br from-primary/30 to-primary/5">
+            <div className="relative h-48 rounded-lg overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
               {heroPhoto ? (
                 <img src={heroPhoto.photo_url} alt={headline} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-5xl">{opt?.emoji}</div>
               )}
               <div className="absolute inset-0 bg-black/30 flex items-end p-6">
-                <h2 className="text-2xl font-bold text-white">{headline || 'Nagłówek...'}</h2>
+                <h2 className="text-2xl font-bold text-white" style={{ fontFamily: headerFont }}>{headline || 'Nagłówek...'}</h2>
               </div>
             </div>
 
             {/* Description */}
-            {descLong && <p className="text-sm text-muted-foreground whitespace-pre-line">{descLong}</p>}
+            {descLong && <p className="text-sm whitespace-pre-line" style={{ fontFamily, color: textColor }}>{descLong}</p>}
 
             {/* Features */}
             {features.length > 0 && (

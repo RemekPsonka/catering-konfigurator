@@ -1,34 +1,38 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, Instagram, FileDown } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
-import { COMPANY } from '@/lib/company-config';
-
-const CONTACTS = [
-  {
-    icon: Phone,
-    label: 'Telefon',
-    value: COMPANY.phone,
-    href: `tel:${COMPANY.phone.replace(/\s/g, '')}`,
-  },
-  {
-    icon: Mail,
-    label: 'E-mail',
-    value: COMPANY.email,
-    href: `mailto:${COMPANY.email}`,
-  },
-  {
-    icon: Instagram,
-    label: 'Instagram',
-    value: '@cateringsl',
-    href: 'https://instagram.com/cateringsl',
-  },
-];
+import { useCompanyInfo } from '@/hooks/use-company-info';
 
 interface ContactSectionProps {
   onPrint?: () => void;
 }
 
 export const ContactSection = ({ onPrint }: ContactSectionProps) => {
+  const { data: company } = useCompanyInfo();
+
+  const contacts = [
+    {
+      icon: Phone,
+      label: 'Telefon',
+      value: company?.phone ?? '',
+      href: `tel:${(company?.phone ?? '').replace(/\s/g, '')}`,
+    },
+    {
+      icon: Mail,
+      label: 'E-mail',
+      value: company?.email ?? '',
+      href: `mailto:${company?.email ?? ''}`,
+    },
+    ...(company?.instagram
+      ? [{
+          icon: Instagram,
+          label: 'Instagram',
+          value: `@${company.instagram.replace(/^@/, '')}`,
+          href: `https://instagram.com/${company.instagram.replace(/^@/, '')}`,
+        }]
+      : []),
+  ];
+
   return (
     <motion.section
       variants={staggerContainer}
@@ -63,7 +67,7 @@ export const ContactSection = ({ onPrint }: ContactSectionProps) => {
         )}
 
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6">
-          {CONTACTS.map((contact) => (
+          {contacts.map((contact) => (
             <motion.a
               key={contact.label}
               variants={fadeInUp}
