@@ -1,58 +1,37 @@
 
 
-## Plan: Wyświetlanie wybranego wariantu klienta [CS-037]
+## Plan: Wyświetlanie szczegółów podziału (SPLIT) w panelu managera [CS-037b]
 
 ### Problem
-Gdy klient akceptuje ofertę, jego wybór wariantu zapisywany jest w `offers.accepted_variant_id` — ale nigdzie w portalu managera ani na stronie klienta (po akceptacji) ta informacja nie jest widoczna.
+Propozycje typu SPLIT zapisują dane w kolumnie `split_details` JSONB (`{ percent: 60, splitDishId: "...", splitDishName: "Polędwica wołowa sous-vide" }`), ale panel managera tego nie czyta — pokazuje tylko "Podział → —".
 
 ### Zmiany
 
-**1. `src/components/features/offers/steps/step-menu.tsx` — Badge "Wybrany przez klienta" na tabie wariantu**
+**1. `src/hooks/use-admin-pending-proposals.ts` — dodaj `splitDetails` do `PendingProposalItem`**
 
-- Dodaj prop `acceptedVariantId?: string | null` do `StepMenuProps`
-- Na `TabsTrigger` wariantu, gdy `v.id === acceptedVariantId`, dodaj badge:
-  ```
-  {v.id === acceptedVariantId && (
-    <Badge className="bg-green-100 text-green-800 text-[10px]">✓ Wybrany</Badge>
-  )}
-  ```
-- W nagłówku karty wariantu (linia ~260), analogiczny badge "Klient wybrał ten wariant"
+- Dodaj pole `splitDetails: { percent: number; splitDishId: string; splitDishName: string } | null` do interfejsu
+- W query: dodaj `split_details` do SELECT z `proposal_items`
+- W mapowaniu: przypisz `splitDetails: item.split_details`
 
-**2. `src/components/features/offers/offer-wizard.tsx` — przekazanie `acceptedVariantId`**
+**2. `src/components/features/offers/steps/variant-items-table.tsx` — opis SPLIT w wierszu propozycji**
 
-- `offerQuery.data` już zawiera `accepted_variant_id` (bo pobiera `*` z tabeli `offers`)
-- Przekaż do `StepMenu`:
-  ```tsx
-  <StepMenu offerId={...} acceptedVariantId={offerQuery.data?.accepted_variant_id} ... />
-  ```
+Zmiana w bloku `descriptionNode` (linia ~207), dodaj case dla SPLIT:
+```tsx
+if (pi.changeType === 'SPLIT' && pi.splitDetails) {
+  return <>Podział: <strong>{pi.splitDetails.percent}%</strong> oryginał + <strong>{100 - pi.splitDetails.percent}%</strong> {pi.splitDetails.splitDishName}</>;
+}
+```
 
-**3. `src/pages/admin/offers-list.tsx` — kolumna/badge "Wybrany wariant" na liście ofert**
+Efekt w UI: `Podział → Podział: 60% oryginał + 40% Polędwica wołowa sous-vide`
 
-- Dla ofert ze statusem `accepted`/`won`: pokaż badge z nazwą wybranego wariantu
-- Wymaga dociągnięcia `offer_variants(id, name)` w query `useOffers`
-- Badge pod statusem: "Wariant: Premium" (zielony)
+**3. `src/pages/admin/proposal-diff.tsx` — opis SPLIT na stronie diff**
 
-**4. `src/components/public/variant-comparison-section.tsx` — wyróżnienie wybranego wariantu po akceptacji**
-
-- Dodaj prop `acceptedVariantId?: string | null`
-- Gdy oferta zaakceptowana i wariant === accepted: zielona ramka + badge "Twój wybór ✓"
-- Pozostałe warianty wyszarzone (opacity-50)
-
-**5. `src/pages/public/offer.tsx` — przekazanie `accepted_variant_id` do sekcji wariantów**
-
-- `offer.accepted_variant_id` jest już dostępne z hooka `usePublicOffer`
-- Przekaż do `VariantComparisonSection` i `MenuVariantsSection`
+Analogiczna zmiana w `DiffCard` — wyświetl szczegóły podziału zamiast "—".
 
 ### Pliki modyfikowane
-1. `src/components/features/offers/steps/step-menu.tsx` — badge na tabie i karcie
-2. `src/components/features/offers/offer-wizard.tsx` — przekazanie prop
-3. `src/hooks/use-offers.ts` — dociągnięcie `offer_variants(id,name)` + `accepted_variant_id`
-4. `src/pages/admin/offers-list.tsx` — badge z nazwą wariantu
-5. `src/components/public/variant-comparison-section.tsx` — wizualne wyróżnienie
-6. `src/pages/public/offer.tsx` — przekazanie prop
+1. `src/hooks/use-admin-pending-proposals.ts` — interface + query + mapping
+2. `src/components/features/offers/steps/variant-items-table.tsx` — opis SPLIT
+3. `src/pages/admin/proposal-diff.tsx` — opis SPLIT w widoku diff
 
 ### Nie ruszam
-- `acceptance-section.tsx` (logika akceptacji działa poprawnie)
-- `use-public-offer.ts` (dane są już pobierane)
-- `changes-panel.tsx`
-
+- `changes-panel.tsx`, `use-public-offer.ts`, `use-proposal-diff.ts`
