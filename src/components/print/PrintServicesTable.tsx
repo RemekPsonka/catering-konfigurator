@@ -1,6 +1,6 @@
 import type { PublicOffer } from '@/hooks/use-public-offer';
 import type { Tables } from '@/integrations/supabase/types';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateBlockPrice } from '@/lib/calculations';
 
 interface PrintServicesTableProps {
   offer: PublicOffer;
@@ -39,15 +39,25 @@ export const PrintServicesTable = ({ offer, upsellSelections }: PrintServicesTab
             const name = os.services?.name ?? 'Usługa';
             const price = os.custom_price != null ? Number(os.custom_price) : Number(os.services?.price ?? 0);
             const qty = os.quantity ?? 1;
-            const total = price * qty;
+            const isBlock = os.services?.price_type === 'PER_BLOCK';
+            const total = isBlock
+              ? calculateBlockPrice(price, os.services?.extra_block_price != null ? Number(os.services.extra_block_price) : null, qty)
+              : price * qty;
             servicesTotal += total;
             return (
               <tr key={os.id}>
                 <td>
                   {name}
+                  {isBlock && os.services?.block_duration_hours && (
+                    <span style={{ fontSize: '8pt', color: '#666' }}> (blok {os.services.block_duration_hours}h)</span>
+                  )}
                   {os.notes && <div style={{ fontSize: '8pt', color: '#666' }}>{os.notes}</div>}
                 </td>
-                <td style={{ textAlign: 'center' }}>{qty}</td>
+                <td style={{ textAlign: 'center' }}>
+                  {isBlock && os.services?.block_unit_label
+                    ? `${qty} × ${os.services.block_unit_label}`
+                    : qty}
+                </td>
                 <td style={{ textAlign: 'right' }}>{formatCurrency(price)}</td>
                 <td style={{ textAlign: 'right' }}>{formatCurrency(total)}</td>
               </tr>

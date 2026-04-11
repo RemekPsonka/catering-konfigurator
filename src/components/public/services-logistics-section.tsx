@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Wrench, Truck, Phone, ChefHat } from 'lucide-react';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
-import { formatCurrency } from '@/lib/calculations';
+import { formatCurrency, calculateBlockPrice } from '@/lib/calculations';
 import { supabase } from '@/integrations/supabase/client';
 import { DELIVERY_TYPE_LABELS } from '@/lib/offer-constants';
 import type { PublicOffer } from '@/hooks/use-public-offer';
@@ -116,30 +116,50 @@ export const ServicesLogisticsSection = ({ offer, priceDisplayMode }: ServicesLo
                 <div className="flex flex-col gap-1.5">
                   {items.map((s) => {
                     const price = s.custom_price != null ? Number(s.custom_price) : s.services.price;
+                    const qty = s.quantity ?? 1;
+                    const isBlock = s.services.price_type === 'PER_BLOCK';
+                    const lineTotal = isBlock
+                      ? calculateBlockPrice(price, s.services.extra_block_price != null ? Number(s.services.extra_block_price) : null, qty)
+                      : price * qty;
+
                     return (
                       <div
                         key={s.id}
-                        className="flex items-center justify-between rounded-lg bg-ivory px-4 py-2.5 shadow-sm"
+                        className="rounded-lg bg-ivory px-4 py-2.5 shadow-sm"
                       >
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-body text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                            {s.services.name}
-                          </span>
-                          {(s.quantity ?? 1) > 1 && (
-                            <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
-                              ×{s.quantity}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-body text-sm font-semibold" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                              {s.services.name}
                             </span>
-                          )}
-                          {s.services.description && (
-                            <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
-                              {s.services.description}
+                            {isBlock && s.services.block_unit_label ? (
+                              <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
+                                {qty} × {s.services.block_unit_label}
+                                {s.services.block_duration_hours ? ` (${s.services.block_duration_hours}h)` : ''}
+                              </span>
+                            ) : (
+                              qty > 1 && (
+                                <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
+                                  ×{qty}
+                                </span>
+                              )
+                            )}
+                            {s.services.description && (
+                              <span className="font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.5 }}>
+                                {s.services.description}
+                              </span>
+                            )}
+                          </div>
+                          {showPrice && (
+                            <span className="font-body text-sm font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
+                              {formatCurrency(lineTotal)}
                             </span>
                           )}
                         </div>
-                        {showPrice && (
-                          <span className="font-body text-sm font-bold" style={{ color: 'var(--theme-primary, #1A1A1A)' }}>
-                            {formatCurrency(price * (s.quantity ?? 1))}
-                          </span>
+                        {isBlock && s.services.extra_block_price != null && Number(s.services.extra_block_price) !== price && showPrice && (
+                          <div className="mt-0.5 font-body text-xs" style={{ color: 'var(--theme-text, #1A1A1A)', opacity: 0.4 }}>
+                            Pierwszy blok {formatCurrency(price)}, {s.services.extra_block_label || 'każdy kolejny'} {formatCurrency(Number(s.services.extra_block_price))}
+                          </div>
                         )}
                       </div>
                     );

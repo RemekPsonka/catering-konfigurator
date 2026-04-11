@@ -4,6 +4,15 @@ import type { OfferServiceWithService } from '@/hooks/use-offer-services';
 
 const roundMoney = (n: number) => Math.round(n * 100) / 100;
 
+export const calculateBlockPrice = (
+  price: number,
+  extraPrice: number | null,
+  quantity: number,
+): number => {
+  if (quantity <= 0) return 0;
+  return price + Math.max(0, quantity - 1) * (extraPrice ?? price);
+};
+
 export const calculateTotalPrice = (items: { unit_price: number; quantity: number }[]): number => {
   return items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 };
@@ -69,7 +78,12 @@ export const calculateOfferTotals = (
       return sum + fallback * (os.quantity ?? 1);
     }
     const price = os.custom_price != null ? Number(os.custom_price) : (os.services?.price ?? 0);
-    return sum + price * (os.quantity ?? 1);
+    const qty = os.quantity ?? 1;
+    if (os.services.price_type === 'PER_BLOCK') {
+      const extraPrice = os.services.extra_block_price != null ? Number(os.services.extra_block_price) : null;
+      return sum + calculateBlockPrice(price, extraPrice, qty);
+    }
+    return sum + price * qty;
   }, 0);
 
   const variantTotals: VariantTotal[] = variants.map((v) => {

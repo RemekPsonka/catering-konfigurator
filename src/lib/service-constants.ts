@@ -9,6 +9,7 @@ export const PRICE_TYPE_LABELS: Record<string, string> = {
   PER_EVENT: 'Za event',
   PER_PIECE: 'Za sztukę',
   PER_PERSON: 'Za osobę',
+  PER_BLOCK: 'Za blok (np. 4h)',
 };
 
 export const CLIENT_TYPE_LABELS: Record<string, string> = {

@@ -16,9 +16,13 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'Nazwa jest wymagana'),
   description: z.string().optional(),
   type: z.enum(['STAFF', 'EQUIPMENT', 'LOGISTICS']),
-  price_type: z.enum(['PER_HOUR', 'PER_EVENT', 'PER_PIECE', 'PER_PERSON']),
+  price_type: z.enum(['PER_HOUR', 'PER_EVENT', 'PER_PIECE', 'PER_PERSON', 'PER_BLOCK']),
   price: z.coerce.number().min(0, 'Cena musi być >= 0'),
   is_active: z.boolean(),
+  block_duration_hours: z.coerce.number().min(1).optional().nullable(),
+  block_unit_label: z.string().optional().nullable(),
+  extra_block_price: z.coerce.number().min(0).optional().nullable(),
+  extra_block_label: z.string().optional().nullable(),
 });
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
@@ -41,8 +45,14 @@ export const ServiceDialog = ({ open, onOpenChange, service, onSubmit, isLoading
       price_type: 'PER_EVENT',
       price: 0,
       is_active: true,
+      block_duration_hours: null,
+      block_unit_label: null,
+      extra_block_price: null,
+      extra_block_label: null,
     },
   });
+
+  const watchPriceType = form.watch('price_type');
 
   useEffect(() => {
     if (open) {
@@ -54,9 +64,13 @@ export const ServiceDialog = ({ open, onOpenChange, service, onSubmit, isLoading
           price_type: service.price_type,
           price: Number(service.price),
           is_active: service.is_active ?? true,
+          block_duration_hours: service.block_duration_hours ?? null,
+          block_unit_label: service.block_unit_label ?? null,
+          extra_block_price: service.extra_block_price != null ? Number(service.extra_block_price) : null,
+          extra_block_label: service.extra_block_label ?? null,
         });
       } else {
-        form.reset({ name: '', description: '', type: 'STAFF', price_type: 'PER_EVENT', price: 0, is_active: true });
+        form.reset({ name: '', description: '', type: 'STAFF', price_type: 'PER_EVENT', price: 0, is_active: true, block_duration_hours: null, block_unit_label: null, extra_block_price: null, extra_block_label: null });
       }
     }
   }, [open, service, form]);
@@ -124,6 +138,42 @@ export const ServiceDialog = ({ open, onOpenChange, service, onSubmit, isLoading
                 <FormMessage />
               </FormItem>
             )} />
+
+            {watchPriceType === 'PER_BLOCK' && (
+              <div className="space-y-3 rounded-lg border p-3">
+                <p className="text-sm font-medium text-muted-foreground">Ustawienia bloku</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="block_duration_hours" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Czas bloku (h)</FormLabel>
+                      <FormControl><Input type="number" min={1} {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value))} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="block_unit_label" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jednostka (np. kelner)</FormLabel>
+                      <FormControl><Input placeholder="kelner" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value || null)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="extra_block_price" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cena kolejnego bloku (zł)</FormLabel>
+                      <FormControl><Input type="number" step="0.01" min={0} placeholder="Domyślnie = cena bloku" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="extra_block_label" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Etykieta kolejnego bloku</FormLabel>
+                      <FormControl><Input placeholder="Każde kolejne 4h" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value || null)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+            )}
 
             <FormField control={form.control} name="is_active" render={({ field }) => (
               <FormItem className="flex items-center justify-between rounded-lg border p-3">
