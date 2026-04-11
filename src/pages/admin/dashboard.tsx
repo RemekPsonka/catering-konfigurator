@@ -159,15 +159,8 @@ export const DashboardPage = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="w-20">
-                          <Progress
-                            value={score}
-                            className="h-2 [&>div]:transition-all"
-                            style={{ '--progress-color': 'transparent' } as React.CSSProperties}
-                          />
-                          <div className="relative -mt-2 h-2 w-full overflow-hidden rounded-full">
-                            <div className={`h-full ${scoreColor} transition-all`} style={{ width: `${score}%` }} />
-                          </div>
+                        <div className="w-20 h-2 rounded-full bg-secondary overflow-hidden">
+                          <div className={`h-full ${scoreColor} transition-all rounded-full`} style={{ width: `${score}%` }} />
                         </div>
                         <span className="text-sm font-semibold w-8 text-right">{score}</span>
                       </div>
