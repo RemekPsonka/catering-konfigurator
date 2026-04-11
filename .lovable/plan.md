@@ -1,33 +1,39 @@
 
 
-## Plan: Napraw znikające oferty — disambiguacja FK `variant_items` [CS-037c-fix]
+## Plan: Dodatki (upsell) w wycenie managera + ilość u klienta [CS-038]
 
-### Diagnoza
+### Problem
+1. **Panel managera**: Zatwierdzone przez klienta dodatki (upsell selections) nie są widoczne w kroku Wycena (StepPricing) — pojawiają się dopiero w kroku Podgląd i wysyłka.
+2. **Panel klienta**: Klient może dodać tylko 1 sztukę upsell itema (np. patera owoców) — brak możliwości wyboru ilości.
 
-Migracja CS-037c dodała kolumnę `split_parent_id uuid REFERENCES variant_items(id)` — self-referential FK. PostgREST widzi teraz **dwie** relacje między `offer_variants` a `variant_items` (przez `variant_id` i przez `split_parent_id`) i zwraca błąd 300 (Multiple Choices) lub pusty wynik. Dlatego wszystkie zapytania z `variant_items(...)` jako embed przestały działać — oferty "zniknęły".
+### Zmiany
 
-### Rozwiązanie
+**1. `src/components/features/offers/steps/step-pricing.tsx` — sekcja "Dodatki klienta"**
 
-Dodać explicit FK hint `variant_items!variant_items_variant_id_fkey(...)` we wszystkich zapytaniach PostgREST, które embeddują `variant_items` z `offer_variants`.
+- Dodaj query `offer_upsell_selections` (status=active, join `upsell_items(name, emoji)`) — taki sam jak w step-preview-send
+- Dodaj nową sekcję Collapsible "Dodatki klienta 🎁" między usługami a rabatem, wyświetlającą listę zatwierdzonych upsell items z ilością, ceną jednostkową i łączną
+- Oblicz `upsellTotal` i przekaż do `calculateOfferTotals` (obecnie jest 0)
+- Pokaż `upsellTotal` w podsumowaniu sticky jako oddzielną linię
+- Manager widzi ale nie edytuje (read-only) — to wybory klienta
 
-### Pliki do zmiany (5 plików, 1 linia w każdym)
+**2. `src/components/public/upsell-section.tsx` — wybór ilości**
 
-1. **`src/hooks/use-offer-variants.ts`** linia 47
-   - `variant_items(` → `variant_items!variant_items_variant_id_fkey(`
+- Dla itemów z `price_type !== 'PER_PERSON'`: dodaj kontrolkę +/- ilości (min 1, max 10) przed przyciskiem "Dodaj"
+- Dla dodanych itemów: pokaż aktualną ilość i pozwól ją zmienić (update mutation na `offer_upsell_selections`)
+- Dla `PER_PERSON`: ilość = peopleCount (bez zmian, automatyczna)
+- Dodaj mutation `updateQuantity` która aktualizuje `quantity` i `total_price` w `offer_upsell_selections`
 
-2. **`src/hooks/use-public-offer.ts`** linia 36
-   - `variant_items(` → `variant_items!variant_items_variant_id_fkey(`
+**3. `src/components/public/changes-panel.tsx` — wyświetlanie ilości w panelu zmian**
 
-3. **`src/hooks/use-offer-templates.ts`** linia 91
-   - `variant_items(*)` → `variant_items!variant_items_variant_id_fkey(*)`
+- Przy wyświetlaniu upsell items w panelu "Moje zmiany", pokaż ilość × cena gdy quantity > 1
 
-4. **`src/components/features/offers/steps/step-preview-send.tsx`** linia 126
-   - `variant_items(` → `variant_items!variant_items_variant_id_fkey(`
-
-5. **`src/components/features/offers/steps/step-preview.tsx`** linia 81
-   - `variant_items(` → `variant_items!variant_items_variant_id_fkey(`
+### Pliki modyfikowane
+1. `src/components/features/offers/steps/step-pricing.tsx` — sekcja upsell + totals
+2. `src/components/public/upsell-section.tsx` — kontrolka ilości
+3. `src/components/public/changes-panel.tsx` — wyświetlanie ilości
 
 ### Nie ruszam
-- Migracji (kolumny `split_parent_id`/`split_percent` są poprawne)
-- Zapytań bezpośrednich do `variant_items` (bez embed — nie mają problemu)
-- RLS policies
+- `calculations.ts` (już obsługuje `upsellTotal` jako parametr)
+- `step-preview-send.tsx` (już wyświetla upsell)
+- `suggested-services-section.tsx`
+
