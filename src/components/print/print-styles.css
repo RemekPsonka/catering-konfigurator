@@ -1,0 +1,293 @@
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+.print-document {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+  max-width: 210mm;
+  margin: 0 auto;
+  background: #fff;
+}
+
+/* Page numbers via CSS counter */
+.print-document {
+  counter-reset: page-number;
+}
+
+.print-page-break {
+  page-break-before: always;
+  counter-increment: page-number;
+}
+
+.print-page-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 8pt;
+  color: #999;
+}
+
+/* Section spacing */
+.print-section {
+  margin-bottom: 24pt;
+}
+
+.print-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Tables */
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.print-table th,
+.print-table td {
+  border: 1px solid #d1d1d1;
+  padding: 6pt 8pt;
+  text-align: left;
+  vertical-align: top;
+}
+
+.print-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.3pt;
+}
+
+.print-table thead {
+  display: table-header-group;
+}
+
+.print-table tr {
+  page-break-inside: avoid;
+}
+
+/* Category row */
+.print-category-row td {
+  background-color: #fafafa;
+  font-weight: 600;
+  font-size: 10pt;
+  border-bottom: 2px solid #d1d1d1;
+}
+
+/* Header */
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20pt;
+  padding-bottom: 12pt;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.print-header-logo {
+  max-height: 60pt;
+  max-width: 180pt;
+  object-fit: contain;
+}
+
+.print-header-company {
+  font-size: 9pt;
+  color: #666;
+  line-height: 1.4;
+}
+
+.print-header-company strong {
+  font-size: 12pt;
+  color: #1a1a1a;
+  display: block;
+  margin-bottom: 4pt;
+}
+
+/* Offer meta */
+.print-offer-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16pt;
+  gap: 16pt;
+}
+
+.print-meta-block {
+  flex: 1;
+  padding: 10pt;
+  border: 1px solid #e0e0e0;
+  border-radius: 4pt;
+}
+
+.print-meta-block h3 {
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5pt;
+  color: #888;
+  margin: 0 0 6pt 0;
+  font-weight: 600;
+}
+
+.print-meta-block p {
+  margin: 2pt 0;
+  font-size: 10pt;
+}
+
+/* Version badge */
+.print-version-badge {
+  display: inline-block;
+  background-color: #f5f5f5;
+  border: 1px solid #d1d1d1;
+  padding: 2pt 8pt;
+  font-size: 9pt;
+  font-weight: 600;
+  border-radius: 2pt;
+}
+
+.print-draft-watermark {
+  color: #ccc;
+  font-size: 9pt;
+  font-style: italic;
+}
+
+/* Greeting */
+.print-greeting {
+  margin: 16pt 0;
+  padding: 12pt;
+  border-left: 3pt solid #888;
+  font-style: italic;
+  font-size: 10pt;
+  color: #444;
+  background-color: #fafafa;
+}
+
+/* Recommended badge */
+.print-recommended {
+  display: inline-block;
+  font-size: 8pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5pt;
+  padding: 1pt 6pt;
+  border: 1px solid #888;
+  border-radius: 2pt;
+  margin-left: 6pt;
+}
+
+/* Cost summary */
+.print-cost-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.print-cost-table th,
+.print-cost-table td {
+  padding: 6pt 8pt;
+  border: 1px solid #d1d1d1;
+  text-align: right;
+}
+
+.print-cost-table th {
+  text-align: left;
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.print-cost-table .total-row td {
+  font-weight: 700;
+  font-size: 11pt;
+  border-top: 2px solid #1a1a1a;
+}
+
+/* Terms */
+.print-terms {
+  font-size: 9pt;
+  line-height: 1.6;
+}
+
+.print-terms dt {
+  font-weight: 600;
+  margin-top: 8pt;
+}
+
+.print-terms dd {
+  margin: 0 0 4pt 0;
+  color: #444;
+}
+
+/* Footer */
+.print-acceptance-block {
+  border: 2px solid #1a1a1a;
+  padding: 16pt;
+  margin-top: 24pt;
+  page-break-inside: avoid;
+}
+
+.print-acceptance-block h3 {
+  margin: 0 0 12pt 0;
+  font-size: 12pt;
+}
+
+.print-signature-line {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40pt;
+  gap: 40pt;
+}
+
+.print-signature-field {
+  flex: 1;
+  text-align: center;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 6pt;
+  font-size: 9pt;
+  color: #666;
+}
+
+.print-legal-footer {
+  margin-top: 24pt;
+  padding-top: 12pt;
+  border-top: 1px solid #d1d1d1;
+  font-size: 8pt;
+  color: #999;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Validity */
+.print-validity {
+  margin-top: 12pt;
+  padding: 8pt 12pt;
+  border: 1px solid #d1d1d1;
+  background-color: #fafafa;
+  font-size: 10pt;
+  text-align: center;
+}
+
+.print-validity strong {
+  color: #1a1a1a;
+}
+
+/* Services subtotals */
+.print-subtotal-row td {
+  font-weight: 600;
+  border-top: 2px solid #d1d1d1;
+}
