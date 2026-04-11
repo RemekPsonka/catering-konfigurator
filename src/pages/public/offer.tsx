@@ -33,6 +33,8 @@ import { isValidToken, loadGoogleFont } from '@/components/features/public-offer
 import { InvalidTokenScreen, LoadingScreen, NotFoundScreen, DraftScreen, LostScreen } from '@/components/features/public-offer/OfferStatusScreens';
 import { OfferHeader } from '@/components/features/public-offer/OfferHeader';
 import { CountdownTimer } from '@/components/public/countdown-timer';
+import { OfferTracker } from '@/components/public/offer-tracker';
+import { trackOfferEvent } from '@/lib/tracking';
 
 export const PublicOfferPage = () => {
   const { publicToken } = useParams<{ publicToken: string }>();
@@ -46,6 +48,18 @@ export const PublicOfferPage = () => {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const isFirstVisitRef = useRef<boolean | null>(null);
+  const lastVariantTrackRef = useRef<number>(0);
+
+  const handleVariantChange = useCallback((variantId: string | null) => {
+    setActiveVariantId(variantId);
+    if (variantId && offer) {
+      const now = Date.now();
+      if (now - lastVariantTrackRef.current > 30000) {
+        lastVariantTrackRef.current = now;
+        trackOfferEvent(offer.id, 'variant_compared', { variant_id: variantId });
+      }
+    }
+  }, [offer]);
 
   const { data: eventPhotos } = usePublicEventPhotos(offer?.event_type);
   usePublicEventProfile(offer?.event_type);
@@ -151,6 +165,7 @@ export const PublicOfferPage = () => {
 
   return (
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
+      <OfferTracker offerId={offer.id} />
       <OfferHeader offer={offer} heroPhoto={heroPhoto} scrollY={scrollY} isExpired={isExpired} isAccepted={isAccepted} isWon={isWon} />
 
       {offer.valid_until && !isExpired && (
@@ -165,11 +180,17 @@ export const PublicOfferPage = () => {
       </div>
 
       {offer.offer_variants.length > 0 && (
-        <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={setActiveVariantId} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} />
+        <div data-track-section="menu">
+          <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={handleVariantChange} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} />
+        </div>
       )}
 
-      <ServicesLogisticsSection offer={offer} priceDisplayMode={offer.price_display_mode} />
-      <CalculationSection offer={offer} modifications={modifications} />
+      <div data-track-section="services">
+        <ServicesLogisticsSection offer={offer} priceDisplayMode={offer.price_display_mode} />
+      </div>
+      <div data-track-section="calculation">
+        <CalculationSection offer={offer} modifications={modifications} />
+      </div>
 
       {eventPhotos && eventPhotos.length > 0 && (
         <div className="no-print">
@@ -177,7 +198,7 @@ export const PublicOfferPage = () => {
         </div>
       )}
 
-      <div className="no-print">
+      <div className="no-print" data-track-section="upsell">
         <UpsellSection
           offerId={offer.id}
           eventType={offer.event_type}
@@ -197,7 +218,9 @@ export const PublicOfferPage = () => {
       <div className="no-print">
         <SocialProofStats />
         <TestimonialsCarousel eventType={offer.event_type} />
-        <FaqSection offerId={offer.id} eventType={offer.event_type} />
+        <div data-track-section="faq">
+          <FaqSection offerId={offer.id} eventType={offer.event_type} />
+        </div>
       </div>
 
       <TermsSection />
@@ -206,7 +229,7 @@ export const PublicOfferPage = () => {
         <CommunicationSection offerId={offer.id} offerNumber={offer.offer_number} clientName={offer.clients?.name ?? undefined} actionsDisabled={actionsDisabled} />
       </div>
 
-      <div className="no-print">
+      <div className="no-print" data-track-section="acceptance">
         {!offerAccepted && (
           <div id="acceptance-section">
             <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} activeVariantId={activeVariantId} actionsDisabled={actionsDisabled} />
