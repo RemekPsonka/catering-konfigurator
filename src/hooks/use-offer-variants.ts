@@ -16,8 +16,6 @@ export interface VariantItemWithDish extends Tables<'variant_items'> {
     is_modifiable: boolean | null;
     modifiable_items: Json | null;
   };
-  split_parent_id?: string | null;
-  split_percent?: number | null;
 }
 
 export interface VariantWithItems extends Tables<'offer_variants'> {
