@@ -14,16 +14,22 @@ import {
   BarChart3,
   Users,
   Trophy,
+  Mail,
+  XCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   useDashboardKpi,
   useNewCorrectionsCount,
   useExpiringOffers,
   useDashboardActivity,
   useManagerName,
+  useFollowUps,
+  useCancelFollowUp,
 } from '@/hooks/use-dashboard';
 
 const EVENT_ICONS: Record<string, typeof Eye> = {
