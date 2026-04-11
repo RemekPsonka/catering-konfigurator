@@ -390,9 +390,13 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
 
   const handleSaveAndShowLink = () => {
     statusMutation.mutate({ status: 'ready' }, {
-      onSuccess: () => {
-        setPublicLink(buildPublicOfferUrl(offer?.public_token ?? ''));
+      onSuccess: async () => {
+        // Refetch to get the freshly generated public_token from trigger
+        const { data: freshOffer } = await supabase.from('offers').select('public_token').eq('id', offerId!).single();
+        const token = freshOffer?.public_token ?? '';
+        setPublicLink(buildPublicOfferUrl(token));
         setLinkDialogOpen(true);
+        queryClient.invalidateQueries({ queryKey: ['offer-preview', offerId] });
         toast.success('Oferta zapisana jako gotowa');
       },
     });
