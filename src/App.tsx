@@ -30,6 +30,7 @@ import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
 import { EventProfileEditPage } from "@/pages/admin/event-profile-edit";
 import { PublicOfferPage } from "@/pages/public/offer";
 import { OfferFindPage } from "@/pages/public/offer-find";
+import { SurveyPage } from "@/pages/public/survey";
 import { DashboardPage } from "@/pages/admin/dashboard";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route element={<PublicLayout />}>
                 <Route path="/offer/find" element={<OfferFindPage />} />
                 <Route path="/offer/:publicToken" element={<PublicOfferPage />} />
+                <Route path="/survey/:token" element={<SurveyPage />} />
               </Route>
 
               {/* Admin (protected) */}
