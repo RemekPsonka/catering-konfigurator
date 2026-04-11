@@ -1,57 +1,66 @@
 
 
-## Plan: Tracking zachowań + Scoring Dashboard [CS-038]
+## Plan: CS-039 — Email potwierdzający akceptację + ankieta post-event
+
+### Wymaganie wstępne: domena email
+
+Brak skonfigurowanej domeny email. Aby wysyłać automatyczne emaile (potwierdzenie akceptacji, ankieta post-event), potrzebna jest domena nadawcy. Bez niej możemy zbudować **logikę i UI**, ale emaile nie będą wysyłane.
+
+**Proponuję podejście dwuetapowe:**
+1. TERAZ: zbuduj logikę po stronie klienta (potwierdzenie inline po akceptacji, ankieta /survey, planowanie post-event w offer_follow_ups)
+2. PÓŹNIEJ: gdy skonfigurujesz domenę email — podepnij wysyłkę
 
 ### Obecny stan
-- `trackOfferEvent()` w `src/lib/tracking.ts` — fire-and-forget insert do `offer_events`
-- `calculate_conversion_score()` — DB function istnieje, oblicza score 0-100
-- `offers.conversion_score` i `offers.last_client_activity_at` — kolumny istnieją
-- Brak triggera na `offer_events` INSERT → score nie jest aktualizowany automatycznie
-- Brak trackera na publicznej stronie (poza punktowymi wywołaniami w FAQ i Share)
-- Brak sekcji HOT na dashboardzie
+- `AcceptanceSection` — po akceptacji pokazuje "Dziękujemy", wysyła notification do admina
+- `offer_follow_ups` — 4 kroki (thank_you, reminder_48h, manager_alert, expiry_warning)
+- `schedule_follow_up_sequence()` — planuje sekwencję przy status=sent
+- Brak step 5 (post_event_survey)
+- Brak strony ankiety
+- Brak emaili transakcyjnych (brak domeny)
 
 ### Zmiany
 
-**1. DB trigger: auto-update scoring po INSERT do offer_events**
-- Migration: CREATE FUNCTION `update_offer_scoring()` — po INSERT do `offer_events`: wywołuje `calculate_conversion_score(NEW.offer_id)`, UPDATE `offers SET conversion_score = wynik, last_client_activity_at = now()`
-- CREATE TRIGGER `trg_update_scoring` AFTER INSERT ON `offer_events` FOR EACH ROW
+**1. Migration: dodaj step 5 do sekwencji follow-up + tabela survey_responses**
+- ALTER `schedule_follow_up_sequence()` — dodaj krok 5: `post_event_survey`, scheduled_at = `event_date + 2 days` (jeśli event_date nie null)
+- CREATE TABLE `survey_responses` (id, offer_id, rating INT 1-5, comment TEXT, created_at) z RLS (public insert, auth select)
+- Dodaj survey_token (unique) do offer_follow_ups lub osobna kolumna
 
-**2. Nowy plik: `src/components/public/offer-tracker.tsx`**
-- Invisible component, renderowany w `offer.tsx`
-- Props: `offerId`, `variantCount`
-- Używa React ref do deduplication (Set of sent event keys)
-- Trackowane eventy:
-  - `page_open`: raz per mount (ref guard)
-  - `section_view`: IntersectionObserver na sekcjach (data-track-section attribute) — menu, services, calculation, upsell, faq, acceptance
-  - `scroll_depth`: sentinel divs at 25/50/75/100% — IntersectionObserver, raz per próg
-  - `time_on_page`: `visibilitychange` + `beforeunload` — wysyła `{ seconds }`, min 5s żeby nie spamować
-- Debounce: ten sam event_type nie częściej niż 30s (timestamp ref)
+**2. Strona ankiety: `src/pages/public/survey.tsx`**
+- Route: `/survey/:token`
+- Na mount: waliduj token (query offer_follow_ups WHERE step_name='post_event_survey' AND survey_token=:token)
+- UI: gwiazdki 1-5 (klikalne) + textarea "Twój komentarz" + przycisk "Wyślij opinię"
+- Po submit: INSERT do `survey_responses` + opcjonalnie INSERT do `testimonials` (is_active=false, do zatwierdzenia)
+- CTA: "Podziel się opinią na Google" — link do Google Maps (z company_config)
+- Sukces: "Dziękujemy za opinię!"
 
-**3. Wariant tracking w `offer.tsx`**
-- Przy `setActiveVariantId` → `trackOfferEvent(offer.id, 'variant_compared', { variant_id })` z debounce (ref, max raz na 30s)
+**3. Rozbudowa AcceptanceSection — inline potwierdzenie**
+- Po akceptacji (success state): rozbuduj sekcję "Dziękujemy" o:
+  - Podsumowanie: data wydarzenia, wariant, kwota
+  - "Co dalej?": 1) Zaliczka 30% do 3 dni, 2) Kontakt 7 dni przed eventem, 3) Obsługa w dniu wydarzenia
+  - Link "Wróć do szczegółów oferty" (scroll to top)
+- To zastąpi prosty tekst "Skontaktujemy się w sprawie dalszych szczegółów"
 
-**4. Nowy hook: `src/hooks/use-hot-offers.ts`**
-- `useHotOffers()`: SELECT `offers` WHERE status IN ('sent','viewed','revision'), `conversion_score > 0`, ORDER BY `conversion_score DESC`, LIMIT 10, JOIN `clients(name)`
-- Zwraca: id, offer_number, client name, event_type, conversion_score, last_client_activity_at
-
-**5. Dashboard: sekcja "Oferty HOT 🔥"** (`dashboard.tsx`)
-- Nowa sekcja między KPI a Warnings
-- Per oferta: Card/row z offer_number, client_name, conversion_score (Progress bar: zielony 70+, żółty 40-69, czerwony 0-39), last_client_activity_at (formatDistanceToNow)
-- CTA: klik → navigate do `/admin/offers/${id}/edit`
-- Empty state: "Brak aktywnych ofert z aktywnością klienta"
+**4. Route w App.tsx**
+- Dodaj `/survey/:token` w PublicLayout
 
 ### Nowe pliki
-1. `src/components/public/offer-tracker.tsx`
-2. `src/hooks/use-hot-offers.ts`
+1. `src/pages/public/survey.tsx` — strona ankiety
 
-### Modyfikowane pliki
-1. `src/pages/public/offer.tsx` — dodaj `<OfferTracker>`, variant_compared tracking, data-track-section attrs
-2. `src/pages/admin/dashboard.tsx` — sekcja HOT offers
-3. `src/hooks/use-dashboard.ts` — (opcjonalnie, jeśli hook trafi tu zamiast osobnego pliku)
+### Pliki modyfikowane
+1. `src/components/public/acceptance-section.tsx` — rozbudowa success state
+2. `src/App.tsx` — nowa route /survey/:token
+3. `src/lib/company-config.ts` — dodaj `googleReviewUrl` (jeśli brak)
 
 ### Migration SQL
-- `update_offer_scoring()` trigger function + trigger na `offer_events`
+1. CREATE TABLE `survey_responses`
+2. ALTER FUNCTION `schedule_follow_up_sequence()` — dodaj krok 5
+3. Dodaj kolumnę `survey_token` do `offer_follow_ups` (jeśli brak)
 
 ### Nie ruszam
-- Istniejących wywołań trackOfferEvent (FAQ, Share), logiki kalkulacji, wizarda, schematu offer_events
+- send-follow-up Edge Function, publicznej strony oferty, tracking, dashboardu
+
+### Co zostaje na później (po setup domeny email)
+- Edge Function wysyłki emaila potwierdzającego akceptację
+- Edge Function wysyłki ankiety post-event
+- HTML szablony emaili
 
