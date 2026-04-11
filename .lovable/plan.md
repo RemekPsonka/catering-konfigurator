@@ -1,28 +1,57 @@
 
 
-## Plan: CS-037 — Follow-up toggle + dashboard panel (bez emaila)
+## Plan: Tracking zachowań + Scoring Dashboard [CS-038]
 
-Pomijamy setup domeny email i Edge Function wysyłki. Dodajemy tylko UI: toggle w wizardzie i panel follow-upów na dashboardzie.
+### Obecny stan
+- `trackOfferEvent()` w `src/lib/tracking.ts` — fire-and-forget insert do `offer_events`
+- `calculate_conversion_score()` — DB function istnieje, oblicza score 0-100
+- `offers.conversion_score` i `offers.last_client_activity_at` — kolumny istnieją
+- Brak triggera na `offer_events` INSERT → score nie jest aktualizowany automatycznie
+- Brak trackera na publicznej stronie (poza punktowymi wywołaniami w FAQ i Share)
+- Brak sekcji HOT na dashboardzie
 
 ### Zmiany
 
-**1. `src/components/features/offers/steps/step-preview-send.tsx`**
-- Dodaj stan `followUpEnabled` (default `true`)
-- W `useEffect` init: `setFollowUpEnabled(offer.follow_up_enabled ?? true)`
-- Dodaj do `settingsPayload`: `follow_up_enabled: followUpEnabled`
-- W sekcji "Ustawienia wyświetlania" (po toggle upsell, linia ~423): nowy Switch + label "Automatyczne follow-upy" + opis "System wyśle automatyczne przypomnienia po wysłaniu oferty"
+**1. DB trigger: auto-update scoring po INSERT do offer_events**
+- Migration: CREATE FUNCTION `update_offer_scoring()` — po INSERT do `offer_events`: wywołuje `calculate_conversion_score(NEW.offer_id)`, UPDATE `offers SET conversion_score = wynik, last_client_activity_at = now()`
+- CREATE TRIGGER `trg_update_scoring` AFTER INSERT ON `offer_events` FOR EACH ROW
 
-**2. `src/hooks/use-dashboard.ts`**
-- Dodaj `useFollowUps()` — fetch `offer_follow_ups` WHERE status IN ('scheduled','sent'), join `offers(offer_number)`, order by `scheduled_at`, limit 10
-- Dodaj `useCancelFollowUp()` — mutation UPDATE status='cancelled'
+**2. Nowy plik: `src/components/public/offer-tracker.tsx`**
+- Invisible component, renderowany w `offer.tsx`
+- Props: `offerId`, `variantCount`
+- Używa React ref do deduplication (Set of sent event keys)
+- Trackowane eventy:
+  - `page_open`: raz per mount (ref guard)
+  - `section_view`: IntersectionObserver na sekcjach (data-track-section attribute) — menu, services, calculation, upsell, faq, acceptance
+  - `scroll_depth`: sentinel divs at 25/50/75/100% — IntersectionObserver, raz per próg
+  - `time_on_page`: `visibilitychange` + `beforeunload` — wysyła `{ seconds }`, min 5s żeby nie spamować
+- Debounce: ten sam event_type nie częściej niż 30s (timestamp ref)
 
-**3. `src/pages/admin/dashboard.tsx`**
-- Import `useFollowUps`, `useCancelFollowUp`
-- Nowa sekcja Card "Zaplanowane follow-upy" między warnings a activity
-- Lista: offer_number, step_name (polskie etykiety), scheduled_at (formatDistanceToNow), status Badge, przycisk "Anuluj"
-- Empty state: "Brak zaplanowanych follow-upów"
-- Step name labels: `{ thank_you: 'Podziękowanie', reminder_48h: 'Przypomnienie 48h', manager_alert: 'Alert managera', expiry_warning: 'Wygasa za 3 dni' }`
+**3. Wariant tracking w `offer.tsx`**
+- Przy `setActiveVariantId` → `trackOfferEvent(offer.id, 'variant_compared', { variant_id })` z debounce (ref, max raz na 30s)
+
+**4. Nowy hook: `src/hooks/use-hot-offers.ts`**
+- `useHotOffers()`: SELECT `offers` WHERE status IN ('sent','viewed','revision'), `conversion_score > 0`, ORDER BY `conversion_score DESC`, LIMIT 10, JOIN `clients(name)`
+- Zwraca: id, offer_number, client name, event_type, conversion_score, last_client_activity_at
+
+**5. Dashboard: sekcja "Oferty HOT 🔥"** (`dashboard.tsx`)
+- Nowa sekcja między KPI a Warnings
+- Per oferta: Card/row z offer_number, client_name, conversion_score (Progress bar: zielony 70+, żółty 40-69, czerwony 0-39), last_client_activity_at (formatDistanceToNow)
+- CTA: klik → navigate do `/admin/offers/${id}/edit`
+- Empty state: "Brak aktywnych ofert z aktywnością klienta"
+
+### Nowe pliki
+1. `src/components/public/offer-tracker.tsx`
+2. `src/hooks/use-hot-offers.ts`
+
+### Modyfikowane pliki
+1. `src/pages/public/offer.tsx` — dodaj `<OfferTracker>`, variant_compared tracking, data-track-section attrs
+2. `src/pages/admin/dashboard.tsx` — sekcja HOT offers
+3. `src/hooks/use-dashboard.ts` — (opcjonalnie, jeśli hook trafi tu zamiast osobnego pliku)
+
+### Migration SQL
+- `update_offer_scoring()` trigger function + trigger na `offer_events`
 
 ### Nie ruszam
-- Edge Functions, tracking, publicznej strony, schema DB
+- Istniejących wywołań trackOfferEvent (FAQ, Share), logiki kalkulacji, wizarda, schematu offer_events
 
