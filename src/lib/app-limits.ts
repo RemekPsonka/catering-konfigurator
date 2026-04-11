@@ -2,6 +2,7 @@
 
 // Zdjęcia
 export const MAX_DISH_PHOTOS = 5;
+export const MAX_EVENT_PHOTOS = 15; // backward compat for old event_type_photos
 export const MIN_EVENT_PHOTOS = 4;
 export const MAX_LIBRARY_PHOTOS = 10;
 export const MAX_PHOTO_SIZE_MB = 10;
