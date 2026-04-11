@@ -1257,6 +1257,54 @@ export type Database = {
           },
         ]
       }
+      photo_library: {
+        Row: {
+          alt_text: string | null
+          caption: string | null
+          content_tags: string[]
+          created_at: string | null
+          event_tags: string[]
+          height: number
+          hero_for_events: string[]
+          id: string
+          is_active: boolean
+          photo_url: string
+          sort_order: number
+          uploaded_by: string | null
+          width: number
+        }
+        Insert: {
+          alt_text?: string | null
+          caption?: string | null
+          content_tags?: string[]
+          created_at?: string | null
+          event_tags?: string[]
+          height?: number
+          hero_for_events?: string[]
+          id?: string
+          is_active?: boolean
+          photo_url: string
+          sort_order?: number
+          uploaded_by?: string | null
+          width?: number
+        }
+        Update: {
+          alt_text?: string | null
+          caption?: string | null
+          content_tags?: string[]
+          created_at?: string | null
+          event_tags?: string[]
+          height?: number
+          hero_for_events?: string[]
+          id?: string
+          is_active?: boolean
+          photo_url?: string
+          sort_order?: number
+          uploaded_by?: string | null
+          width?: number
+        }
+        Relationships: []
+      }
       proposal_items: {
         Row: {
           change_type: Database["public"]["Enums"]["change_type"]
@@ -1641,6 +1689,7 @@ export type Database = {
         }[]
       }
       generate_short_token: { Args: { length?: number }; Returns: string }
+      get_event_photo_count: { Args: { p_event_type: string }; Returns: number }
       get_setting: { Args: { p_key: string }; Returns: string }
       get_unread_notification_count: { Args: never; Returns: number }
       insert_notification: {
