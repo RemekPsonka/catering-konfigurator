@@ -20,6 +20,7 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { EmptyState } from '@/components/common/empty-state';
 import { useOffers, useDuplicateOffer } from '@/hooks/use-offers';
+import { getOfferVersionLabel } from '@/lib/offer-version';
 import { useDebounce } from '@/hooks/use-debounce';
 import { SaveTemplateDialog } from '@/components/features/offers/save-template-dialog';
 import { UseTemplateDialog } from '@/components/features/offers/use-template-dialog';
@@ -161,7 +162,7 @@ export const OffersListPage = () => {
                       {['accepted', 'won'].includes(offer.status) && (
                         <Lock className="h-3.5 w-3.5 text-green-600 shrink-0" />
                       )}
-                      {offer.offer_number ?? '—'}
+                      {getOfferVersionLabel(offer.offer_number, offer.current_version)}
                     </span>
                   </TableCell>
                   <TableCell>{offer.clients?.name ?? '—'}</TableCell>

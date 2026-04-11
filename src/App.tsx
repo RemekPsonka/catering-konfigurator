@@ -65,6 +65,7 @@ const App = () => (
 
               {/* Admin print (auth required, no layout) */}
               <Route path="/admin/offers/:id/print" element={<AuthGuard><AdminOfferPrintPage /></AuthGuard>} />
+              <Route path="/admin/offers/:id/print/:versionNumber" element={<AuthGuard><AdminOfferPrintPage /></AuthGuard>} />
 
               {/* Admin (protected) */}
               <Route

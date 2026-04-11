@@ -13,6 +13,7 @@ import { StepPreviewSend } from './steps/step-preview-send';
 import { InternalNotesDrawer } from './internal-notes-drawer';
 import { useOfferWizard } from '@/hooks/use-offer-wizard';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
+import { getOfferVersionLabel } from '@/lib/offer-version';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { RequirementsSidebar, type ClientRequirement } from './requirements-sidebar';
 import type { TemplateData } from '@/hooks/use-offer-templates';
@@ -123,10 +124,11 @@ export const OfferWizard = ({ offerId, templateData, templateEventType, template
 
   const STATUS_LABELS: Record<string, string> = { draft: 'szkic', ready: 'gotowa', sent: 'wysłana', viewed: 'wyświetlona', revision: 'rewizja', accepted: 'zaakceptowana', won: 'wygrana', lost: 'przegrana' };
 
+  const currentVer = offerQuery.data?.current_version ?? 0;
   const offerTitle = isLocked
-    ? `Oferta ${state.offerNumber ?? ''} (${STATUS_LABELS[offerStatus ?? ''] ?? offerStatus})`
+    ? `Oferta ${getOfferVersionLabel(state.offerNumber, currentVer)} (${STATUS_LABELS[offerStatus ?? ''] ?? offerStatus})`
     : state.offerNumber
-      ? `Oferta ${state.offerNumber} (${STATUS_LABELS[offerStatus ?? ''] ?? 'szkic'})`
+      ? `Oferta ${getOfferVersionLabel(state.offerNumber, currentVer)} (${STATUS_LABELS[offerStatus ?? ''] ?? 'szkic'})`
       : offerId ? 'Edycja oferty' : 'Nowa oferta';
 
   return (

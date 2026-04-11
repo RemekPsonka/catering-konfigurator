@@ -95,3 +95,69 @@ export const useOfferPrintDataByToken = (publicToken: string | undefined) => {
     error: offerQuery.error || companyInfoQuery.error || termsQuery.error,
   };
 };
+
+// Historical: fetch from snapshot
+export const useOfferPrintDataFromSnapshot = (
+  offerId: string | undefined,
+  versionNumber: number | undefined,
+) => {
+  const companyInfoQuery = useCompanyInfo();
+
+  const snapshotQuery = useQuery({
+    queryKey: ['offer-version-snapshot', offerId, versionNumber],
+    queryFn: async () => {
+      if (!offerId || !versionNumber) return null;
+      const { data, error } = await supabase
+        .from('offer_versions')
+        .select('snapshot')
+        .eq('offer_id', offerId)
+        .eq('version_number', versionNumber)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+
+      const snap = data.snapshot as Record<string, unknown>;
+      const offerData = snap.offer as Record<string, unknown>;
+      const variants = (snap.variants as unknown[]) ?? [];
+      const items = (snap.items as unknown[]) ?? [];
+      const services = (snap.services as unknown[]) ?? [];
+      const client = snap.client as Record<string, unknown> | null;
+      const terms = (snap.terms as unknown[]) ?? [];
+
+      // Reconstruct offer with nested relations
+      const variantsWithItems = variants.map((v: unknown) => {
+        const variant = v as Record<string, unknown>;
+        const variantItems = items
+          .filter((i: unknown) => (i as Record<string, unknown>).variant_id === variant.id)
+          .map((i: unknown) => ({ ...(i as Record<string, unknown>), dishes: null }));
+        return { ...variant, variant_items: variantItems };
+      });
+
+      const servicesWithDetails = services.map((s: unknown) => ({
+        ...(s as Record<string, unknown>),
+        services: null,
+      }));
+
+      const reconstructed = {
+        ...offerData,
+        current_version: versionNumber,
+        clients: client,
+        offer_themes: null,
+        offer_variants: variantsWithItems,
+        offer_services: servicesWithDetails,
+      };
+
+      return { offer: reconstructed as unknown as PublicOffer, terms };
+    },
+    enabled: !!offerId && !!versionNumber,
+  });
+
+  return {
+    offer: snapshotQuery.data?.offer ?? null,
+    companyInfo: companyInfoQuery.data as PrintCompanyInfo | null,
+    offerTerms: (snapshotQuery.data?.terms ?? []) as unknown as Array<{ display_order: number; id: string; is_active: boolean; key: string; label: string; updated_at: string; value: string }>,
+    upsellSelections: [],
+    isLoading: snapshotQuery.isLoading || companyInfoQuery.isLoading,
+    error: snapshotQuery.error || companyInfoQuery.error,
+  };
+};
