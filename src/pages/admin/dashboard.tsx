@@ -40,6 +40,13 @@ const EVENT_ICONS: Record<string, typeof Eye> = {
   offer_accepted: CheckCircle2,
 };
 
+const STEP_NAME_LABELS: Record<string, string> = {
+  thank_you: 'Podziękowanie',
+  reminder_48h: 'Przypomnienie 48h',
+  manager_alert: 'Alert managera',
+  expiry_warning: 'Wygasa za 3 dni',
+};
+
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const { data: kpi, isLoading: kpiLoading } = useDashboardKpi();
@@ -47,6 +54,8 @@ export const DashboardPage = () => {
   const { data: expiring = [] } = useExpiringOffers();
   const { data: activity = [], isLoading: activityLoading } = useDashboardActivity();
   const { data: managerName = '' } = useManagerName();
+  const { data: followUps = [], isLoading: followUpsLoading } = useFollowUps();
+  const cancelFollowUp = useCancelFollowUp();
 
   const today = format(new Date(), "d MMMM yyyy", { locale: pl });
   const toHandleCount = (kpi?.revision ?? 0) + correctionsCount;
