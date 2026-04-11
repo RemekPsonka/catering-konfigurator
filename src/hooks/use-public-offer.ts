@@ -121,7 +121,7 @@ export const useSubmitProposal = () => {
       // Insert proposal_items — rollback proposal on failure
       const items = Array.from(modifications.entries()).map(([itemId, mod]) => {
         const variantItem = variantItems.find((vi) => vi.id === itemId);
-        const originalPrice = variantItem?.custom_price ?? 0;
+        const originalPrice = variantItem?.custom_price ?? variantItem?.dishes?.price_per_person ?? variantItem?.dishes?.price_per_piece ?? variantItem?.dishes?.price_per_kg ?? variantItem?.dishes?.price_per_set ?? 0;
         const originalQty = variantItem?.quantity ?? 1;
 
         let changeType: 'SWAP' | 'VARIANT_CHANGE' | 'SPLIT' | 'QUANTITY_CHANGE' = 'SWAP';

@@ -75,10 +75,9 @@ export const ManagerModificationDialog = ({ open, onClose, item, offerId }: Mana
     } else if (modType === 'variant' && selectedVariant) {
       const opt = (mods?.options as VariantOption[])?.find(o => o.label === selectedVariant);
       if (!opt) return;
-      const basePrice = item.dishes?.price_per_person ?? item.dishes?.price_per_piece ?? item.dishes?.price_per_kg ?? item.dishes?.price_per_set ?? 0;
       applyMutation.mutate({
         selected_variant_option: opt.label,
-        custom_price: basePrice + opt.price_modifier,
+        variant_price_modifier: opt.price_modifier,
       });
     }
   };

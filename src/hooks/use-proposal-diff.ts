@@ -162,6 +162,7 @@ export const useResolveProposal = () => {
           custom_name: string;
           selected_variant_option: string;
           quantity: number;
+          variant_price_modifier: number;
         }> = {};
 
         if (item.change_type === 'SWAP' && item.proposed_dish_id) {
@@ -170,7 +171,7 @@ export const useResolveProposal = () => {
           if (item.proposed_dish && typeof item.proposed_dish === 'object' && 'display_name' in item.proposed_dish) {
             updateData.custom_name = (item.proposed_dish as { display_name: string }).display_name;
           }
-        } else if (item.change_type === 'VARIANT_CHANGE') {
+      } else if (item.change_type === 'VARIANT_CHANGE') {
           // Resolve variant index to label before saving
           let resolvedOption = item.proposed_variant_option;
           const vi = item.variant_item as { id: string; dish: { modifiable_items: Json | null } | null } | null;
@@ -185,7 +186,8 @@ export const useResolveProposal = () => {
             }
           }
           updateData.selected_variant_option = resolvedOption ?? undefined;
-          updateData.custom_price = item.proposed_price;
+          // Store modifier separately — don't overwrite frozen base price
+          updateData.variant_price_modifier = (item.proposed_price ?? 0) - (item.original_price ?? 0);
         } else if (item.change_type === 'QUANTITY_CHANGE') {
           updateData.quantity = item.proposed_quantity ?? undefined;
           updateData.custom_price = item.proposed_price;

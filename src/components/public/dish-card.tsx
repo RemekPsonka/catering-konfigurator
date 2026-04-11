@@ -46,14 +46,16 @@ export const DishCard = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const dish = item.dishes;
-  const unitPrice = item.custom_price != null ? Number(item.custom_price) : getPrice(dish);
+  const basePrice = item.custom_price != null ? Number(item.custom_price) : getPrice(dish);
+  const variantMod = Number(item.variant_price_modifier) || 0;
+  const unitPrice = basePrice + variantMod;
 
-  // Apply modification price adjustments
+  // Apply temporary client modification price adjustments
   let effectivePrice = unitPrice;
   if (modification?.type === 'swap' && modification.swapPriceDiff != null) {
-    effectivePrice = unitPrice + modification.swapPriceDiff;
+    effectivePrice = basePrice + modification.swapPriceDiff;
   } else if (modification?.type === 'variant' && modification.variantPriceModifier != null) {
-    effectivePrice = unitPrice + modification.variantPriceModifier;
+    effectivePrice = basePrice + modification.variantPriceModifier;
   }
 
   const quantity = item.quantity ?? 1;

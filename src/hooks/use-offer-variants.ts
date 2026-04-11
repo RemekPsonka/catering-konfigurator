@@ -33,7 +33,8 @@ export const getDishPrice = (dish: VariantItemWithDish['dishes']): number => {
 };
 
 export const getItemPrice = (item: VariantItemWithDish): number => {
-  return item.custom_price != null ? Number(item.custom_price) : getDishPrice(item.dishes);
+  const base = item.custom_price != null ? Number(item.custom_price) : getDishPrice(item.dishes);
+  return base + (Number(item.variant_price_modifier) || 0);
 };
 
 export const useOfferVariants = (offerId: string | null) => {
