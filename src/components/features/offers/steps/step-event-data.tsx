@@ -211,7 +211,70 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} id="step-event-data" className="space-y-6">
-          {/* Event type & client */}
+          {/* Client */}
+          <Card>
+            <CardHeader><CardTitle>Klient</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <FormField control={form.control} name="client_id" render={() => (
+                <FormItem>
+                  <FormLabel>Klient</FormLabel>
+                  <FormControl>
+                    <ClientAutocomplete
+                      value={form.watch('client_id')}
+                      displayValue={form.watch('client_name')}
+                      onSelect={handleClientSelect}
+                      onAddNew={() => setClientDialogOpen(true)}
+                    />
+                  </FormControl>
+                  {!form.watch('client_id') && (
+                    <p className="text-xs text-destructive/70">⚠️ Uzupełnij klienta przed wysłaniem oferty</p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="inquiry_text" render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Treść zapytania klienta</FormLabel>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!canAnalyze || isAnalyzing}
+                      onClick={handleAnalyze}
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Bot className="mr-2 h-4 w-4" />
+                      )}
+                      {isAnalyzing ? 'Analizuję...' : 'Analizuj zapytanie'}
+                    </Button>
+                  </div>
+                  <FormDescription>Opcjonalnie — wklej oryginalną wiadomość od klienta</FormDescription>
+                  <FormControl><Textarea rows={4} placeholder="Treść maila klienta..." {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {/* AI Results Panel */}
+              {aiResult && (
+                <AiInquiryPanel
+                  parsedData={aiResult}
+                  form={form as unknown as Parameters<typeof AiInquiryPanel>[0]['form']}
+                  requirements={requirements}
+                  onRequirementsChange={setRequirements}
+                  onCreateClient={handleAiCreateClient}
+                  onUseExistingClient={handleUseExistingClient}
+                />
+              )}
+
+              {/* greeting_text is auto-generated and edited in step 4 */}
+            </CardContent>
+          </Card>
+
+          {/* Event type & details */}
           <Card>
             <CardHeader><CardTitle>Wydarzenie</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -358,69 +421,6 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
                   <FormMessage />
                 </FormItem>
               )} />
-            </CardContent>
-          </Card>
-
-          {/* Client */}
-          <Card>
-            <CardHeader><CardTitle>Klient</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <FormField control={form.control} name="client_id" render={() => (
-                <FormItem>
-                  <FormLabel>Klient</FormLabel>
-                  <FormControl>
-                    <ClientAutocomplete
-                      value={form.watch('client_id')}
-                      displayValue={form.watch('client_name')}
-                      onSelect={handleClientSelect}
-                      onAddNew={() => setClientDialogOpen(true)}
-                    />
-                  </FormControl>
-                  {!form.watch('client_id') && (
-                    <p className="text-xs text-destructive/70">⚠️ Uzupełnij klienta przed wysłaniem oferty</p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="inquiry_text" render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Treść zapytania klienta</FormLabel>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={!canAnalyze || isAnalyzing}
-                      onClick={handleAnalyze}
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Bot className="mr-2 h-4 w-4" />
-                      )}
-                      {isAnalyzing ? 'Analizuję...' : 'Analizuj zapytanie'}
-                    </Button>
-                  </div>
-                  <FormDescription>Opcjonalnie — wklej oryginalną wiadomość od klienta</FormDescription>
-                  <FormControl><Textarea rows={4} placeholder="Treść maila klienta..." {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              {/* AI Results Panel */}
-              {aiResult && (
-                <AiInquiryPanel
-                  parsedData={aiResult}
-                  form={form as unknown as Parameters<typeof AiInquiryPanel>[0]['form']}
-                  requirements={requirements}
-                  onRequirementsChange={setRequirements}
-                  onCreateClient={handleAiCreateClient}
-                  onUseExistingClient={handleUseExistingClient}
-                />
-              )}
-
-              {/* greeting_text is auto-generated and edited in step 4 */}
             </CardContent>
           </Card>
         </form>
