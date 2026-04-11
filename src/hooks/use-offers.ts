@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 export interface OfferWithClient extends Tables<'offers'> {
   clients: { name: string } | null;
+  offer_variants: { id: string; name: string }[] | null;
 }
 
 export interface OfferFilters {
@@ -24,7 +25,7 @@ export const useOffers = (filters: OfferFilters) => {
 
       let query = supabase
         .from('offers')
-        .select('*, clients(name)', { count: 'exact' })
+        .select('*, clients(name), offer_variants(id, name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -49,7 +50,7 @@ export const useOffers = (filters: OfferFilters) => {
       if (filters.search && results.length === 0) {
         let fallbackQuery = supabase
           .from('offers')
-          .select('*, clients(name)')
+          .select('*, clients(name), offer_variants(id, name)')
           .order('created_at', { ascending: false });
 
         if (filters.status && filters.status !== 'all') {

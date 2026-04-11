@@ -172,7 +172,17 @@ export const OffersListPage = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={offer.status as OfferStatus} type="offer" />
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge status={offer.status as OfferStatus} type="offer" />
+                      {['accepted', 'won'].includes(offer.status) && offer.accepted_variant_id && (() => {
+                        const variantName = offer.offer_variants?.find(v => v.id === offer.accepted_variant_id)?.name;
+                        return variantName ? (
+                          <Badge className="bg-green-50 text-green-700 border-green-200 text-[10px] w-fit">
+                            Wariant: {variantName}
+                          </Badge>
+                        ) : null;
+                      })()}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {formatDate(offer.created_at)}
