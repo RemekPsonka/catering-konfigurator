@@ -1,60 +1,43 @@
 
 
-## Plan: Social Proof + Opinie + Badge rekomendowanego [CS-033]
+## Plan: Udostępnij ofertę + FAQ [CS-034]
 
-### Analiza obecnego stanu
+### Analiza
+- Tabela `offer_events` istnieje (insert RLS dla public z token check)
+- Tabela `offer_faq` istnieje (question, answer, event_types[], is_active, sort_order)
+- Brak istniejącego helpera do insertowania eventów — trzeba stworzyć
+- `ChangesPanel` jest fixed bottom — ShareOffer FAB będzie obok (prawy dolny róg, wyżej)
+- Sekcja FAQ powinna być PO testimonials, PRZED TermsSection
 
-- **Badge "Polecany"** na wariancie z `is_recommended=true` — **już istnieje** w `variant-comparison-section.tsx` i `menu-variants-section.tsx` (ikona Sparkles + "Polecany"). Zmienię tekst na "Najczęściej wybierany ⭐".
-- **Checkbox "Polecany"** w wizardzie (step-menu) — **już istnieje** (linia 271-277).
-- `TestimonialSection` istnieje ale to prosty komponent na 1 cytat z event_type_profiles — nie pobiera z tabeli `testimonials`.
-- Tabele `company_stats` i `testimonials` już istnieją w bazie.
+### Nowe pliki (3)
 
-### Zmiany
+**1. `src/lib/tracking.ts`** — helper do fire-and-forget event tracking
+- `trackOfferEvent(offerId, eventType, eventData?)` — insert do `offer_events` z session_id (random, cached in sessionStorage), device_type, browser
+- Fire-and-forget (no await, no error handling w callerze)
 
-**1. Nowa strona admin `/admin/social-proof`** (nowy plik `src/pages/admin/social-proof.tsx`)
-- Tabs: "Statystyki firmy" | "Opinie klientów"
-- Tab Statystyki: edytowalne karty z `company_stats` (stat_value, stat_label, stat_icon, sort_order, is_active)
-- Tab Opinie: lista z `testimonials`, CRUD dialog (client_name, event_type dropdown, event_description, quote, rating 1-5, is_active toggle, photo_url)
-- Dodaj route w `App.tsx`: `<Route path="social-proof" element={<SocialProofPage />} />`
-- Dodaj link w sidebar (`admin-layout.tsx`): "Social Proof" z ikoną `Award`, po "Usługi"
+**2. `src/components/public/share-offer.tsx`** — FAB + Sheet
+- Props: `offerId`, `offerUrl` (window.location.href), `eventTypeLabel`, `eventDate`
+- FAB button: fixed right-4 bottom-20 (nad ChangesPanel), ikona Share2, z pulse animation
+- Sheet (z prawej) z 3 opcjami:
+  - **Kopiuj link** — `navigator.clipboard.writeText(url)`, toast "Link skopiowany!"
+  - **Wyślij emailem** — input na email odbiorcy + textarea opcjonalna wiadomość → `mailto:` link z pre-filled subject/body
+  - **WhatsApp** — `https://wa.me/?text={encoded}` w nowym oknie
+- Każda akcja → `trackOfferEvent(offerId, 'share_clicked', { method: 'copy'|'email'|'whatsapp' })`
 
-**2. Hook `src/hooks/use-social-proof.ts`**
-- `useCompanyStats()` — fetch `company_stats` WHERE is_active=true ORDER BY sort_order
-- `useTestimonials(eventType?)` — fetch `testimonials` WHERE is_active=true, preferuj pasujące do event_type, dopełnij do max 3
-- `useUpdateStat()`, `useCreateTestimonial()`, `useUpdateTestimonial()`, `useDeleteTestimonial()` — CRUD mutations
+**3. `src/components/public/faq-section.tsx`** — sekcja FAQ
+- Fetch `offer_faq` WHERE `is_active=true`, filtruj w JS: `event_types` zawiera `eventType` LUB `event_types` jest puste
+- Max 8 pytań, sortowane po `sort_order`
+- Shadcn Accordion z premium stylem (theme vars)
+- Przy otwarciu pytania → `trackOfferEvent(offerId, 'faq_opened', { question_id })`
 
-**3. Publiczna strona — pasek statystyk** (`src/components/public/social-proof-stats.tsx`)
-- Fetch `company_stats` WHERE is_active=true
-- Grid 4 kolumny desktop, 2 mobile
-- Każdy: emoji (stat_icon) + duża liczba (countUp z framer-motion + useInView) + label
-- Styl premium, theme CSS vars
+### Pliki modyfikowane (1)
 
-**4. Publiczna strona — sekcja opinii** (`src/components/public/testimonials-carousel.tsx`)
-- Fetch `testimonials` WHERE is_active=true, filtruj po event_type oferty (dopełnij globalnymi do 3)
-- 3 karty: cytat w cudzysłowie, imię, opis wydarzenia, gwiazdki (Star icons)
-- framer-motion staggerChildren fadeInUp
-
-**5. Integracja w `src/pages/public/offer.tsx`**
-- Dodaj `<SocialProofStats />` i `<TestimonialsCarousel eventType={offer.event_type} />` przed `<TermsSection />`
-
-**6. Badge "Najczęściej wybierany ⭐"**
-- W `variant-comparison-section.tsx` i `menu-variants-section.tsx`: zmień tekst z "Polecany" na "Najczęściej wybierany ⭐", zachowaj Sparkles icon + dodaj gwiazdkę
-
-### Pliki nowe
-1. `src/pages/admin/social-proof.tsx`
-2. `src/hooks/use-social-proof.ts`
-3. `src/components/public/social-proof-stats.tsx`
-4. `src/components/public/testimonials-carousel.tsx`
-
-### Pliki modyfikowane
-1. `src/App.tsx` — nowa route
-2. `src/components/layout/admin-layout.tsx` — nowy link w sidebar
-3. `src/pages/public/offer.tsx` — integracja sekcji
-4. `src/components/public/variant-comparison-section.tsx` — zmiana tekstu badge
-5. `src/components/public/menu-variants-section.tsx` — zmiana tekstu badge
+**`src/pages/public/offer.tsx`**
+- Import `ShareOffer` i `FaqSection`
+- Dodaj `<FaqSection offerId={offer.id} eventType={offer.event_type} />` po TestimonialsCarousel, przed TermsSection
+- Dodaj `<ShareOffer offerId={offer.id} eventTypeLabel={...} eventDate={offer.event_date} />` w sekcji no-print (obok ChangesPanel)
 
 ### Nie ruszam
-- Logiki kalkulacji, wizarda (checkbox już istnieje), systemu propozycji
-- `testimonial-section.tsx` (stary komponent, może być używany gdzie indziej)
-- Schemy bazy (tabele `company_stats` i `testimonials` już istnieją)
+- `changes-panel.tsx`, sekcji oferty, admin panelu
+- Schema bazy (tabele `offer_events` i `offer_faq` już istnieją)
 
