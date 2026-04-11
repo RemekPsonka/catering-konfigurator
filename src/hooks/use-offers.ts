@@ -25,7 +25,7 @@ export const useOffers = (filters: OfferFilters) => {
 
       let query = supabase
         .from('offers')
-        .select('*, clients(name), offer_variants(id, name)', { count: 'exact' })
+        .select('*, clients(name), offer_variants!offer_variants_offer_id_fkey(id, name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -44,13 +44,13 @@ export const useOffers = (filters: OfferFilters) => {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      let results = data as unknown as OfferWithClient[];
+      const results = data as unknown as OfferWithClient[];
 
       // If searching and no results by offer_number, also try client name filter in JS
       if (filters.search && results.length === 0) {
         let fallbackQuery = supabase
           .from('offers')
-          .select('*, clients(name), offer_variants(id, name)')
+          .select('*, clients(name), offer_variants!offer_variants_offer_id_fkey(id, name)')
           .order('created_at', { ascending: false });
 
         if (filters.status && filters.status !== 'all') {
