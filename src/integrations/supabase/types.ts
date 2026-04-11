@@ -1794,6 +1794,8 @@ export type Database = {
         | "BOX"
         | "KAW"
         | "SPE"
+        | "SZK"
+        | "SWI"
       follow_up_status: "scheduled" | "sent" | "skipped" | "cancelled"
       lead_source: "EMAIL" | "FORM" | "PHONE" | "IG" | "TENDER" | "OTHER"
       lead_status:
@@ -2009,6 +2011,8 @@ export const Constants = {
         "BOX",
         "KAW",
         "SPE",
+        "SZK",
+        "SWI",
       ],
       follow_up_status: ["scheduled", "sent", "skipped", "cancelled"],
       lead_source: ["EMAIL", "FORM", "PHONE", "IG", "TENDER", "OTHER"],
