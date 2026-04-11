@@ -28,6 +28,7 @@ import { NotificationsListPage } from "@/pages/admin/notifications-list";
 import { SocialProofPage } from "@/pages/admin/social-proof";
 import { EventProfilesListPage } from "@/pages/admin/event-profiles-list";
 import { EventProfileEditPage } from "@/pages/admin/event-profile-edit";
+import { PhotosLibraryPage } from "@/pages/admin/photos-library";
 import { PublicOfferPage } from "@/pages/public/offer";
 import { OfferFindPage } from "@/pages/public/offer-find";
 import { SurveyPage } from "@/pages/public/survey";
