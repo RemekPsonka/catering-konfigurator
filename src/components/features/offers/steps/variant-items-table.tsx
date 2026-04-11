@@ -192,7 +192,22 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications, on
       </TableRow>
 
       {/* Inline proposal rows */}
-      {proposalItems?.map(pi => (
+      {proposalItems?.map(pi => {
+        const descriptionNode = (() => {
+          if (pi.changeType === 'SWAP' && pi.proposedDishName) {
+            return <>Zamiana na: <strong>{pi.proposedDishName}</strong></>;
+          }
+          if (pi.changeType === 'VARIANT_CHANGE') {
+            const label = pi.resolvedProposedLabel ?? pi.proposedVariantOption ?? '—';
+            return <>Zmiana wariantu na: <strong>{label}</strong></>;
+          }
+          if (pi.changeType === 'QUANTITY_CHANGE' && pi.proposedQuantity != null) {
+            return <>Zmiana ilości na: <strong>{pi.proposedQuantity} szt.</strong></>;
+          }
+          return <>{pi.proposedDishName ?? pi.proposedVariantOption ?? '—'}</>;
+        })();
+
+        return (
         <TableRow key={pi.id} className="bg-orange-50/50 border-t-0">
           <TableCell colSpan={2} />
           <TableCell colSpan={3}>
@@ -200,7 +215,7 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications, on
               <span className="text-orange-700 font-medium">{CHANGE_TYPE_LABELS[pi.changeType] ?? pi.changeType}</span>
               <span className="text-muted-foreground">→</span>
               <span className="font-medium">
-                {pi.proposedDishName ?? pi.proposedVariantOption ?? '—'}
+                {descriptionNode}
               </span>
               {pi.proposedPrice !== pi.originalPrice && (
                 <span className={pi.proposedPrice > pi.originalPrice ? 'text-destructive text-xs' : 'text-green-600 text-xs'}>
@@ -236,7 +251,8 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications, on
             </div>
           </TableCell>
         </TableRow>
-      ))}
+        );
+      })}
     </>
   );
 };
