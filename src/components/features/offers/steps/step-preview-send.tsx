@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift } from 'lucide-react';
+import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift, Edit2, RotateCcw, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
 import { formatCurrency, calculateOfferTotals, getDishPrice } from '@/lib/calculations';
@@ -142,12 +142,24 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   });
 
   const termsQuery = useQuery({
-    queryKey: ['offer-terms-active'],
+    queryKey: ['offer-terms-preview', offerId ?? 'global'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('offer_terms').select('*').eq('is_active', true).order('display_order');
+      const { data: allTerms, error } = await supabase.from('offer_terms').select('*').eq('is_active', true).order('display_order');
       if (error) throw error;
-      return data as Tables<'offer_terms'>[];
+      const globalTerms = (allTerms ?? []) as Tables<'offer_terms'>[];
+      if (!offerId) return globalTerms;
+
+      const { data: overrides, error: oErr } = await supabase.from('offer_term_overrides').select('*').eq('offer_id', offerId);
+      if (oErr) throw oErr;
+      const overrideMap = new Map((overrides ?? []).map((o: { term_id: string; value: string; is_hidden: boolean | null }) => [o.term_id, o]));
+
+      return globalTerms.map((t) => {
+        const ov = overrideMap.get(t.id);
+        if (!ov) return { ...t, _overridden: false, _hidden: false };
+        return { ...t, value: ov.value, _overridden: true, _hidden: ov.is_hidden ?? false };
+      });
     },
+    enabled: !!offerId,
   });
 
   const themesQuery = useQuery({
