@@ -221,6 +221,14 @@ export const OffersListPage = () => {
                         >
                           <BookTemplate className="mr-2 h-4 w-4" />Zapisz jako szablon
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`/admin/offers/${offer.id}/print`, '_blank');
+                          }}
+                        >
+                          <Printer className="mr-2 h-4 w-4" />Drukuj ofertę
+                        </DropdownMenuItem>
                         {offer.public_token && (
                           <DropdownMenuItem
                             onClick={(e) => {
