@@ -21,7 +21,11 @@ import {
   getItemPrice,
   type VariantWithItems,
 } from '@/hooks/use-offer-variants';
+import { useAdminPendingProposals } from '@/hooks/use-admin-pending-proposals';
+import { useUpdateProposalItem, useResolveProposal } from '@/hooks/use-proposal-diff';
+import { useAuth } from '@/hooks/use-auth';
 import { VariantItemsTable } from './variant-items-table';
+import { ClientProposalsBanner } from './client-proposals-banner';
 import { ProposalHistoryPanel } from './proposal-history-panel';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { RequirementHints } from '../requirement-hints';
@@ -39,6 +43,8 @@ const DEFAULT_VARIANT_NAMES = ['Classic', 'Premium', 'De Luxe'];
 
 export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] }: StepMenuProps) => {
   const { data: variants, isLoading } = useOfferVariants(offerId);
+  const { data: pendingData } = useAdminPendingProposals(offerId);
+  const { user } = useAuth();
   const createVariant = useCreateVariant();
   const updateVariant = useUpdateVariant();
   const deleteVariant = useDeleteVariant();
@@ -47,6 +53,8 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
   const removeItem = useRemoveVariantItem();
   const duplicateVariant = useDuplicateVariant();
   const reorderItems = useReorderVariantItems();
+  const updateProposalItem = useUpdateProposalItem();
+  const resolveProposal = useResolveProposal();
 
   const [activeTab, setActiveTab] = useState<string>('');
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -55,7 +63,6 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
 
   const variantsList = variants ?? [];
 
-  // Set active tab to first variant if not set
   useEffect(() => {
     if (variantsList.length > 0 && (!activeTab || !variantsList.find(v => v.id === activeTab))) {
       setActiveTab(variantsList[0].id);
@@ -89,7 +96,6 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
 
   const handleRecommendedChange = (variantId: string, checked: boolean) => {
     if (checked) {
-      // Uncheck all others
       variantsList.forEach(v => {
         if (v.is_recommended && v.id !== variantId) {
           updateVariant.mutate({ id: v.id, offer_id: offerId, is_recommended: false });
@@ -130,6 +136,65 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
     }, 0);
   };
 
+  const handleAcceptProposalItem = async (itemId: string, proposalId: string) => {
+    if (!user?.id) return;
+    try {
+      await updateProposalItem.mutateAsync({
+        itemId,
+        status: 'accepted',
+        decidedBy: user.id,
+      });
+      // Check if all items in proposal are decided, auto-resolve
+      await checkAndAutoResolve(proposalId);
+      toast.success('Propozycja zaakceptowana');
+    } catch {
+      toast.error('Nie udało się zaakceptować propozycji');
+    }
+  };
+
+  const handleRejectProposalItem = async (itemId: string, proposalId: string) => {
+    if (!user?.id) return;
+    try {
+      await updateProposalItem.mutateAsync({
+        itemId,
+        status: 'rejected',
+        decidedBy: user.id,
+      });
+      await checkAndAutoResolve(proposalId);
+      toast.success('Propozycja odrzucona');
+    } catch {
+      toast.error('Nie udało się odrzucić propozycji');
+    }
+  };
+
+  const checkAndAutoResolve = async (proposalId: string) => {
+    if (!user?.id) return;
+    // Refetch proposal items to check if all decided
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data: items } = await supabase
+      .from('proposal_items')
+      .select('status')
+      .eq('proposal_id', proposalId);
+
+    if (!items) return;
+    const allDecided = items.every(i => i.status === 'accepted' || i.status === 'rejected');
+    if (!allDecided) return;
+
+    const hasAccepted = items.some(i => i.status === 'accepted');
+    const hasRejected = items.some(i => i.status === 'rejected');
+
+    let status: 'accepted' | 'partially_accepted' | 'rejected';
+    if (hasAccepted && hasRejected) status = 'partially_accepted';
+    else if (hasAccepted) status = 'accepted';
+    else status = 'rejected';
+
+    await resolveProposal.mutateAsync({
+      proposalId,
+      status,
+      resolvedBy: user.id,
+    });
+  };
+
   const activeVariant = variantsList.find(v => v.id === activeTab);
 
   return (
@@ -140,6 +205,12 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
           <RequirementHints requirements={requirements} category="dietary" />
         </>
       )}
+
+      {/* Pending proposals banner */}
+      {pendingData && pendingData.proposals.length > 0 && (
+        <ClientProposalsBanner offerId={offerId} proposals={pendingData.proposals} />
+      )}
+
       {variantsList.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
@@ -234,6 +305,9 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
                       onReorder={(items) =>
                         reorderItems.mutate({ items, offer_id: offerId })
                       }
+                      pendingProposalItems={pendingData?.itemsByVariantItem}
+                      onAcceptProposalItem={handleAcceptProposalItem}
+                      onRejectProposalItem={handleRejectProposalItem}
                     />
                   </CardContent>
                 </Card>
