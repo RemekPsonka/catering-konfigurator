@@ -1,43 +1,69 @@
 
 
-## Plan: Udostępnij ofertę + FAQ [CS-034]
+## Plan: Auto-follow-up Email Sequence [CS-037]
 
-### Analiza
-- Tabela `offer_events` istnieje (insert RLS dla public z token check)
-- Tabela `offer_faq` istnieje (question, answer, event_types[], is_active, sort_order)
-- Brak istniejącego helpera do insertowania eventów — trzeba stworzyć
-- `ChangesPanel` jest fixed bottom — ShareOffer FAB będzie obok (prawy dolny róg, wyżej)
-- Sekcja FAQ powinna być PO testimonials, PRZED TermsSection
+### Wymaganie wstępne: domena email
 
-### Nowe pliki (3)
+Aby wysyłać emaile z systemu, potrzebna jest skonfigurowana domena email. Obecnie **brak skonfigurowanej domeny**. Pierwszym krokiem będzie setup domeny emailowej przez Lovable Cloud — to pozwoli na wysyłkę transakcyjnych emaili bez zewnętrznych serwisów.
 
-**1. `src/lib/tracking.ts`** — helper do fire-and-forget event tracking
-- `trackOfferEvent(offerId, eventType, eventData?)` — insert do `offer_events` z session_id (random, cached in sessionStorage), device_type, browser
-- Fire-and-forget (no await, no error handling w callerze)
+### Obecny stan
+- Tabela `offer_follow_ups` istnieje (offer_id, sequence_step, step_name, status, scheduled_at, email_to, sent_at)
+- Trigger `trigger_schedule_follow_ups` automatycznie planuje sekwencję przy `status='sent'`
+- Trigger `trigger_cancel_follow_ups` anuluje przy `accepted/won/lost`
+- Funkcja `schedule_follow_up_sequence()` tworzy 4 kroki (thank_you 1h, reminder_48h 48h, manager_alert 5d, expiry_warning -3d)
+- Kolumna `follow_up_enabled` na `offers` (default true)
+- **Brak** Edge Function do wysyłki
+- **Brak** toggle w UI
+- **Brak** panelu follow-upów w dashboardzie
 
-**2. `src/components/public/share-offer.tsx`** — FAB + Sheet
-- Props: `offerId`, `offerUrl` (window.location.href), `eventTypeLabel`, `eventDate`
-- FAB button: fixed right-4 bottom-20 (nad ChangesPanel), ikona Share2, z pulse animation
-- Sheet (z prawej) z 3 opcjami:
-  - **Kopiuj link** — `navigator.clipboard.writeText(url)`, toast "Link skopiowany!"
-  - **Wyślij emailem** — input na email odbiorcy + textarea opcjonalna wiadomość → `mailto:` link z pre-filled subject/body
-  - **WhatsApp** — `https://wa.me/?text={encoded}` w nowym oknie
-- Każda akcja → `trackOfferEvent(offerId, 'share_clicked', { method: 'copy'|'email'|'whatsapp' })`
+### Zmiany
 
-**3. `src/components/public/faq-section.tsx`** — sekcja FAQ
-- Fetch `offer_faq` WHERE `is_active=true`, filtruj w JS: `event_types` zawiera `eventType` LUB `event_types` jest puste
-- Max 8 pytań, sortowane po `sort_order`
-- Shadcn Accordion z premium stylem (theme vars)
-- Przy otwarciu pytania → `trackOfferEvent(offerId, 'faq_opened', { question_id })`
+**1. Setup infrastruktury email**
+- Skonfiguruj domenę emailową (dialog setup)
+- Scaffold transactional email infrastructure (queue, cron, Edge Function)
 
-### Pliki modyfikowane (1)
+**2. Edge Function: `send-follow-up/index.ts`**
+- Wywoływana przez pg_cron co 15 minut
+- Query: `offer_follow_ups WHERE status='scheduled' AND scheduled_at <= now()`
+- Per rekord:
+  - Pobierz ofertę + klienta (email, nazwa, event_type, public_token, total_value, valid_until)
+  - Sprawdź status oferty — jeśli `accepted/won/lost` → skip (mark `cancelled`)
+  - Sprawdź `follow_up_enabled` — jeśli false → skip
+  - **Skip logic**: jeśli `last_client_activity_at` w ciągu 24h i step = `reminder_48h` → opóźnij o 24h (UPDATE scheduled_at)
+  - Step `thank_you`: jeśli oferta nie `viewed` po 24h → zmień treść na "Wysłaliśmy Ci ofertę"
+  - Step `manager_alert`: wyślij na adres managera (z `system_settings` key `manager_email`), nie klienta
+  - Wygeneruj HTML z szablonu per `step_name`
+  - Wyślij przez `send-transactional-email` (Lovable email infrastructure)
+  - UPDATE `status='sent'`, `sent_at=now()`, `email_subject=subject`
+- Error handling: loguj, nie zmieniaj statusu → retry za 15 min
 
-**`src/pages/public/offer.tsx`**
-- Import `ShareOffer` i `FaqSection`
-- Dodaj `<FaqSection offerId={offer.id} eventType={offer.event_type} />` po TestimonialsCarousel, przed TermsSection
-- Dodaj `<ShareOffer offerId={offer.id} eventTypeLabel={...} eventDate={offer.event_date} />` w sekcji no-print (obok ChangesPanel)
+**3. 4 szablony HTML emaili** (w Edge Function)
+- `thank_you`: "Dziękujemy za zapoznanie się z ofertą" + link
+- `reminder_48h`: "Twoja oferta na [event] czeka" + kwota + data + link
+- `manager_alert`: DO MANAGERA: "Oferta CS-XXXX — brak reakcji klienta od 5 dni"
+- `expiry_warning`: "Oferta wygasa za 3 dni" + urgency CTA + link
+
+**4. Toggle w wizardzie** (`step-preview-send.tsx`)
+- W sekcji "Ustawienia wyświetlania" (collapsed card): dodaj Switch "Automatyczne follow-upy"
+- Auto-save do `offers.follow_up_enabled`
+- Opis: "System wyśle automatyczne przypomnienia po wysłaniu oferty"
+
+**5. Panel follow-upów na dashboardzie** (`dashboard.tsx`)
+- Nowa sekcja "Zaplanowane follow-upy" (Card) — między warnings a activity
+- Hook `useFollowUps()` w `use-dashboard.ts`: fetch `offer_follow_ups` WHERE status IN ('scheduled','sent') z join na offers(offer_number) 
+- Lista: offer_number, step_name (po polsku), scheduled_at, status badge
+- Przycisk "Anuluj" per rekord (UPDATE status='cancelled')
+- Max 10 rekordów, sortowane po scheduled_at
+
+### Nowe pliki
+1. `supabase/functions/send-follow-up/index.ts`
+
+### Pliki modyfikowane
+1. `src/components/features/offers/steps/step-preview-send.tsx` — toggle follow-up
+2. `src/pages/admin/dashboard.tsx` — sekcja follow-upów
+3. `src/hooks/use-dashboard.ts` — hook useFollowUps
 
 ### Nie ruszam
-- `changes-panel.tsx`, sekcji oferty, admin panelu
-- Schema bazy (tabele `offer_events` i `offer_faq` już istnieją)
+- Istniejących Edge Functions, triggery DB (już działają), publicznej strony oferty
+- Tabeli `offer_follow_ups` (już istnieje z prawidłową strukturą)
 
