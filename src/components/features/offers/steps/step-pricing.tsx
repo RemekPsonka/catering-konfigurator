@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Wrench, Percent, ChevronDown, Save } from 'lucide-react';
+import { Wrench, Percent, ChevronDown, Save, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency, calculateOfferTotals } from '@/lib/calculations';
 import { useOfferVariants } from '@/hooks/use-offer-variants';
@@ -91,6 +91,26 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
   // ── Variants + discount/delivery state ──
   const { data: variants = [] } = useOfferVariants(offerId);
 
+  // ── Upsell selections (read-only) ──
+  const upsellQuery = useQuery({
+    queryKey: ['offer-upsell-selections', offerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('offer_upsell_selections')
+        .select('*, upsell_items(name, emoji)')
+        .eq('offer_id', offerId!)
+        .eq('status', 'active');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!offerId,
+  });
+  const upsellSelections = upsellQuery.data ?? [];
+  const upsellTotal = useMemo(
+    () => upsellSelections.reduce((sum, s) => sum + Number(s.total_price), 0),
+    [upsellSelections],
+  );
+
   const offerCalcQuery = useQuery({
     queryKey: ['offer-calc', offerId],
     queryFn: async () => {
@@ -124,8 +144,8 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
   const totals = useMemo(() => {
     const dp = discountType === 'percent' ? Math.min(100, Math.max(0, discountPercent)) : 0;
     const dv = discountType === 'value' ? discountValue : 0;
-    return calculateOfferTotals(pricingMode, peopleCount, variants, offerServices ?? [], dp, dv, deliveryCost);
-  }, [variants, offerServices, pricingMode, peopleCount, discountType, discountPercent, discountValue, deliveryCost]);
+    return calculateOfferTotals(pricingMode, peopleCount, variants, offerServices ?? [], dp, dv, deliveryCost, upsellTotal);
+  }, [variants, offerServices, pricingMode, peopleCount, discountType, discountPercent, discountValue, deliveryCost, upsellTotal]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -147,6 +167,7 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
         total_services_value: totals.servicesTotalCalc,
         total_value: totals.grandTotal,
         price_per_person: totals.pricePerPerson,
+        upsell_total: upsellTotal,
       }).eq('id', offerId);
       if (error) throw error;
     },
@@ -245,6 +266,57 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
         </Card>
       </Collapsible>
 
+      {/* Section 1b: Upsell (read-only) */}
+      {upsellSelections.length > 0 && (
+        <Collapsible defaultOpen>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <span className="flex items-center gap-2">
+                    <Gift className="h-5 w-5" />
+                    Dodatki klienta
+                    <Badge variant="secondary">{upsellSelections.length}</Badge>
+                  </span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground mb-2">Wybrane przez klienta — tylko do odczytu</p>
+                {upsellSelections.map((sel) => {
+                  const item = sel.upsell_items as unknown as { name: string; emoji: string | null } | null;
+                  return (
+                    <div key={sel.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
+                      <span className="flex items-center gap-2">
+                        <span>{item?.emoji ?? '🛒'}</span>
+                        <span className="font-medium">{item?.name ?? 'Dodatek'}</span>
+                        {sel.quantity > 1 && (
+                          <Badge variant="outline" className="text-xs">×{sel.quantity}</Badge>
+                        )}
+                      </span>
+                      <span className="font-medium">
+                        {sel.quantity > 1
+                          ? `${formatCurrency(Number(sel.unit_price))} × ${sel.quantity} = ${formatCurrency(Number(sel.total_price))}`
+                          : formatCurrency(Number(sel.total_price))}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between font-semibold text-sm pt-2 border-t">
+                  <span>Suma dodatków</span>
+                  <span>{formatCurrency(upsellTotal)}</span>
+                </div>
+                {!upsellSelections.every((s) => s.confirmed_at) && (
+                  <p className="text-xs text-amber-600">⚠ Dodatki jeszcze nie zatwierdzone przez klienta</p>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
       {/* Section 2: Discount & Delivery */}
       <Collapsible open={discountOpen} onOpenChange={setDiscountOpen}>
         <Card>
@@ -330,6 +402,12 @@ export const StepPricing = ({ offerId, pricingMode, peopleCount, requirements = 
             <div className="flex justify-between text-sm text-destructive">
               <span>Rabat</span>
               <span>-{formatCurrency(totals.discountAmount)}</span>
+            </div>
+          )}
+          {upsellTotal > 0 && (
+            <div className="flex justify-between text-sm">
+              <span>Dodatki klienta</span>
+              <span>{formatCurrency(upsellTotal)}</span>
             </div>
           )}
           {deliveryCost > 0 && (

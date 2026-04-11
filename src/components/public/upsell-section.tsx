@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, Check, Trash2, Sparkles } from 'lucide-react';
+import { Plus, Check, Trash2, Sparkles, Minus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/calculations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
@@ -15,6 +15,18 @@ interface UpsellSectionProps {
   actionsDisabled: boolean;
 }
 
+interface UpsellItem {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  price: number;
+  price_type: string;
+  default_quantity: number;
+  is_active: boolean;
+  sort_order: number;
+}
+
 export const UpsellSection = ({
   offerId,
   eventType,
@@ -23,6 +35,7 @@ export const UpsellSection = ({
   actionsDisabled,
 }: UpsellSectionProps) => {
   const queryClient = useQueryClient();
+  const [pendingQuantities, setPendingQuantities] = useState<Map<string, number>>(new Map());
 
   const setsQuery = useQuery({
     queryKey: ['public-upsell-sets', eventType],
@@ -89,6 +102,19 @@ export const UpsellSection = ({
     },
   });
 
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ selectionId, quantity, unitPrice }: { selectionId: string; quantity: number; unitPrice: number }) => {
+      const { error } = await supabase
+        .from('offer_upsell_selections')
+        .update({ quantity, total_price: unitPrice * quantity })
+        .eq('id', selectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['public-upsell-selections', offerId] });
+    },
+  });
+
   const activeSelections = useMemo(
     () => new Map((selectionsQuery.data ?? []).map((s) => [s.upsell_item_id, s])),
     [selectionsQuery.data],
@@ -97,17 +123,7 @@ export const UpsellSection = ({
   const allItems = useMemo(() => {
     if (!setsQuery.data) return [];
     return setsQuery.data.flatMap((set) =>
-      (set.upsell_items as Array<{
-        id: string;
-        name: string;
-        description: string | null;
-        emoji: string | null;
-        price: number;
-        price_type: string;
-        default_quantity: number;
-        is_active: boolean;
-        sort_order: number;
-      }>)
+      (set.upsell_items as UpsellItem[])
         .filter((i) => i.is_active)
         .sort((a, b) => a.sort_order - b.sort_order),
     );
@@ -115,9 +131,16 @@ export const UpsellSection = ({
 
   if (!upsellEnabled || allItems.length === 0) return null;
 
-  const handleAdd = (item: (typeof allItems)[0]) => {
+  const getPendingQty = (itemId: string, defaultQty: number) =>
+    pendingQuantities.get(itemId) ?? defaultQty;
+
+  const setPendingQty = (itemId: string, qty: number) => {
+    setPendingQuantities((prev) => new Map(prev).set(itemId, Math.max(1, Math.min(10, qty))));
+  };
+
+  const handleAdd = (item: UpsellItem) => {
     const isPerPerson = item.price_type === 'PER_PERSON';
-    const quantity = isPerPerson ? peopleCount : item.default_quantity;
+    const quantity = isPerPerson ? peopleCount : getPendingQty(item.id, item.default_quantity);
     const unitPrice = item.price;
     const totalPrice = unitPrice * quantity;
     addMutation.mutate({
@@ -131,6 +154,17 @@ export const UpsellSection = ({
   const handleRemove = (itemId: string) => {
     const selection = activeSelections.get(itemId);
     if (selection) removeMutation.mutate(selection.id);
+  };
+
+  const handleQuantityChange = (itemId: string, newQty: number) => {
+    const selection = activeSelections.get(itemId);
+    if (!selection) return;
+    const clampedQty = Math.max(1, Math.min(10, newQty));
+    updateQuantityMutation.mutate({
+      selectionId: selection.id,
+      quantity: clampedQty,
+      unitPrice: Number(selection.unit_price),
+    });
   };
 
   return (
@@ -172,6 +206,7 @@ export const UpsellSection = ({
             const isAdded = activeSelections.has(item.id);
             const isPerPerson = item.price_type === 'PER_PERSON';
             const totalForPerPerson = item.price * peopleCount;
+            const selection = activeSelections.get(item.id);
 
             return (
               <motion.div
@@ -221,45 +256,114 @@ export const UpsellSection = ({
                       className="font-body text-lg font-bold"
                       style={{ color: 'var(--theme-primary, #1A1A1A)' }}
                     >
-                      {formatCurrency(item.price * item.default_quantity)}
+                      {formatCurrency(item.price)}{item.default_quantity > 1 ? ` × ${item.default_quantity}` : ''}
                     </p>
                   )}
                 </div>
 
                 {!isAdded ? (
-                  <Button
-                    size="sm"
-                    disabled={actionsDisabled || addMutation.isPending}
-                    onClick={() => handleAdd(item)}
-                    className="w-full"
-                    style={{
-                      backgroundColor: 'var(--theme-primary, #1A1A1A)',
-                      color: '#fff',
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Dodaj
-                  </Button>
+                  <div className="space-y-2">
+                    {/* Quantity selector for non-per-person items */}
+                    {!isPerPerson && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-body text-xs opacity-60" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                          Ilość:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setPendingQty(item.id, getPendingQty(item.id, item.default_quantity) - 1)}
+                            disabled={getPendingQty(item.id, item.default_quantity) <= 1}
+                            className="w-7 h-7 rounded-full flex items-center justify-center border transition-colors disabled:opacity-30"
+                            style={{ borderColor: 'rgba(0,0,0,0.15)' }}
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="font-body font-semibold w-6 text-center" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                            {getPendingQty(item.id, item.default_quantity)}
+                          </span>
+                          <button
+                            onClick={() => setPendingQty(item.id, getPendingQty(item.id, item.default_quantity) + 1)}
+                            disabled={getPendingQty(item.id, item.default_quantity) >= 10}
+                            className="w-7 h-7 rounded-full flex items-center justify-center border transition-colors disabled:opacity-30"
+                            style={{ borderColor: 'rgba(0,0,0,0.15)' }}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      disabled={actionsDisabled || addMutation.isPending}
+                      onClick={() => handleAdd(item)}
+                      className="w-full"
+                      style={{
+                        backgroundColor: 'var(--theme-primary, #1A1A1A)',
+                        color: '#fff',
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Dodaj{!isPerPerson && getPendingQty(item.id, item.default_quantity) > 1
+                        ? ` (${formatCurrency(item.price * getPendingQty(item.id, item.default_quantity))})`
+                        : ''}
+                    </Button>
+                  </div>
                 ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled
-                      className="flex-1 border-green-500 text-green-600"
-                    >
-                      <Check className="w-4 h-4 mr-1" />
-                      Dodano
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={actionsDisabled || removeMutation.isPending}
-                      onClick={() => handleRemove(item.id)}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div className="space-y-2">
+                    {/* Quantity changer for added non-per-person items */}
+                    {!isPerPerson && selection && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-body text-xs opacity-60" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                          Ilość:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleQuantityChange(item.id, selection.quantity - 1)}
+                            disabled={actionsDisabled || selection.quantity <= 1 || updateQuantityMutation.isPending}
+                            className="w-7 h-7 rounded-full flex items-center justify-center border transition-colors disabled:opacity-30"
+                            style={{ borderColor: 'rgba(0,0,0,0.15)' }}
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="font-body font-semibold w-6 text-center" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                            {selection.quantity}
+                          </span>
+                          <button
+                            onClick={() => handleQuantityChange(item.id, selection.quantity + 1)}
+                            disabled={actionsDisabled || selection.quantity >= 10 || updateQuantityMutation.isPending}
+                            className="w-7 h-7 rounded-full flex items-center justify-center border transition-colors disabled:opacity-30"
+                            style={{ borderColor: 'rgba(0,0,0,0.15)' }}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!isPerPerson && selection && selection.quantity > 1 && (
+                      <p className="font-body text-xs text-center opacity-60" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
+                        {selection.quantity} × {formatCurrency(Number(selection.unit_price))} = {formatCurrency(Number(selection.total_price))}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        className="flex-1 border-green-500 text-green-600"
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Dodano
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={actionsDisabled || removeMutation.isPending}
+                        onClick={() => handleRemove(item.id)}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </motion.div>
