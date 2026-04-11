@@ -1492,6 +1492,7 @@ export type Database = {
           selected_variant_option: string | null
           sort_order: number | null
           variant_id: string
+          variant_price_modifier: number | null
         }
         Insert: {
           allowed_modifications?: Json | null
@@ -1505,6 +1506,7 @@ export type Database = {
           selected_variant_option?: string | null
           sort_order?: number | null
           variant_id: string
+          variant_price_modifier?: number | null
         }
         Update: {
           allowed_modifications?: Json | null
@@ -1518,6 +1520,7 @@ export type Database = {
           selected_variant_option?: string | null
           sort_order?: number | null
           variant_id?: string
+          variant_price_modifier?: number | null
         }
         Relationships: [
           {

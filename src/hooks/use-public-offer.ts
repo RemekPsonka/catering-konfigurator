@@ -93,7 +93,7 @@ interface SubmitProposalParams {
   clientName?: string;
   originalTotal: number;
   proposedTotal: number;
-  variantItems: { id: string; dishes: { id: string; display_name: string }; custom_price: number | null; quantity: number | null }[];
+  variantItems: { id: string; dishes: Tables<'dishes'>; custom_price: number | null; quantity: number | null }[];
 }
 
 export const useSubmitProposal = () => {
@@ -121,7 +121,9 @@ export const useSubmitProposal = () => {
       // Insert proposal_items — rollback proposal on failure
       const items = Array.from(modifications.entries()).map(([itemId, mod]) => {
         const variantItem = variantItems.find((vi) => vi.id === itemId);
-        const originalPrice = variantItem?.custom_price ?? 0;
+        const dishData = variantItem?.dishes;
+        const dishBasePrice = dishData ? (dishData.price_per_person ?? dishData.price_per_piece ?? dishData.price_per_kg ?? dishData.price_per_set ?? 0) : 0;
+        const originalPrice = variantItem?.custom_price ?? dishBasePrice;
         const originalQty = variantItem?.quantity ?? 1;
 
         let changeType: 'SWAP' | 'VARIANT_CHANGE' | 'SPLIT' | 'QUANTITY_CHANGE' = 'SWAP';

@@ -1,0 +1,1 @@
+ALTER TABLE variant_items ADD COLUMN variant_price_modifier numeric DEFAULT NULL;

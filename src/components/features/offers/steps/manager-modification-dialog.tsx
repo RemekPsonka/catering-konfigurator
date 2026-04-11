@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/calculations';
 import type { VariantItemWithDish } from '@/hooks/use-offer-variants';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json, TablesUpdate } from '@/integrations/supabase/types';
 
 interface ManagerModificationDialogProps {
   open: boolean;
@@ -47,7 +47,7 @@ export const ManagerModificationDialog = ({ open, onClose, item, offerId }: Mana
   }, [open, item]);
 
   const applyMutation = useMutation({
-    mutationFn: async (updateData: { dish_id?: string; custom_name?: string; custom_price?: number; selected_variant_option?: string }) => {
+    mutationFn: async (updateData: TablesUpdate<'variant_items'>) => {
       const { error } = await supabase
         .from('variant_items')
         .update(updateData)
@@ -75,10 +75,9 @@ export const ManagerModificationDialog = ({ open, onClose, item, offerId }: Mana
     } else if (modType === 'variant' && selectedVariant) {
       const opt = (mods?.options as VariantOption[])?.find(o => o.label === selectedVariant);
       if (!opt) return;
-      const basePrice = item.dishes?.price_per_person ?? item.dishes?.price_per_piece ?? item.dishes?.price_per_kg ?? item.dishes?.price_per_set ?? 0;
       applyMutation.mutate({
         selected_variant_option: opt.label,
-        custom_price: basePrice + opt.price_modifier,
+        variant_price_modifier: opt.price_modifier,
       });
     }
   };

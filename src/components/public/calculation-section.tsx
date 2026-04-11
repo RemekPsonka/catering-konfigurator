@@ -50,8 +50,9 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
         if (mod.type === 'swap' && mod.swapPriceDiff != null) priceAdj = mod.swapPriceDiff;
         if (mod.type === 'variant' && mod.variantPriceModifier != null) priceAdj = mod.variantPriceModifier;
         if (priceAdj === 0) return item;
-        const basePrice = item.custom_price != null ? Number(item.custom_price) : getItemPrice(item as never);
-        return { ...item, custom_price: basePrice + priceAdj };
+        // Apply client modification as variant_price_modifier override, preserving frozen base price
+        const basePriceVal = item.custom_price != null ? Number(item.custom_price) : 0;
+        return { ...item, custom_price: basePriceVal, variant_price_modifier: priceAdj };
       }),
     })) as VariantWithItems[];
   }, [variants, modifications]);

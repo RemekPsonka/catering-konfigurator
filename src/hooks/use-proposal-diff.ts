@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import type { Json } from '@/integrations/supabase/types';
 
 export type ProposalItemWithDishes = Tables<'proposal_items'> & {
@@ -156,13 +156,7 @@ export const useResolveProposal = () => {
       for (const item of acceptedItems) {
         if (!item.variant_item_id) continue;
 
-        const updateData: Partial<{
-          dish_id: string;
-          custom_price: number;
-          custom_name: string;
-          selected_variant_option: string;
-          quantity: number;
-        }> = {};
+        const updateData: TablesUpdate<'variant_items'> = {};
 
         if (item.change_type === 'SWAP' && item.proposed_dish_id) {
           updateData.dish_id = item.proposed_dish_id;
@@ -170,7 +164,7 @@ export const useResolveProposal = () => {
           if (item.proposed_dish && typeof item.proposed_dish === 'object' && 'display_name' in item.proposed_dish) {
             updateData.custom_name = (item.proposed_dish as { display_name: string }).display_name;
           }
-        } else if (item.change_type === 'VARIANT_CHANGE') {
+      } else if (item.change_type === 'VARIANT_CHANGE') {
           // Resolve variant index to label before saving
           let resolvedOption = item.proposed_variant_option;
           const vi = item.variant_item as { id: string; dish: { modifiable_items: Json | null } | null } | null;
@@ -185,7 +179,8 @@ export const useResolveProposal = () => {
             }
           }
           updateData.selected_variant_option = resolvedOption ?? undefined;
-          updateData.custom_price = item.proposed_price;
+          // Store modifier separately — don't overwrite frozen base price
+          updateData.variant_price_modifier = (item.proposed_price ?? 0) - (item.original_price ?? 0);
         } else if (item.change_type === 'QUANTITY_CHANGE') {
           updateData.quantity = item.proposed_quantity ?? undefined;
           updateData.custom_price = item.proposed_price;
