@@ -1,5 +1,5 @@
 import { PUBLIC_BASE_URL, buildPublicOfferUrl } from '@/lib/constants';
-import { companySignature } from '@/lib/company-config';
+import { companySignature, companyLegalFooter } from '@/lib/company-config';
 
 export const OFFER_EMAIL_TEMPLATE = `Szanowna/y {clientName},
 
@@ -17,7 +17,10 @@ i wpisać:
 Oferta ważna do: {validUntil}
 
 Pozdrawiamy,
-${companySignature}`;
+${companySignature}
+
+---
+${companyLegalFooter}`;
 
 export const buildOfferEmailText = (params: {
   clientName: string;
@@ -66,7 +69,10 @@ Jeśli link nie działa, wejdź na {findLink} i wpisz swój email oraz numer ofe
 Oferta ważna do: {validUntil}
 
 Pozdrawiamy,
-${companySignature}`;
+${companySignature}
+
+---
+${companyLegalFooter}`;
 
 export const buildRichOfferEmail = (params: {
   clientName: string;
