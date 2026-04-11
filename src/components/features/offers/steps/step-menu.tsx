@@ -193,10 +193,6 @@ export const StepMenu = ({ offerId, pricingMode, peopleCount, requirements = [] 
       status,
       resolvedBy: user.id,
     });
-
-    // Invalidate pending proposals so banner/inline rows update immediately
-    const { useQueryClient } = await import('@tanstack/react-query');
-    // Already handled in useResolveProposal onSuccess, but we also need offer-variants
   };
 
   const activeVariant = variantsList.find(v => v.id === activeTab);
