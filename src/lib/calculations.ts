@@ -37,6 +37,7 @@ export interface OfferTotals {
   discountAmount: number;
   dishesAfterDiscount: number;
   servicesTotalCalc: number;
+  upsellTotal: number;
   grandTotal: number;
   pricePerPerson: number;
 }
@@ -57,6 +58,7 @@ export const calculateOfferTotals = (
   discountPercent: number,
   discountValue: number,
   deliveryCost: number,
+  upsellTotal: number = 0,
 ): OfferTotals => {
   const safePeopleCount = Math.max(1, Math.round(peopleCount));
 
@@ -81,7 +83,7 @@ export const calculateOfferTotals = (
     }
     variantDiscount = Math.min(variantDiscount, total);
 
-    const variantGrandTotal = Math.max(0, total - variantDiscount) + servicesTotalCalc + deliveryCost;
+    const variantGrandTotal = Math.max(0, total - variantDiscount) + servicesTotalCalc + deliveryCost + upsellTotal;
     const variantPricePerPerson = roundMoney(variantGrandTotal / safePeopleCount);
 
     return {
@@ -108,7 +110,7 @@ export const calculateOfferTotals = (
   discountAmount = Math.min(discountAmount, maxDishesTotal);
 
   const dishesAfterDiscount = Math.max(0, maxDishesTotal - discountAmount);
-  const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost;
+  const grandTotal = dishesAfterDiscount + servicesTotalCalc + deliveryCost + upsellTotal;
   const pricePerPerson = roundMoney(grandTotal / safePeopleCount);
 
   return {
@@ -117,6 +119,7 @@ export const calculateOfferTotals = (
     discountAmount,
     dishesAfterDiscount,
     servicesTotalCalc,
+    upsellTotal,
     grandTotal,
     pricePerPerson,
   };

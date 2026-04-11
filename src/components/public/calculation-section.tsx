@@ -60,9 +60,9 @@ export const CalculationSection = ({ offer, modifications }: CalculationSectionP
     () =>
       calculateOfferTotals(
         pricing_mode, debouncedCount, adjustedVariants, services,
-        discount_percent ?? 0, discount_value ?? 0, delivery_cost ?? 0,
+        discount_percent ?? 0, discount_value ?? 0, delivery_cost ?? 0, offer.upsell_total ?? 0,
       ),
-    [pricing_mode, debouncedCount, adjustedVariants, services, discount_percent, discount_value, delivery_cost],
+    [pricing_mode, debouncedCount, adjustedVariants, services, discount_percent, discount_value, delivery_cost, offer.upsell_total],
   );
 
   const hasDiscount = totals.discountAmount > 0;
