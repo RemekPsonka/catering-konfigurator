@@ -392,7 +392,9 @@ export const ChangesPanel = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--theme-text, #1A1A1A)' }}>
-                                {formatCurrency(Number(sel.total_price))}
+                                {sel.quantity > 1
+                                  ? `${sel.quantity} × ${formatCurrency(Number(sel.unit_price))} = ${formatCurrency(Number(sel.total_price))}`
+                                  : formatCurrency(Number(sel.total_price))}
                               </span>
                               {!sel.confirmed_at && (
                                 <button
