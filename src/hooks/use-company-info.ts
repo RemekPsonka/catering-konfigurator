@@ -25,8 +25,10 @@ export const useCompanyInfo = () =>
       address: [data?.address_line1, data?.address_line2].filter(Boolean).join(', ') || COMPANY.address,
       nip: data?.nip ?? COMPANY.nip,
       website: data?.website ?? COMPANY.website,
-      instagram: data?.instagram ?? '',
+      instagram: data?.instagram ?? COMPANY.instagram,
       facebook: data?.facebook ?? '',
       logoUrl: data?.logo_url ?? null,
+      legalName: data?.legal_form ?? COMPANY.legalName,
+      regon: data?.regon ?? COMPANY.regon,
     }),
   });
