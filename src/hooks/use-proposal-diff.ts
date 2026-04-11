@@ -196,7 +196,7 @@ export const useResolveProposal = () => {
         if (Object.keys(updateData).length > 0) {
           const { error: updateError } = await supabase
             .from('variant_items')
-            .update(updateData)
+            .update(updateData as Record<string, unknown>)
             .eq('id', item.variant_item_id);
 
           if (updateError) {
