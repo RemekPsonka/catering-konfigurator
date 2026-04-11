@@ -159,11 +159,26 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     },
   });
 
+  const upsellSelectionsQuery = useQuery({
+    queryKey: ['offer-upsell-selections', offerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('offer_upsell_selections')
+        .select('*, upsell_items(name, emoji)')
+        .eq('offer_id', offerId!)
+        .eq('status', 'active');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!offerId,
+  });
+
   const offer = offerQuery.data;
   const theme = offer?.offer_themes;
   const variants = (variantsQuery.data ?? []) as PreviewVariant[];
   const services = (servicesQuery.data ?? []) as OfferServiceJoined[];
   const terms = termsQuery.data ?? [];
+  const upsellSelections = upsellSelectionsQuery.data ?? [];
 
   // ── Settings state ──
   const [displayMode, setDisplayMode] = useState<PriceDisplayMode>('PER_PERSON_AND_TOTAL');
