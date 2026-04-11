@@ -61,7 +61,7 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peopleCount]);
+  }, [peopleCount, offerServices]);
 
   const total = useMemo(() => {
     return (offerServices ?? []).reduce((sum, os) => {
@@ -78,7 +78,8 @@ export const StepServices = ({ offerId, requirements = [], peopleCount }: StepSe
   const handleToggle = (service: Tables<'services'>, checked: boolean) => {
     if (!offerId) return;
     if (checked) {
-      addService.mutate({ offerId, serviceId: service.id });
+      const qty = service.price_type === 'PER_PERSON' && peopleCount && peopleCount > 0 ? peopleCount : 1;
+      addService.mutate({ offerId, serviceId: service.id, quantity: qty });
     } else {
       const os = offerServiceMap.get(service.id);
       if (os) {

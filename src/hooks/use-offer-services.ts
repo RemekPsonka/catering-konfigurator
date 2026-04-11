@@ -26,10 +26,10 @@ export const useOfferServices = (offerId: string | null) => {
 export const useAddOfferService = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ offerId, serviceId }: { offerId: string; serviceId: string }) => {
+    mutationFn: async ({ offerId, serviceId, quantity }: { offerId: string; serviceId: string; quantity?: number }) => {
       const { data, error } = await supabase
         .from('offer_services')
-        .insert({ offer_id: offerId, service_id: serviceId, quantity: 1 })
+        .insert({ offer_id: offerId, service_id: serviceId, quantity: quantity ?? 1 })
         .select('*, services(*)')
         .single();
       if (error) throw error;
