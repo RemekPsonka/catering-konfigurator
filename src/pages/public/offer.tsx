@@ -149,6 +149,12 @@ export const PublicOfferPage = () => {
     <div className="min-h-screen font-body" style={{ backgroundColor: 'var(--theme-bg, #FAF7F2)', color: 'var(--theme-text, #1A1A1A)' }}>
       <OfferHeader offer={offer} heroPhoto={heroPhoto} scrollY={scrollY} isExpired={isExpired} isAccepted={isAccepted} isWon={isWon} />
 
+      {offer.valid_until && !isExpired && (
+        <div className="no-print">
+          <CountdownTimer validUntil={offer.valid_until} isExpired={isExpired} />
+        </div>
+      )}
+
       <div className="no-print">
         {showOnboarding && <OnboardingOverlay variantCount={offer.offer_variants.length} editableCount={editableCount} onDismiss={() => setOnboardingDismissed(true)} />}
         <EditableTooltip show={onboardingDismissed && editableCount > 0} onDismiss={() => {}} />
