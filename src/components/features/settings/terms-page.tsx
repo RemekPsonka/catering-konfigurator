@@ -215,7 +215,7 @@ export const TermsPage = () => {
         onOpenChange={(o) => !o && setDeleteId(null)}
         title="Usuń warunek"
         description="Czy na pewno chcesz usunąć ten warunek? Operacja jest nieodwracalna."
-        confirmText="Usuń"
+        confirmLabel="Usuń"
         onConfirm={handleDelete}
         variant="destructive"
       />

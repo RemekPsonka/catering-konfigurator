@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountsPage } from '@/components/features/settings/accounts-page';
 import { TemplatesPage } from '@/components/features/settings/templates-page';
-import { Building2 } from 'lucide-react';
+import { TermsPage } from '@/components/features/settings/terms-page';
+import { Building2, FileText } from 'lucide-react';
 
 export const SettingsPage = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export const SettingsPage = () => {
         <TabsList>
           <TabsTrigger value="accounts">Konta</TabsTrigger>
           <TabsTrigger value="templates">Szablony</TabsTrigger>
+          <TabsTrigger value="terms"><FileText className="mr-1 h-4 w-4" /> Warunki</TabsTrigger>
           <TabsTrigger value="company" onClick={() => navigate('/admin/settings/company')}>
             <Building2 className="mr-1 h-4 w-4" /> Dane firmy
           </TabsTrigger>
@@ -26,6 +28,9 @@ export const SettingsPage = () => {
         </TabsContent>
         <TabsContent value="templates">
           <TemplatesPage />
+        </TabsContent>
+        <TabsContent value="terms">
+          <TermsPage />
         </TabsContent>
       </Tabs>
     </div>
