@@ -157,18 +157,34 @@ const DiffCard = ({ item, onAccept, onReject, flashState }: DiffCardProps) => {
           </div>
         );
 
-      case 'SPLIT':
+      case 'SPLIT': {
+        const splitData = item.split_details as { percent: number; splitDishId: string; splitDishName: string } | null;
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-sm">
               <span className="text-muted-foreground">Danie:</span>{' '}
               <span className="font-medium">{dishName}</span>
             </p>
-            <p className="text-sm text-muted-foreground">
-              Klient chce podzielić to danie na mniejsze porcje z innymi daniami.
-            </p>
+            {splitData ? (
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="bg-muted/50 border rounded-lg px-3 py-2">
+                  <p className="text-xs text-muted-foreground">Oryginał</p>
+                  <p className="font-medium text-sm">{splitData.percent}% — {dishName}</p>
+                </div>
+                <span className="text-muted-foreground text-lg">+</span>
+                <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <p className="text-xs text-muted-foreground">Nowe danie</p>
+                  <p className="font-medium text-sm">{100 - splitData.percent}% — {splitData.splitDishName}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Klient chce podzielić to danie na mniejsze porcje z innymi daniami.
+              </p>
+            )}
           </div>
         );
+      }
 
       default:
         return <p className="text-sm text-muted-foreground">Nieznany typ zmiany</p>;

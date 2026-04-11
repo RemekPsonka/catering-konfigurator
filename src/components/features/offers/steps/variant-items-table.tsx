@@ -204,6 +204,9 @@ const SortableRow = ({ item, onUpdateItem, onRemoveItem, onEditModifications, on
           if (pi.changeType === 'QUANTITY_CHANGE' && pi.proposedQuantity != null) {
             return <>Zmiana ilości na: <strong>{pi.proposedQuantity} szt.</strong></>;
           }
+          if (pi.changeType === 'SPLIT' && pi.splitDetails) {
+            return <>Podział: <strong>{pi.splitDetails.percent}%</strong> oryginał + <strong>{100 - pi.splitDetails.percent}%</strong> {pi.splitDetails.splitDishName}</>;
+          }
           return <>{pi.proposedDishName ?? pi.proposedVariantOption ?? '—'}</>;
         })();
 
