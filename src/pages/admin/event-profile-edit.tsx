@@ -384,6 +384,8 @@ export const EventProfileEditPage = () => {
       setHeaderFont(theme.header_font ?? 'Playfair Display');
     }
   }, [theme]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const opt = EVENT_TYPE_OPTIONS.find((o) => o.value === eventTypeId);
 
   // Collect all unique tags from photos
@@ -417,7 +419,19 @@ export const EventProfileEditPage = () => {
         testimonial_event: testimonialEvent || null,
       },
     });
-  }, [eventTypeId, headline, descShort, descLong, ctaText, isActive, features, testimonialText, testimonialAuthor, testimonialEvent, updateProfile]);
+    updateTheme.mutate({
+      id: eventTypeId,
+      updates: {
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        accent_color: accentColor,
+        background_color: bgColor,
+        text_color: textColor,
+        font_family: fontFamily,
+        header_font: headerFont,
+      },
+    });
+  }, [eventTypeId, headline, descShort, descLong, ctaText, isActive, features, testimonialText, testimonialAuthor, testimonialEvent, updateProfile, updateTheme, primaryColor, secondaryColor, accentColor, bgColor, textColor, fontFamily, headerFont]);
 
   const handleFileUpload = useCallback(
     async (files: FileList | null) => {
