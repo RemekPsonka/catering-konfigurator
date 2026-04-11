@@ -16,6 +16,7 @@ import { AcceptanceSection } from '@/components/public/acceptance-section';
 import { ContactSection } from '@/components/public/contact-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
+import { UpsellSection } from '@/components/public/upsell-section';
 import { COMPANY } from '@/lib/company-config';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
@@ -155,6 +156,17 @@ export const PublicOfferPage = () => {
 
       <ServicesLogisticsSection offer={offer} priceDisplayMode={offer.price_display_mode} />
       <CalculationSection offer={offer} modifications={modifications} />
+
+      <div className="no-print">
+        <UpsellSection
+          offerId={offer.id}
+          eventType={offer.event_type}
+          peopleCount={offer.people_count ?? 1}
+          upsellEnabled={offer.upsell_enabled ?? true}
+          actionsDisabled={actionsDisabled}
+        />
+      </div>
+
       <TermsSection />
 
       <div className="no-print">
