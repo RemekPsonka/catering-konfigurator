@@ -73,7 +73,7 @@ export const PublicOfferPage = () => {
   const { data: libraryPhotos } = usePhotoLibrary(offer?.event_type);
   const { data: libraryHero } = useHeroPhoto(offer?.event_type);
   const { data: legacyEventPhotos } = usePublicEventPhotos(offer?.event_type);
-  usePublicEventProfile(offer?.event_type);
+  const { data: eventProfile } = usePublicEventProfile(offer?.event_type);
 
   // Use photo_library with fallback to legacy event_type_photos
   const galleryPhotos = useMemo(() => {
