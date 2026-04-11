@@ -372,7 +372,18 @@ export const EventProfileEditPage = () => {
     }
   }, [profile]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // Init theme state
+  useEffect(() => {
+    if (theme) {
+      setPrimaryColor(theme.primary_color);
+      setSecondaryColor(theme.secondary_color);
+      setAccentColor(theme.accent_color);
+      setBgColor(theme.background_color);
+      setTextColor(theme.text_color);
+      setFontFamily(theme.font_family);
+      setHeaderFont(theme.header_font ?? 'Playfair Display');
+    }
+  }, [theme]);
   const opt = EVENT_TYPE_OPTIONS.find((o) => o.value === eventTypeId);
 
   // Collect all unique tags from photos
