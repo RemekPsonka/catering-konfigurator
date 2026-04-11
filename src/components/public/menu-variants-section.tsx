@@ -183,20 +183,35 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                   animate="visible"
                   className="flex flex-col gap-2"
                 >
-                  {cat.items.map((item) => (
-                    <motion.div key={item.id} variants={fadeInUp}>
-                      <DishCard
-                        item={item}
-                        priceDisplayMode={priceDisplayMode}
-                        pricingMode={pricingMode}
-                        peopleCount={peopleCount}
-                        isExpanded={expandedItemId === item.id}
-                        onToggleExpand={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
-                        modification={modifications?.get(item.id)}
-                        onModificationChange={(mod) => onModificationChange?.(item.id, mod)}
-                      />
-                    </motion.div>
-                  ))}
+                  {cat.items.map((item, idx) => {
+                    const isSplitChild = !!(item as { split_parent_id?: string | null }).split_parent_id;
+                    const nextItem = cat.items[idx + 1] as { split_parent_id?: string | null } | undefined;
+                    const isParentOfNext = nextItem?.split_parent_id === item.id;
+                    return (
+                      <motion.div
+                        key={item.id}
+                        variants={fadeInUp}
+                        className={isSplitChild ? 'ml-4 border-l-2 pl-3' : ''}
+                        style={isSplitChild ? { borderColor: 'var(--theme-accent, #c9a84c)' } : undefined}
+                      >
+                        {isSplitChild && (
+                          <span className="mb-1 block font-body text-[11px] font-medium" style={{ color: 'var(--theme-accent, #c9a84c)' }}>
+                            + podział
+                          </span>
+                        )}
+                        <DishCard
+                          item={item}
+                          priceDisplayMode={priceDisplayMode}
+                          pricingMode={pricingMode}
+                          peopleCount={peopleCount}
+                          isExpanded={expandedItemId === item.id}
+                          onToggleExpand={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                          modification={modifications?.get(item.id)}
+                          onModificationChange={(mod) => onModificationChange?.(item.id, mod)}
+                        />
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               </motion.div>
             ))}
