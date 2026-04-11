@@ -12,6 +12,7 @@ export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   accepted: 'Zaakceptowana',
   won: 'Wygrana',
   lost: 'Przegrana',
+  expired: 'Wygasła',
 };
 
 export const OFFER_STATUS_COLORS: Record<OfferStatus, string> = {
@@ -23,6 +24,7 @@ export const OFFER_STATUS_COLORS: Record<OfferStatus, string> = {
   accepted: 'bg-green-100 text-green-800',
   won: 'bg-emerald-200 text-emerald-900 font-bold',
   lost: 'bg-red-100 text-red-800',
+  expired: 'bg-gray-200 text-gray-700',
 };
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {

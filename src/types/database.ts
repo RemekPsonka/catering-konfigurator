@@ -1,4 +1,4 @@
-export type OfferStatus = 'draft' | 'ready' | 'sent' | 'viewed' | 'revision' | 'accepted' | 'won' | 'lost';
+export type OfferStatus = 'draft' | 'ready' | 'sent' | 'viewed' | 'revision' | 'accepted' | 'won' | 'lost' | 'expired';
 export type LeadStatus = 'new' | 'qualifying' | 'offer_sent' | 'follow_up' | 'negotiation' | 'won' | 'lost';
 export type EventType = 'KOM' | 'WES' | 'FIR' | 'KON' | 'SZK' | 'PRY' | 'GAL' | 'STY' | 'GRI' | 'B2B' | 'BOX' | 'KAW' | 'SWI' | 'SPE';
 export type DishCategory = 'appetizer' | 'soup' | 'main_course' | 'dessert' | 'salad' | 'drink' | 'bread' | 'addition';

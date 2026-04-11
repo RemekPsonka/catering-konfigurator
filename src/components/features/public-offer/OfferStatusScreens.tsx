@@ -64,6 +64,17 @@ export const LostScreen = () => (
   </div>
 );
 
+export const ExpiredScreen = () => (
+  <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
+      <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
+      <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta wygasła</h1>
+      <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Ta oferta wygasła. Skontaktuj się z nami w celu przedłużenia ważności.</p>
+      <ContactLinks />
+    </motion.div>
+  </div>
+);
+
 const ContactLinks = () => (
   <div className="mt-8 flex flex-col items-center gap-4">
     <a href={`tel:${COMPANY.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-2 font-body text-charcoal/80 transition-colors hover:text-charcoal">

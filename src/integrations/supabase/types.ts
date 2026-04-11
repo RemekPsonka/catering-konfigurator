@@ -1732,6 +1732,7 @@ export type Database = {
         Returns: number
       }
       cancel_follow_ups: { Args: { p_offer_id: string }; Returns: undefined }
+      check_offer_expiry: { Args: never; Returns: undefined }
       find_offer_by_email_and_number: {
         Args: { p_email: string; p_offer_number: string }
         Returns: {
@@ -1826,6 +1827,7 @@ export type Database = {
         | "accepted"
         | "won"
         | "lost"
+        | "expired"
       price_display_mode:
         | "DETAILED"
         | "PER_PERSON_AND_TOTAL"
@@ -2046,6 +2048,7 @@ export const Constants = {
         "accepted",
         "won",
         "lost",
+        "expired",
       ],
       price_display_mode: [
         "DETAILED",

@@ -17,12 +17,16 @@ import {
   Mail,
   XCircle,
   Flame,
+  Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useDashboardKpi,
   useNewCorrectionsCount,
@@ -51,6 +55,7 @@ const STEP_NAME_LABELS: Record<string, string> = {
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: kpi, isLoading: kpiLoading } = useDashboardKpi();
   const { data: correctionsCount = 0 } = useNewCorrectionsCount();
   const { data: expiring = [] } = useExpiringOffers();
@@ -59,6 +64,23 @@ export const DashboardPage = () => {
   const { data: followUps = [], isLoading: followUpsLoading } = useFollowUps();
   const cancelFollowUp = useCancelFollowUp();
   const { data: hotOffers = [], isLoading: hotLoading } = useHotOffers();
+
+  const extendOffer = useMutation({
+    mutationFn: async (offerId: string) => {
+      const newDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      const { error } = await supabase
+        .from('offers')
+        .update({ valid_until: newDate, status: 'sent' as never })
+        .eq('id', offerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Oferta przedłużona o 7 dni');
+      queryClient.invalidateQueries({ queryKey: ['dashboard-kpi'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-expiring'] });
+    },
+    onError: () => toast.error('Nie udało się przedłużyć oferty'),
+  });
 
   const today = format(new Date(), "d MMMM yyyy", { locale: pl });
   const toHandleCount = (kpi?.revision ?? 0) + correctionsCount;
@@ -75,7 +97,7 @@ export const DashboardPage = () => {
       </div>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <KpiCard
           label="Szkice"
           icon={<FileText className="h-5 w-5 text-muted-foreground" />}
@@ -117,6 +139,14 @@ export const DashboardPage = () => {
           loading={kpiLoading}
           className="border-l-4 border-l-emerald-600"
           onClick={() => navigate('/admin/offers?status=won')}
+        />
+        <KpiCard
+          label="Wygasłe"
+          icon={<Clock className="h-5 w-5 text-gray-500" />}
+          value={kpi?.expired}
+          loading={kpiLoading}
+          className="border-l-4 border-l-gray-400"
+          onClick={() => navigate('/admin/offers?status=expired')}
         />
       </div>
 
@@ -189,14 +219,23 @@ export const DashboardPage = () => {
                 </p>
                 <ul className="space-y-1">
                   {expiring.map((o) => (
-                    <li key={o.id} className="flex items-center justify-between text-sm">
+                    <li key={o.id} className="flex items-center justify-between gap-2 text-sm">
                       <button
-                        className="text-primary hover:underline text-left"
+                        className="text-primary hover:underline text-left flex-1 min-w-0 truncate"
                         onClick={() => navigate(`/admin/offers/${o.id}/edit`)}
                       >
                         {o.offer_number} — {o.clients?.name ?? 'Brak klienta'} (do{' '}
                         {o.valid_until ? format(new Date(o.valid_until), 'dd.MM.yyyy') : '—'})
                       </button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 shrink-0"
+                        onClick={() => extendOffer.mutate(o.id)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                        +7 dni
+                      </Button>
                     </li>
                   ))}
                 </ul>
