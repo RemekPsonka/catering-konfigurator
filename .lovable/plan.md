@@ -1,46 +1,71 @@
 
 
-## Plan: Sekcja "Możesz jeszcze dodać" [CS-029]
+## Plan: Floating panel dosprzedaży + kalkulacja łączna [CS-030]
 
-### Nowy plik
+### 1. Rozszerz `calculateOfferTotals` w `src/lib/calculations.ts`
 
-**`src/components/public/suggested-services-section.tsx`**
+- Dodaj opcjonalny parametr `upsellTotal: number = 0`
+- Dodaj `upsellTotal` do `OfferTotals` interface
+- W `grandTotal`: `dishesAfterDiscount + servicesTotalCalc + deliveryCost + upsellTotal`
+- W każdym `variantGrandTotal`: dodaj `+ upsellTotal`
+- Przelicz `pricePerPerson` z nowym `grandTotal`
+- Rabat NIE dotyczy upsellTotal — dodawany po rabacie
 
-Props: `offerId`, `offerServices` (offer_services array from offer), `peopleCount`, `upsellEnabled`, `actionsDisabled`
+### 2. Zaktualizuj wszystkie wywołania `calculateOfferTotals`
 
-**Dane:**
-- Query 1: `services` WHERE `is_active=true` — pobierz cały katalog
-- Query 2: `offer_upsell_selections` WHERE `offer_id` AND `status='active'` — już dodane przez klienta (reuse query key `['public-upsell-selections', offerId]`)
-- Filtrowanie w `useMemo`: usługi z katalogu MINUS te w `offerServices` (po `service_id`) MINUS te już dodane do upsell selections
-- Mutation: insert do `offer_upsell_selections` z `unit_price`, `quantity`, `total_price`
+Dodaj `0` jako ostatni argument (domyślny upsellTotal) w:
+- `src/pages/public/offer.tsx` (2 wywołania)
+- `src/components/public/calculation-section.tsx` (2 wywołania)
+- `src/components/public/acceptance-section.tsx` (1 wywołanie)
+- `src/components/features/offers/steps/step-pricing.tsx` (1 wywołanie)
+- `src/components/features/offers/steps/step-preview-send.tsx` (1 wywołanie)
+- `src/hooks/use-calculation-state.ts` (1 wywołanie)
 
-**Logika ceny (price_type z services):**
-- `PER_HOUR` → "45 zł/h", quantity = 1
-- `PER_EVENT` → "200 zł za event", quantity = 1
-- `PER_PIECE` → "80 zł/szt", quantity = 1
-- `PER_PERSON` → "15 zł/os (110 os = 1 650 zł)", quantity = peopleCount
+Dzięki default value `= 0` nie trzeba nic zmieniać, ale dla czytelności zaktualizuję `offer.tsx` i `calculation-section.tsx` żeby przekazywały `offer.upsell_total ?? 0`.
 
-**Ikony wg typu:**
-- `STAFF` → 👨‍🍳
-- `EQUIPMENT` → 🏗️
-- `LOGISTICS` → 🚚
+### 3. Rozszerz `changes-panel.tsx`
 
-**UI:** Identyczny styl co `upsell-section.tsx` — ten sam grid 3-kolumnowy, te same karty z emoji/ikoną, nazwa, opis, cena, przycisk `[+ Dodaj]`. Po dodaniu karta znika z sekcji (bo jest już w selections). Nagłówek: "💡 Możesz jeszcze dodać". Render `null` jeśli `!upsellEnabled` lub brak sugestii. Animacje: `fadeInUp` + `staggerContainer`.
+**Nowe dane:**
+- Dodaj query `offer_upsell_selections` WHERE `offer_id` AND `status='active'`, join `upsell_items(name, emoji)`
+- Dodaj mutation `confirmUpsells`: UPDATE `offer_upsell_selections` SET `confirmed_at=now()` + UPDATE `offers` SET `upsell_total=SUM`
+- Dodaj state `upsellConfirmed`
 
-### Modyfikacja `src/pages/public/offer.tsx`
+**Nowe props:**
+- `upsellTotal: number` (suma aktywnych selekcji, obliczona w offer.tsx)
 
-Import `SuggestedServicesSection` i wstawienie PO `UpsellSection`, wewnątrz tego samego `no-print` div:
+**Zmiana widoczności panelu:**
+- Panel widoczny gdy `hasChanges || hasUpsellSelections || pendingProposals`
+- Collapsed bar: "Masz X zmian i Y dodatków — zobacz"
 
-```
-<SuggestedServicesSection
-  offerId={offer.id}
-  offerServices={offer.offer_services}
-  peopleCount={offer.people_count ?? 1}
-  upsellEnabled={offer.upsell_enabled ?? true}
-  actionsDisabled={actionsDisabled}
-/>
-```
+**UI — nowa sekcja "Twoje dodatki" pod listą zmian dań:**
+- Lista: emoji + nazwa + kwota + przycisk [×] do usunięcia (mutation: SET status='removed')
+- Suma dodatków
+- Separator
+- Podsumowanie: "Oferta bazowa: X zł" / "Dodatki: Y zł" / "RAZEM: Z zł"
+
+**Przycisk [Zatwierdź dodatki]:**
+- Batch update `confirmed_at = now()` na aktywnych selekcjach
+- Update `offers.upsell_total` = suma `total_price`
+- Toast: "Dodatki zatwierdzone! Manager został powiadomiony."
+- Fire notification z event_type `upsell_confirmed`
+- Przycisk → "✓ Dodatki zatwierdzone" (disabled)
+
+**Istniejący flow propozycji dań nie zmienia się** — przycisk "Wyślij propozycję zmian" dotyczy tylko modyfikacji dań.
+
+### 4. Przekaż upsellTotal do `ChangesPanel` z `offer.tsx`
+
+- W `offer.tsx`: query `offer_upsell_selections` lub użyj `offer.upsell_total` do przekazania
+- Alternatywnie: changes-panel sam fetchuje dane (prostsze, mniej propsów)
+
+**Decyzja:** changes-panel sam fetchuje `offer_upsell_selections` — ma pełną kontrolę nad danymi i mutacjami.
+
+### Pliki modyfikowane
+1. `src/lib/calculations.ts` — dodanie `upsellTotal` parametru
+2. `src/components/public/changes-panel.tsx` — sekcja dodatków + przycisk zatwierdzenia
+3. `src/pages/public/offer.tsx` — przekazanie upsellTotal do kalkulacji
 
 ### Nie ruszam
-upsell-section.tsx, services-logistics-section.tsx, step-pricing.tsx
+- Logika modyfikacji dań w changes-panel (istniejący flow propozycji)
+- step-pricing.tsx, step-event-data.tsx, step-menu.tsx
+- upsell-section.tsx, suggested-services-section.tsx
 
