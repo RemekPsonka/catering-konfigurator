@@ -420,32 +420,7 @@ export const StepEventData = ({ data, onSubmit }: StepEventDataProps) => {
                 />
               )}
 
-              <FormField control={form.control} name="greeting_text" render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Tekst powitalny oferty</FormLabel>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={isGeneratingGreeting}
-                      onClick={() => generateGreeting()}
-                    >
-                      {isGeneratingGreeting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                      )}
-                      {isGeneratingGreeting ? 'Generuję...' : 'Wygeneruj ponownie'}
-                    </Button>
-                  </div>
-                  <FormDescription>
-                    {aiResult ? 'Spersonalizowany na podstawie zapytania klienta' : 'Automatycznie generowany na podstawie typu imprezy'}
-                  </FormDescription>
-                  <FormControl><Textarea rows={4} {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {/* greeting_text is auto-generated and edited in step 4 */}
             </CardContent>
           </Card>
         </form>

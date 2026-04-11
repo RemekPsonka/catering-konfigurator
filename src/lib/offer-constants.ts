@@ -70,11 +70,8 @@ export const DEFAULT_GREETINGS: Record<EventType, string> = {
 };
 
 export const WIZARD_STEPS = [
-  { number: 1, label: 'Dane', icon: 'ClipboardList' },
+  { number: 1, label: 'Klient i wydarzenie', icon: 'ClipboardList' },
   { number: 2, label: 'Menu', icon: 'UtensilsCrossed' },
-  { number: 3, label: 'Usługi', icon: 'Wrench' },
-  { number: 4, label: 'Ustawienia', icon: 'Settings' },
-  { number: 5, label: 'Kalkulacja', icon: 'Calculator' },
-  { number: 6, label: 'Motyw', icon: 'Palette' },
-  { number: 7, label: 'Podgląd', icon: 'Eye' },
+  { number: 3, label: 'Wycena', icon: 'Calculator' },
+  { number: 4, label: 'Podgląd i wysyłka', icon: 'Eye' },
 ] as const;
