@@ -1,52 +1,58 @@
 
 
-## Plan: Auto-wygaśnięcie ofert (status `expired`)
+## Plan: Uporządkowanie RLS policies z zachowaniem dostępu klienta
 
-### Podsumowanie
-Dodanie statusu `expired` do enum `offer_status`, triggera blokującego akceptację wygasłych ofert, funkcji `check_offer_expiry()`, oraz obsługi nowego statusu w całym frontendzie z przyciskiem "Przedłuż o 7 dni".
+### Analiza stanu obecnego
 
-### 1. Migracja SQL (1 plik)
-- `ALTER TYPE public.offer_status ADD VALUE IF NOT EXISTS 'expired'`
-- Funkcja `check_offer_expiry()` — masowy UPDATE ofert z `valid_until < now()` i statusem `sent/viewed/revision` na `expired`
-- Funkcja `prevent_expired_acceptance()` + trigger `trg_prevent_expired_acceptance` — blokuje zmianę na `accepted/won` gdy `valid_until < now()`
+Wiele tabel **już ma** poprawne policies. Porównanie wykazało, które wymagają zmian:
 
-### 2. Typy frontendowe (2 pliki)
-- `src/types/database.ts` — dodaj `'expired'` do `OfferStatus`
-- `src/lib/constants.ts` — dodaj `expired: 'Wygasła'` do `OFFER_STATUS_LABELS` i `expired: 'bg-gray-200 text-gray-700'` do `OFFER_STATUS_COLORS`
+**Już OK (nie ruszamy):**
+- `dish_photos`, `offer_faq`, `event_type_photos`, `testimonials`, `company_stats`, `company_info`, `offer_themes` — mają public SELECT z `USING (true)`
+- `leads`, `notifications`, `offer_follow_ups`, `offer_templates`, `offer_versions` — mają auth-only ALL
+- `offers`, `clients`, `offer_variants`, `variant_items`, `offer_services`, `offer_corrections`, `survey_responses` — per request, nie ruszamy
 
-### 3. Strona publiczna (1 plik)
-- `src/pages/public/offer.tsx`:
-  - `isExpired` uwzględnia `offer.status === 'expired'`
-  - Dodaj early return: `if (offer.status === 'expired') return <ExpiredScreen />;` (lub reuse `LostScreen` z odpowiednim komunikatem)
+**Wymagają zmian (is_active=true → true):**
+- `dishes` — obecnie `USING (is_active = true)` → `USING (true)` (bo variant_items mogą referencjonować nieaktywne dania)
+- `dish_categories` — jw.
+- `services` — jw.
+- `offer_terms` — jw.
+- `event_type_profiles` — jw.
 
-### 4. Status screens (1 plik)
-- `src/components/features/public-offer/OfferStatusScreens.tsx` — dodaj `ExpiredScreen` z komunikatem "Ta oferta wygasła. Skontaktuj się z nami."
+**Wymagają zmian (zbyt restrykcyjne INSERT):**
+- `offer_events` — INSERT wymaga offer JOIN → uproszczenie do `WITH CHECK (true)`
+- `change_proposals` — policy wymaga offer JOIN → uproszczenie
+- `proposal_items` — policy wymaga offer JOIN → uproszczenie
 
-### 5. Lista ofert admin (1 plik)
-- `src/pages/admin/offers-list.tsx` — status `expired` automatycznie pojawi się w tabsach bo tab list bierze z `OFFER_STATUS_LABELS`
+**Tabela `internal_notes` — NIE ISTNIEJE w schemacie, pomijamy.**
 
-### 6. Dashboard (2 pliki)
-- `src/hooks/use-dashboard.ts`:
-  - `useDashboardKpi` — dodaj `expired: 0` do KpiCounts i filtrowania
-  - `useExpiringOffers` — już filtruje po `sent/viewed/revision` więc automatycznie wyklucza `expired` ✓
-- `src/pages/admin/dashboard.tsx`:
-  - Dodaj KPI tile dla `expired`
-  - Na liście wygasających ofert dodaj przycisk "Przedłuż o 7 dni" (inline mutation: `valid_until = now + 7d`, `status = 'sent'`)
+### Uwaga bezpieczeństwa
+Otwarcie `change_proposals` na DELETE dla anon to ryzyko — ktoś mógłby usunąć cudze propozycje znając UUID. Ale per request, implementuję jak podano. Alternatywa: ograniczyć DELETE do `status = 'draft_client'`.
 
-### 7. Inne pliki dotknięte statusem
-- `src/components/features/offers/steps/step-preview.tsx` — jeśli offer locked check zawiera `accepted/won`, dodaj `expired` do locked statuses
-- `src/hooks/use-offers.ts` — już dynamicznie filtruje więc zadziała bez zmian
+Usunięcie `is_active = true` z public SELECT na dishes/services/categories oznacza że nieaktywne pozycje będą widoczne publicznie. To potrzebne bo variant_items mogą wskazywać na zarchiwizowane dania.
 
-### Pliki modyfikowane (7-8)
-1. Nowa migracja SQL
-2. `src/types/database.ts`
-3. `src/lib/constants.ts`
-4. `src/pages/public/offer.tsx`
-5. `src/components/features/public-offer/OfferStatusScreens.tsx`
-6. `src/hooks/use-dashboard.ts`
-7. `src/pages/admin/dashboard.tsx`
+### Migracja SQL (1 plik)
 
-### Backward compat
-- Istniejące oferty nie zmienią statusu dopóki nie zostanie wywołana `check_offer_expiry()` (np. przez cron lub ręcznie)
-- Frontend dodatkowo sprawdza `valid_until` kliencko — podwójne zabezpieczenie
+Dla każdej tabeli: `DROP POLICY IF EXISTS` starych → `CREATE POLICY` nowych. Nie tworzymy `ENABLE ROW LEVEL SECURITY` jeśli RLS jest już włączone (a jest na wszystkich).
+
+**Zmieniane policies (5 tabel — zmiana filtra):**
+1. `dishes` — drop `public_dishes_read` + `auth_full_access`, create z USING(true)
+2. `dish_categories` — jw.
+3. `services` — drop `public_services_read` + `auth_full_access`, create nowe
+4. `offer_terms` — drop `public_read_terms` + `auth_full_access`, create nowe
+5. `event_type_profiles` — drop `public_read_profiles` + `auth_full_access` + `dev_full_access`, create nowe
+
+**Zmieniane policies (3 tabeli — uproszczenie INSERT/CRUD):**
+6. `offer_events` — drop stare, create INSERT WITH CHECK(true) + auth ALL
+7. `change_proposals` — drop stare 4 policies, create open SELECT/INSERT/UPDATE/DELETE + auth ALL
+8. `proposal_items` — drop stare 2 policies, create open SELECT/INSERT + auth ALL
+
+**Cleanup (2 tabele — usunięcie dev_full_access):**
+9. `event_type_photos` — drop `dev_full_access` (policy "public_read_photos" i "auth_full_access" wystarczą)
+10. `event_type_profiles` — already handled above
+
+### Pliki modyfikowane
+1. Nowa migracja SQL (jedyny plik)
+
+### Brak zmian w kodzie
+Frontend nie wymaga żadnych modyfikacji — queries pozostają takie same.
 
