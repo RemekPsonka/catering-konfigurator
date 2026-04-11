@@ -17,6 +17,7 @@ import { ContactSection } from '@/components/public/contact-section';
 import { OnboardingOverlay } from '@/components/public/onboarding-overlay';
 import { EditableTooltip } from '@/components/public/editable-tooltip';
 import { UpsellSection } from '@/components/public/upsell-section';
+import { SuggestedServicesSection } from '@/components/public/suggested-services-section';
 import { COMPANY } from '@/lib/company-config';
 import { getItemPrice } from '@/hooks/use-offer-variants';
 import type { VariantWithItems } from '@/hooks/use-offer-variants';
@@ -161,6 +162,13 @@ export const PublicOfferPage = () => {
         <UpsellSection
           offerId={offer.id}
           eventType={offer.event_type}
+          peopleCount={offer.people_count ?? 1}
+          upsellEnabled={offer.upsell_enabled ?? true}
+          actionsDisabled={actionsDisabled}
+        />
+        <SuggestedServicesSection
+          offerId={offer.id}
+          offerServices={offer.offer_services}
           peopleCount={offer.people_count ?? 1}
           upsellEnabled={offer.upsell_enabled ?? true}
           actionsDisabled={actionsDisabled}
