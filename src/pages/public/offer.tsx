@@ -68,7 +68,8 @@ export const PublicOfferPage = () => {
     const variants = offer.offer_variants as VariantWithItems[];
     const services = offer.offer_services as OfferServiceWithService[];
     const pc = offer.people_count ?? 1;
-    const calcArgs = [offer.pricing_mode, pc, variants, services, offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0] as const;
+    const upsellTotal = offer.upsell_total ?? 0;
+    const calcArgs = [offer.pricing_mode, pc, variants, services, offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0, upsellTotal] as const;
     const origTotals = calculateOfferTotals(...calcArgs);
 
     const adjustedVariants = variants.map((v) => ({
@@ -85,7 +86,7 @@ export const PublicOfferPage = () => {
       }),
     })) as VariantWithItems[];
 
-    const propTotals = calculateOfferTotals(offer.pricing_mode, pc, adjustedVariants, services, offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0);
+    const propTotals = calculateOfferTotals(offer.pricing_mode, pc, adjustedVariants, services, offer.discount_percent ?? 0, offer.discount_value ?? 0, offer.delivery_cost ?? 0, upsellTotal);
     return { originalTotal: origTotals.grandTotal, proposedTotal: propTotals.grandTotal };
   }, [offer, modifications]);
 
