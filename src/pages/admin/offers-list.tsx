@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2, Lock } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Copy, ExternalLink, BookTemplate, FileText, Link2, Lock, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -220,6 +220,14 @@ export const OffersListPage = () => {
                           }}
                         >
                           <BookTemplate className="mr-2 h-4 w-4" />Zapisz jako szablon
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`/admin/offers/${offer.id}/print`, '_blank');
+                          }}
+                        >
+                          <Printer className="mr-2 h-4 w-4" />Drukuj ofertę
                         </DropdownMenuItem>
                         {offer.public_token && (
                           <DropdownMenuItem

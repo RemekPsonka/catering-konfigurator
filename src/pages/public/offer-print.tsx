@@ -12,6 +12,9 @@ export const OfferPrintPage = () => {
   useEffect(() => {
     if (offer && companyInfo && !hasPrinted.current) {
       hasPrinted.current = true;
+      const safeName = (offer.offer_number ?? 'oferta').replace(/[^a-zA-Z0-9-]/g, '_');
+      const version = offer.current_version ?? 0;
+      document.title = `Oferta_${safeName}_v${version}_Catering_Slaski`;
       trackOfferEvent(offer.id, 'pdf_downloaded');
       setTimeout(() => window.print(), 500);
     }

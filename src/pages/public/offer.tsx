@@ -294,7 +294,7 @@ export const PublicOfferPage = () => {
         )}
       </div>
 
-      <ContactSection onPrint={() => { const t = document.title; document.title = `Oferta_${(offer.offer_number ?? 'oferta').replace(/[^a-zA-Z0-9-]/g, '_')}_Catering_Slaski`; window.print(); document.title = t; }} />
+      <ContactSection onPrint={() => window.open(`/offer/${offer.public_token}/print`, '_blank')} />
 
       <div className="no-print">
         <ChangesPanel modifications={modifications} offer={offer} onClearModifications={handleClearModifications} originalTotal={originalTotal} proposedTotal={proposedTotal} actionsDisabled={actionsDisabled} />
