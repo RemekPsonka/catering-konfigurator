@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCompanyInfo } from './use-company-info';
 import { useOfferTerms, usePublicOffer } from './use-public-offer';
 import type { PublicOffer } from './use-public-offer';
+import type { PrintCompanyInfo } from '@/components/print/OfferPrintDocument';
 
 // Authenticated: fetch by offer ID
 export const useOfferPrintData = (offerId: string | undefined) => {
@@ -56,7 +57,7 @@ export const useOfferPrintData = (offerId: string | undefined) => {
 
   return {
     offer: offerQuery.data ?? null,
-    companyInfo: companyInfoQuery.data ?? null,
+    companyInfo: companyInfoQuery.data as PrintCompanyInfo | null,
     offerTerms: termsQuery.data ?? [],
     upsellSelections: upsellQuery.data ?? [],
     isLoading: offerQuery.isLoading || companyInfoQuery.isLoading || termsQuery.isLoading,
@@ -87,7 +88,7 @@ export const useOfferPrintDataByToken = (publicToken: string | undefined) => {
 
   return {
     offer: offerQuery.data ?? null,
-    companyInfo: companyInfoQuery.data ?? null,
+    companyInfo: companyInfoQuery.data as PrintCompanyInfo | null,
     offerTerms: termsQuery.data ?? [],
     upsellSelections: upsellQuery.data ?? [],
     isLoading: offerQuery.isLoading || companyInfoQuery.isLoading || termsQuery.isLoading,

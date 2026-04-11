@@ -33,7 +33,9 @@ import { PhotosLibraryPage } from "@/pages/admin/photos-library";
 import { PublicOfferPage } from "@/pages/public/offer";
 import { OfferFindPage } from "@/pages/public/offer-find";
 import { SurveyPage } from "@/pages/public/survey";
+import { OfferPrintPage } from "@/pages/public/offer-print";
 import { DashboardPage } from "@/pages/admin/dashboard";
+import { AdminOfferPrintPage } from "@/pages/admin/offer-print";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +57,7 @@ const App = () => (
               <Route element={<PublicLayout />}>
                 <Route path="/offer/find" element={<OfferFindPage />} />
                 <Route path="/offer/:publicToken" element={<PublicOfferPage />} />
+                <Route path="/offer/:publicToken/print" element={<OfferPrintPage />} />
                 <Route path="/survey/:token" element={<SurveyPage />} />
               </Route>
 
@@ -74,6 +77,7 @@ const App = () => (
                 <Route path="offers/:id/edit" element={<OfferEditPage />} />
                 <Route path="offers/:id/messages" element={<OfferMessagesPage />} />
                 <Route path="offers/:id/proposals/:proposalId" element={<ProposalDiffPage />} />
+                <Route path="offers/:id/print" element={<AdminOfferPrintPage />} />
                 <Route path="dishes" element={<DishesListPage />} />
                 <Route path="dishes/categories" element={<DishCategoriesPage />} />
                 <Route path="dishes/new" element={<DishNewPage />} />
