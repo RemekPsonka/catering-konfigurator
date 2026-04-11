@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { COMPANY } from '@/lib/company-config';
 import type { Tables } from '@/integrations/supabase/types';
@@ -32,3 +32,35 @@ export const useCompanyInfo = () =>
       regon: data?.regon ?? COMPANY.regon,
     }),
   });
+
+export const useCompanyInfoRaw = () =>
+  useQuery({
+    queryKey: ['company-info-raw'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_info')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useUpdateCompanyInfo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<CompanyInfo> }) => {
+      const { error } = await supabase
+        .from('company_info')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-info'] });
+      queryClient.invalidateQueries({ queryKey: ['company-info-raw'] });
+    },
+  });
+};
