@@ -792,6 +792,20 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                 <LockedActions offer={offer} queryClient={queryClient} offerId={offerId} />
               ) : (
                 <>
+                  {missingFields.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Brakujące dane</AlertTitle>
+                      <AlertDescription className="space-y-2">
+                        <p className="text-xs">Aby wysłać ofertę, uzupełnij: {missingFields.join(', ')}.</p>
+                        {onGoToStep && (
+                          <Button size="sm" variant="outline" className="h-7" onClick={() => onGoToStep(1)}>
+                            Uzupełnij w kroku 1
+                          </Button>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
                       <Save className="mr-1 h-4 w-4" /> Zapisz szkic
