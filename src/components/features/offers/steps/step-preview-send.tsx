@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Settings, Palette, Bot, Send, Link2, Copy, ExternalLink, Mail, Save, BookTemplate, ChevronDown, Eye, Trophy, XCircle, Unlock, CheckCircle, AlertTriangle, Info, Check, Gift, Edit2, RotateCcw, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
@@ -368,7 +369,10 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['offers'] }); },
-    onError: () => toast.error('Nie udało się zmienić statusu oferty'),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error && err.message ? err.message : 'Nie udało się zmienić statusu oferty';
+      toast.error(msg);
+    },
   });
 
   const dm = (offer?.price_display_mode ?? displayMode) as string;
@@ -376,6 +380,23 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   const showDetailed = dm === 'DETAILED';
   const showPerPerson = dm === 'PER_PERSON_AND_TOTAL' || dm === 'PER_PERSON_ONLY';
   const showTotal = dm === 'PER_PERSON_AND_TOTAL' || dm === 'TOTAL_ONLY' || dm === 'DETAILED';
+
+  // ── Pre-validation for status changes ──
+  const missingFields = useMemo(() => {
+    if (!offer) return [];
+    const m: string[] = [];
+    if (!offer.client_id) m.push('Klient');
+    if (!offer.people_count || offer.people_count < 1) m.push('Liczba osób');
+    if (!offer.delivery_type) m.push('Forma dostawy');
+    return m;
+  }, [offer]);
+
+  const ensureReadyToPublish = (): boolean => {
+    if (missingFields.length === 0) return true;
+    toast.error(`Uzupełnij wymagane pola: ${missingFields.join(', ')}`);
+    onGoToStep?.(1);
+    return false;
+  };
 
   // ── Handlers ──
   const handleSaveDraft = () => {
@@ -389,6 +410,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   };
 
   const handleSaveAndShowLink = () => {
+    if (!ensureReadyToPublish()) return;
     statusMutation.mutate({ status: 'ready' }, {
       onSuccess: async () => {
         // Refetch to get the freshly generated public_token from trigger
@@ -403,6 +425,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
   };
 
   const handleMarkReady = () => {
+    if (!ensureReadyToPublish()) return;
     statusMutation.mutate({ status: 'ready' }, { onSuccess: () => { toast.success('Oferta oznaczona jako gotowa'); navigate('/admin/offers'); } });
   };
 
@@ -410,6 +433,7 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
     const clientEmail = offer?.clients?.email;
     const clientName = offer?.clients?.name ?? 'Kliencie';
     if (!clientEmail) { toast.error('Klient nie ma przypisanego adresu email.'); return; }
+    if (!ensureReadyToPublish()) return;
 
     statusMutation.mutate({ status: 'ready' }, {
       onSuccess: async () => {
@@ -768,6 +792,20 @@ export const StepPreviewSend = ({ offerId, pricingMode, peopleCount, requirement
                 <LockedActions offer={offer} queryClient={queryClient} offerId={offerId} />
               ) : (
                 <>
+                  {missingFields.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Brakujące dane</AlertTitle>
+                      <AlertDescription className="space-y-2">
+                        <p className="text-xs">Aby wysłać ofertę, uzupełnij: {missingFields.join(', ')}.</p>
+                        {onGoToStep && (
+                          <Button size="sm" variant="outline" className="h-7" onClick={() => onGoToStep(1)}>
+                            Uzupełnij w kroku 1
+                          </Button>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={statusMutation.isPending}>
                       <Save className="mr-1 h-4 w-4" /> Zapisz szkic
