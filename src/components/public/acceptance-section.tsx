@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatCurrency, calculateOfferTotals, calculateVariantDishesTotal } from '@/lib/calculations';
@@ -17,12 +17,14 @@ interface AcceptanceSectionProps {
   onAccepted: () => void;
   activeVariantId?: string | null;
   actionsDisabled?: boolean;
+  externalTrigger?: number;
 }
 
-export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsDisabled = false }: AcceptanceSectionProps) => {
+export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsDisabled = false, externalTrigger = 0 }: AcceptanceSectionProps) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const acceptOffer = useAcceptOffer();
+  const lastTriggerRef = useRef(0);
 
   const isVisible = ['sent', 'viewed', 'revision'].includes(offer.status) && !offer.accepted_at && !accepted && !actionsDisabled;
   if (!isVisible) return null;
@@ -50,6 +52,16 @@ export const AcceptanceSection = ({ offer, onAccepted, activeVariantId, actionsD
     }
     setShowConfirm(true);
   };
+
+  // Allow the sticky bar / variant cards to open the acceptance flow.
+  useEffect(() => {
+    if (externalTrigger > 0 && externalTrigger !== lastTriggerRef.current) {
+      lastTriggerRef.current = externalTrigger;
+      document.getElementById('acceptance-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      handleAccept();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalTrigger]);
 
   const handleConfirm = () => {
     acceptOffer.mutate(
