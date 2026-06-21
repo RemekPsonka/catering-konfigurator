@@ -14,7 +14,7 @@ export interface GalleryPhoto {
   height?: number | null;
   caption?: string | null;
   alt_text?: string | null;
-  is_hero?: boolean;
+  is_hero?: boolean | null;
 }
 
 interface EventGallerySectionProps {
