@@ -193,7 +193,7 @@ export const PublicOfferPage = () => {
   if (isLoading) return <LoadingScreen />;
   if (!offer || error) return <NotFoundScreen />;
   if (offer.status === 'draft') return <DraftScreen />;
-  if (offer.status === 'expired') return <ExpiredScreen />;
+  if (offer.status === 'expired') return <ExpiredScreen validUntil={offer.valid_until} />;
   if (offer.status === 'lost') return <LostScreen />;
 
   const isAccepted = offer.status === 'accepted';
