@@ -29,6 +29,7 @@ import { AboutCateringSection } from '@/components/public/about-catering-section
 import { FeaturesSection } from '@/components/public/features-section';
 import { TestimonialSection } from '@/components/public/testimonial-section';
 import { VariantComparisonSection } from '@/components/public/variant-comparison-section';
+import { StickyMobileCTA } from '@/components/public/sticky-mobile-cta';
 import { Button } from '@/components/ui/button';
 import { getItemPrice } from '@/lib/calculations';
 import type { VariantWithItems } from '@/lib/calculations';
@@ -56,6 +57,7 @@ export const PublicOfferPage = () => {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const [showComparison, setShowComparison] = useState(false);
+  const [acceptTrigger, setAcceptTrigger] = useState(0);
   const isFirstVisitRef = useRef<boolean | null>(null);
   const lastVariantTrackRef = useRef<number>(0);
 
@@ -69,6 +71,12 @@ export const PublicOfferPage = () => {
       }
     }
   }, [offer]);
+
+  const handleRequestAccept = useCallback(() => setAcceptTrigger((n) => n + 1), []);
+  const handleChooseVariant = useCallback((variantId: string) => {
+    setActiveVariantId(variantId);
+    setAcceptTrigger((n) => n + 1);
+  }, []);
 
   const { data: libraryPhotos } = usePhotoLibrary(offer?.event_type);
   const { data: libraryHero } = useHeroPhoto(offer?.event_type);
@@ -223,7 +231,7 @@ export const PublicOfferPage = () => {
 
       {offer.offer_variants.length > 0 && (
         <div data-track-section="menu">
-          <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={handleVariantChange} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} />
+          <MenuVariantsSection variants={offer.offer_variants} pricingMode={offer.pricing_mode} peopleCount={offer.people_count ?? 1} priceDisplayMode={offer.price_display_mode} activeVariantId={activeVariantId ?? undefined} onActiveVariantChange={handleVariantChange} modifications={modifications} onModificationChange={handleModificationChange} acceptedVariantId={offer.accepted_variant_id} onChooseVariant={!actionsDisabled ? handleChooseVariant : undefined} />
           {offer.offer_variants.length >= 2 && (
             <div className="no-print text-center py-4">
               <Button variant="outline" onClick={() => setShowComparison((v) => !v)} style={{ borderColor: 'var(--theme-primary, #1A1A1A)', color: 'var(--theme-primary, #1A1A1A)' }}>
@@ -290,12 +298,16 @@ export const PublicOfferPage = () => {
       <div className="no-print" data-track-section="acceptance">
         {!offerAccepted && (
           <div id="acceptance-section">
-            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} activeVariantId={activeVariantId} actionsDisabled={actionsDisabled} />
+            <AcceptanceSection offer={offer} onAccepted={() => setOfferAccepted(true)} activeVariantId={activeVariantId} actionsDisabled={actionsDisabled} externalTrigger={acceptTrigger} />
           </div>
         )}
       </div>
 
       <ContactSection onPrint={() => window.open(`/offer/${offer.public_token}/print`, '_blank')} />
+
+      {!offerAccepted && !actionsDisabled && (
+        <StickyMobileCTA offer={offer} activeVariantId={activeVariantId} visible={!offerAccepted && !actionsDisabled} onAccept={handleRequestAccept} />
+      )}
 
       <div className="no-print">
         <ChangesPanel modifications={modifications} offer={offer} onClearModifications={handleClearModifications} originalTotal={originalTotal} proposedTotal={proposedTotal} actionsDisabled={actionsDisabled} />
