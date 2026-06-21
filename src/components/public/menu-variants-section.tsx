@@ -125,13 +125,18 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                   {sorted.map((_, i) => (
                     <button
                       key={i}
-                      className="h-2 w-2 rounded-full transition-all"
-                      style={{
-                        backgroundColor: i === selectedDot ? 'var(--theme-primary, #1A1A1A)' : 'var(--theme-secondary, #ccc)',
-                        transform: i === selectedDot ? 'scale(1.3)' : 'scale(1)',
-                      }}
+                      aria-label={`Przejdź do wariantu ${i + 1}`}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center"
                       onClick={() => emblaApi?.scrollTo(i)}
-                    />
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full transition-all"
+                        style={{
+                          backgroundColor: i === selectedDot ? 'var(--theme-primary, #1A1A1A)' : 'var(--theme-secondary, #ccc)',
+                          transform: i === selectedDot ? 'scale(1.3)' : 'scale(1)',
+                        }}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
