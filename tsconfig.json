@@ -1,7 +1,13 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "strict": true,
+    "strictNullChecks": true,
     "noImplicitAny": false,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
@@ -9,8 +15,7 @@
         "./src/*"
       ]
     },
-    "skipLibCheck": true,
-    "strictNullChecks": false
+    "skipLibCheck": true
   },
   "files": [],
   "references": [

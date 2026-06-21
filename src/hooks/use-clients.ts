@@ -32,6 +32,7 @@ export const useClientOfferCounts = () => {
       if (error) throw error;
       const counts: Record<string, number> = {};
       for (const row of data) {
+        if (!row.client_id) continue;
         counts[row.client_id] = (counts[row.client_id] || 0) + 1;
       }
       return counts;

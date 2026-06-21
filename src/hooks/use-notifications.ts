@@ -141,7 +141,7 @@ export const fireNotification = (params: {
       p_event_type: params.eventType,
       p_title: params.title,
       p_body: params.body,
-      p_link: params.link ?? null,
+      p_link: params.link ?? undefined,
     }),
   ).catch(() => {});
 };
