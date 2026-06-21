@@ -235,9 +235,10 @@ interface VariantCardProps {
   pricingMode: Enums<'pricing_mode'>;
   peopleCount: number;
   acceptedVariantId?: string | null;
+  onChoose?: (id: string) => void;
 }
 
-const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount, acceptedVariantId }: VariantCardProps) => {
+const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount, acceptedVariantId, onChoose }: VariantCardProps) => {
   const itemCount = variant.variant_items.length;
   const editableCount = variant.variant_items.filter((item) => {
     const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
@@ -249,12 +250,15 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
   const isDimmed = hasAccepted && !isChosen;
 
   return (
-    <motion.button
+    <motion.div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       whileHover={hasAccepted ? {} : { y: -2 }}
       animate={isActive ? { scale: 1.02 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300 }}
-      className="w-full rounded-xl p-3 text-left transition-all"
+      className="w-full cursor-pointer rounded-xl p-3 text-left transition-all"
       style={{
         backgroundColor: 'var(--theme-bg, #FAF7F2)',
         border: isChosen ? '2px solid #16a34a' : isActive ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
@@ -299,6 +303,18 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
           </span>
         )}
       </div>
-    </motion.button>
+
+      {onChoose && !isChosen && !hasAccepted && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onChoose(variant.id); }}
+          className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-lg border-2 px-3 font-body text-sm font-semibold transition-colors"
+          style={{ borderColor: 'var(--theme-primary, #1A1A1A)', color: 'var(--theme-primary, #1A1A1A)' }}
+        >
+          Wybieram ten wariant
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </motion.div>
   );
 };
