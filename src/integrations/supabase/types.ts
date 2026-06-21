@@ -1798,6 +1798,11 @@ export type Database = {
         }
         Returns: string
       }
+      is_offer_editable_by_client: {
+        Args: { p_offer_id: string }
+        Returns: boolean
+      }
+      is_offer_public: { Args: { p_offer_id: string }; Returns: boolean }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
       reorder_variant_items: { Args: { items: Json }; Returns: undefined }
