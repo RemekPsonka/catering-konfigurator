@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
-import { Sparkles, UtensilsCrossed, RefreshCw } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, RefreshCw, ChevronRight } from 'lucide-react';
 import { DishCard } from './dish-card';
 import type { DishModification } from './dish-edit-panel';
 import { formatCurrency, calculateVariantDishesTotal } from '@/lib/calculations';
@@ -23,6 +23,7 @@ interface MenuVariantsSectionProps {
   modifications?: Map<string, DishModification>;
   onModificationChange?: (itemId: string, mod: DishModification | undefined) => void;
   acceptedVariantId?: string | null;
+  onChooseVariant?: (id: string) => void;
 }
 
 const groupByCategory = (items: Variant['variant_items']) => {
@@ -41,7 +42,7 @@ const groupByCategory = (items: Variant['variant_items']) => {
   return Array.from(groups.values());
 };
 
-export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange, acceptedVariantId }: MenuVariantsSectionProps) => {
+export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange, acceptedVariantId, onChooseVariant }: MenuVariantsSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const activeId = controlledId ?? sorted[0]?.id ?? '';
   const setActiveId = (id: string) => {
@@ -114,6 +115,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                           pricingMode={pricingMode}
                           peopleCount={peopleCount}
                           acceptedVariantId={acceptedVariantId}
+                          onChoose={onChooseVariant}
                         />
                       </div>
                     ))}
@@ -145,6 +147,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                     pricingMode={pricingMode}
                     peopleCount={peopleCount}
                     acceptedVariantId={acceptedVariantId}
+                    onChoose={onChooseVariant}
                   />
                 ))}
               </div>
