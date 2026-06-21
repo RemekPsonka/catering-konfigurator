@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
-import { Sparkles, UtensilsCrossed, RefreshCw } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, RefreshCw, ChevronRight } from 'lucide-react';
 import { DishCard } from './dish-card';
 import type { DishModification } from './dish-edit-panel';
 import { formatCurrency, calculateVariantDishesTotal } from '@/lib/calculations';
@@ -23,6 +23,7 @@ interface MenuVariantsSectionProps {
   modifications?: Map<string, DishModification>;
   onModificationChange?: (itemId: string, mod: DishModification | undefined) => void;
   acceptedVariantId?: string | null;
+  onChooseVariant?: (id: string) => void;
 }
 
 const groupByCategory = (items: Variant['variant_items']) => {
@@ -41,7 +42,7 @@ const groupByCategory = (items: Variant['variant_items']) => {
   return Array.from(groups.values());
 };
 
-export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange, acceptedVariantId }: MenuVariantsSectionProps) => {
+export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceDisplayMode, activeVariantId: controlledId, onActiveVariantChange, modifications, onModificationChange, acceptedVariantId, onChooseVariant }: MenuVariantsSectionProps) => {
   const sorted = [...variants].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const activeId = controlledId ?? sorted[0]?.id ?? '';
   const setActiveId = (id: string) => {
@@ -114,6 +115,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                           pricingMode={pricingMode}
                           peopleCount={peopleCount}
                           acceptedVariantId={acceptedVariantId}
+                          onChoose={onChooseVariant}
                         />
                       </div>
                     ))}
@@ -123,13 +125,18 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                   {sorted.map((_, i) => (
                     <button
                       key={i}
-                      className="h-2 w-2 rounded-full transition-all"
-                      style={{
-                        backgroundColor: i === selectedDot ? 'var(--theme-primary, #1A1A1A)' : 'var(--theme-secondary, #ccc)',
-                        transform: i === selectedDot ? 'scale(1.3)' : 'scale(1)',
-                      }}
+                      aria-label={`Przejdź do wariantu ${i + 1}`}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center"
                       onClick={() => emblaApi?.scrollTo(i)}
-                    />
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full transition-all"
+                        style={{
+                          backgroundColor: i === selectedDot ? 'var(--theme-primary, #1A1A1A)' : 'var(--theme-secondary, #ccc)',
+                          transform: i === selectedDot ? 'scale(1.3)' : 'scale(1)',
+                        }}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -145,6 +152,7 @@ export const MenuVariantsSection = ({ variants, pricingMode, peopleCount, priceD
                     pricingMode={pricingMode}
                     peopleCount={peopleCount}
                     acceptedVariantId={acceptedVariantId}
+                    onChoose={onChooseVariant}
                   />
                 ))}
               </div>
@@ -232,9 +240,10 @@ interface VariantCardProps {
   pricingMode: Enums<'pricing_mode'>;
   peopleCount: number;
   acceptedVariantId?: string | null;
+  onChoose?: (id: string) => void;
 }
 
-const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount, acceptedVariantId }: VariantCardProps) => {
+const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopleCount, acceptedVariantId, onChoose }: VariantCardProps) => {
   const itemCount = variant.variant_items.length;
   const editableCount = variant.variant_items.filter((item) => {
     const mods = (item.allowed_modifications ?? item.dishes?.modifiable_items) as unknown;
@@ -246,12 +255,15 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
   const isDimmed = hasAccepted && !isChosen;
 
   return (
-    <motion.button
+    <motion.div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       whileHover={hasAccepted ? {} : { y: -2 }}
       animate={isActive ? { scale: 1.02 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300 }}
-      className="w-full rounded-xl p-3 text-left transition-all"
+      className="w-full cursor-pointer rounded-xl p-3 text-left transition-all"
       style={{
         backgroundColor: 'var(--theme-bg, #FAF7F2)',
         border: isChosen ? '2px solid #16a34a' : isActive ? '2px solid var(--theme-primary, #1A1A1A)' : '2px solid transparent',
@@ -296,6 +308,18 @@ const VariantCard = ({ variant, isActive, onClick, showPrice, pricingMode, peopl
           </span>
         )}
       </div>
-    </motion.button>
+
+      {onChoose && !isChosen && !hasAccepted && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onChoose(variant.id); }}
+          className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-lg border-2 px-3 font-body text-sm font-semibold transition-colors"
+          style={{ borderColor: 'var(--theme-primary, #1A1A1A)', color: 'var(--theme-primary, #1A1A1A)' }}
+        >
+          Wybieram ten wariant
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </motion.div>
   );
 };

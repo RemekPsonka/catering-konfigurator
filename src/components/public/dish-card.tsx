@@ -210,11 +210,13 @@ export const DishCard = ({
                         e.stopPropagation();
                         onModificationChange(undefined);
                       }}
-                      className="flex h-5 w-5 items-center justify-center rounded-full"
-                      style={{ backgroundColor: 'var(--theme-secondary, #e8e4dd)' }}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full"
                       title="Cofnij zmianę"
+                      aria-label="Cofnij zmianę"
                     >
-                      <X className="h-3 w-3" style={{ color: 'var(--theme-text, #1A1A1A)' }} />
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--theme-secondary, #e8e4dd)' }}>
+                        <X className="h-3.5 w-3.5" style={{ color: 'var(--theme-text, #1A1A1A)' }} />
+                      </span>
                     </motion.button>
                   )}
                   {isEditable && (
@@ -223,9 +225,10 @@ export const DishCard = ({
                         e.stopPropagation();
                         onToggleExpand?.();
                       }}
-                      className="flex shrink-0 items-center gap-1 font-body text-xs font-medium transition-colors hover:underline"
+                      className="flex min-h-[44px] shrink-0 items-center gap-1 px-1 font-body text-xs font-medium transition-colors hover:underline"
                       style={{ color: 'var(--theme-accent, #c9a84c)' }}
                       title="Kliknij aby zobaczyć alternatywy"
+                      aria-label="Wymień danie na inne"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                       <span>wymień na inne</span>

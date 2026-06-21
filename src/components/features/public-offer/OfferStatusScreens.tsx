@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
-import { FileX2, Sparkles, Phone, Mail, Search } from 'lucide-react';
+import { FileX2, Sparkles, Phone, Mail, Search, CalendarClock } from 'lucide-react';
 import { COMPANY } from '@/lib/company-config';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 export const InvalidTokenScreen = () => (
   <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
@@ -64,16 +66,31 @@ export const LostScreen = () => (
   </div>
 );
 
-export const ExpiredScreen = () => (
-  <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4">
-    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
-      <FileX2 className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
-      <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">Oferta wygasła</h1>
-      <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">Ta oferta wygasła. Skontaktuj się z nami w celu przedłużenia ważności.</p>
-      <ContactLinks />
-    </motion.div>
-  </div>
-);
+export const ExpiredScreen = ({ validUntil }: { validUntil?: string | null }) => {
+  const dateStr = validUntil ? format(new Date(validUntil), 'd MMMM yyyy', { locale: pl }) : null;
+  const renewSubject = encodeURIComponent('Prośba o aktualną ofertę cateringową');
+  const renewBody = encodeURIComponent('Dzień dobry,\n\nMoja oferta wygasła. Proszę o przygotowanie zaktualizowanej wyceny z aktualnymi cenami i dostępnością.\n\nLink do oferty: ' + (typeof window !== 'undefined' ? window.location.href : ''));
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4 py-12">
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-lg text-center">
+        <CalendarClock className="mx-auto mb-6 h-16 w-16 text-charcoal/30" />
+        <h1 className="font-display text-3xl font-bold text-charcoal md:text-4xl">
+          {dateStr ? `Ta oferta wygasła w dniu ${dateStr}` : 'Ta oferta wygasła'}
+        </h1>
+        <p className="mt-4 font-body text-lg text-charcoal/60 leading-relaxed">
+          Chętnie przygotujemy zaktualizowaną wycenę z aktualnymi cenami i dostępnością.
+        </p>
+        <a
+          href={`mailto:${COMPANY.email}?subject=${renewSubject}&body=${renewBody}`}
+          className="mt-8 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-charcoal px-6 py-3 font-body font-semibold text-ivory tracking-wide transition-all hover:bg-charcoal/90"
+        >
+          <Mail className="h-4 w-4" /> Poproś o aktualną ofertę
+        </a>
+        <ContactLinks />
+      </motion.div>
+    </div>
+  );
+};
 
 const ContactLinks = () => (
   <div className="mt-8 flex flex-col items-center gap-4">
