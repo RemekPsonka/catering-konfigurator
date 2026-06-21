@@ -57,7 +57,7 @@ const resolveVariantLabel = (optionValue: string | null, modifiableItems: Json |
 
   // Maybe it's already a label
   const found = options.find(o => o.label === optionValue);
-  if (found) return found.label;
+  if (found?.label) return found.label;
 
   return optionValue;
 };
