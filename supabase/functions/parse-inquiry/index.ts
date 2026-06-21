@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { requireAuth, corsHeaders } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,6 +7,10 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: tylko zalogowany uzytkownik moze korzystac z AI (cost protection)
+    const authResult = await requireAuth(req);
+    if (authResult instanceof Response) return authResult;
+
     const { inquiry_text } = await req.json();
 
     if (!inquiry_text || typeof inquiry_text !== "string" || inquiry_text.trim().length < 20) {
