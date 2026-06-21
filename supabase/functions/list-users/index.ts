@@ -27,6 +27,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
+    // SECURITY: tylko admin moze zarzadzac kontami (privilege escalation prevention)
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'admin') {
+      return new Response(
+        JSON.stringify({ error: 'Tylko administrator moze zarzadzac kontami uzytkownikow' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
